@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { notificationsAPI } from '@/lib/api';
+import { notificationsAPI, recipesAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { HiBell, HiCheck, HiOutlineInbox, HiChevronLeft, HiChevronRight } from 'react-icons/hi';
+import { HiBell, HiCheck, HiOutlineInbox, HiChevronLeft, HiChevronRight, HiEye } from 'react-icons/hi';
 import Link from 'next/link';
 
 export default function NotificationsPage() {
@@ -16,6 +16,13 @@ export default function NotificationsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+
+  // Edit history modal
+  const [historyModal, setHistoryModal] = useState<{ isOpen: boolean; recipeId: string; histories: any[] }>({
+    isOpen: false,
+    recipeId: '',
+    histories: [],
+  });
 
   const loadNotifications = async (targetPage = 1) => {
     setLoading(true);
@@ -45,7 +52,12 @@ export default function NotificationsPage() {
         // Dispatch window event to refresh navbar count
         window.dispatchEvent(new Event('update-personal-notifications-count'));
       }
-      if (notif.post?.id) {
+      if (notif.type === 'EDITED') {
+        // For edited notifications, open changes details
+        if (notif.postId) {
+          handleViewChanges(notif.postId);
+        }
+      } else if (notif.post?.id) {
         router.push(`/recipes/${notif.post.id}`);
       } else {
         // Refresh list
@@ -68,12 +80,30 @@ export default function NotificationsPage() {
     }
   };
 
+  const handleViewChanges = async (recipeId: string) => {
+    try {
+      const res = await recipesAPI.getEditHistory(recipeId);
+      setHistoryModal({
+        isOpen: true,
+        recipeId,
+        histories: res.data || [],
+      });
+    } catch (err) {
+      toast.error('Không thể tải lịch sử chỉnh sửa.');
+    }
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case 'APPROVED': return '✅';
+      case 'REJECTED': return '❌';
+      case 'EDITED': return '📝';
       case 'RATE_POST': return '⭐';
       case 'COMMENT_POST': return '💬';
       case 'REPLY_COMMENT': return '↩️';
-      case 'SAVE_RECIPE': return '💾';
+      case 'SAVE_RECIPE': return '❤️';
+      case 'COMMENT': return '💬';
+      case 'LIKE': return '❤️';
       default: return '🔔';
     }
   };
@@ -111,7 +141,7 @@ export default function NotificationsPage() {
             <HiBell className="text-brand-primary" /> Thông báo cá nhân
           </h1>
           <p className="text-xs text-slate-400 font-semibold mt-1">
-            Theo dõi tất cả lượt thích, đánh giá và tương tác về công thức món ăn của bạn ({total})
+            Theo dõi kiểm duyệt, lượt thích, đánh giá và tương tác về công thức món ăn của bạn ({total})
           </p>
         </div>
         {notifications.some(n => !n.isRead) && (
@@ -134,7 +164,7 @@ export default function NotificationsPage() {
         <div className="bg-white border border-brand-light-border rounded-brand-lg p-16 text-center shadow-brand-sm flex flex-col justify-center items-center">
           <HiOutlineInbox className="text-6xl text-slate-300 mb-3" />
           <h3 className="font-bold text-slate-800 text-lg">Hộp thư thông báo trống</h3>
-          <p className="text-slate-400 text-sm mt-1">Bạn chưa nhận được bất kỳ tương tác nào từ người dùng khác.</p>
+          <p className="text-slate-400 text-sm mt-1">Bạn chưa nhận được bất kỳ tương tác nào từ hệ thống.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -148,7 +178,7 @@ export default function NotificationsPage() {
                 }`}
               >
                 <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0 text-lg font-bold text-brand-primary overflow-hidden shadow-brand-sm">
-                  {notif.actor?.avatarUrl ? (
+                  {notif.actor?.avatarUrl && notif.type !== 'APPROVED' && notif.type !== 'REJECTED' && notif.type !== 'EDITED' ? (
                     <img src={notif.actor.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
                   ) : (
                     <span>{getNotificationIcon(notif.type)}</span>
@@ -156,14 +186,27 @@ export default function NotificationsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start gap-3">
-                    <p className="text-sm text-slate-700 font-semibold leading-relaxed break-words">
-                      {notif.message}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-slate-700 font-semibold leading-relaxed break-words">
+                        {notif.message}
+                      </p>
+                      {notif.type === 'EDITED' && notif.postId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewChanges(notif.postId);
+                          }}
+                          className="mt-2.5 flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 border border-blue-250 text-blue-700 text-xs font-bold rounded-lg transition-all cursor-pointer"
+                        >
+                          <HiEye className="text-sm" /> Xem chi tiết thay đổi
+                        </button>
+                      )}
+                    </div>
                     {!notif.isRead && (
                       <span className="w-2.5 h-2.5 rounded-full bg-brand-primary shrink-0 mt-1.5" title="Chưa đọc" />
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-450 font-medium">
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400 font-semibold">
                     <span>{formatRelativeTime(notif.createdAt)}</span>
                     {notif.post && (
                       <>
@@ -201,6 +244,69 @@ export default function NotificationsPage() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Edit History Modal */}
+      {historyModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl p-4 sm:p-6 shadow-2xl border border-gray-250 max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+            <div className="flex items-center justify-between border-b pb-3 flex-shrink-0">
+              <h3 className="text-base font-bold text-slate-800">Lịch sử thay đổi nội dung từ Admin</h3>
+              <button
+                onClick={() => setHistoryModal(prev => ({ ...prev, isOpen: false }))}
+                className="text-gray-400 hover:text-gray-655 font-bold border-none bg-transparent cursor-pointer text-xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 my-4 pr-1">
+              {historyModal.histories.length === 0 ? (
+                <p className="text-sm text-slate-455 italic text-center py-6">Không tìm thấy lịch sử chỉnh sửa nào.</p>
+              ) : (
+                <div className="space-y-6">
+                  <p className="text-xs font-bold text-brand-primary uppercase bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                    Bài viết đã được chỉnh sửa bởi Quản trị viên
+                  </p>
+                  <div className="divide-y divide-gray-100">
+                    {historyModal.histories.map((hist, i) => (
+                      <div key={hist.id} className={`py-4 ${i > 0 ? 'mt-4' : ''}`}>
+                        <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
+                          <span className="font-semibold text-gray-700">Người sửa: {hist.editor?.fullName || 'Admin'}</span>
+                          <span>Thời gian: {new Date(hist.createdAt).toLocaleString('vi-VN')}</span>
+                        </div>
+                        <div className="space-y-3">
+                          {hist.changes?.map((change: any, idx: number) => (
+                            <div key={idx} className="space-y-1">
+                              <span className="text-xs font-bold text-slate-600 block">{change.field}:</span>
+                              <div className="text-xs font-medium space-y-1">
+                                <pre className="bg-red-50 text-red-700 p-2.5 rounded-xl border border-red-150/40 font-mono whitespace-pre-wrap leading-relaxed">
+                                  - {change.oldValue}
+                                </pre>
+                                <pre className="bg-green-50 text-green-700 p-2.5 rounded-xl border border-green-150/40 font-mono whitespace-pre-wrap leading-relaxed">
+                                  + {change.newValue}
+                                </pre>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-3 border-t flex-shrink-0">
+              <button
+                onClick={() => setHistoryModal(prev => ({ ...prev, isOpen: false }))}
+                className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

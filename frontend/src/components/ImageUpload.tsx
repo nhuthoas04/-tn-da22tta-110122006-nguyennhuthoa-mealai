@@ -1,7 +1,7 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { uploadAPI } from '@/lib/api';
-import { HiPhotograph, HiX, HiUpload } from 'react-icons/hi';
+import { HiPhotograph, HiX } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001';
@@ -15,7 +15,12 @@ interface ImageUploadProps {
 export default function ImageUpload({ value, onChange, label = 'Ảnh món ăn' }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setUrlInput(value?.startsWith('http') ? value : '');
+  }, [value]);
 
   const handleUpload = async (file: File) => {
     if (!file) return;
@@ -45,6 +50,23 @@ export default function ImageUpload({ value, onChange, label = 'Ảnh món ăn' 
     setDragActive(false);
     const file = e.dataTransfer.files?.[0];
     if (file) handleUpload(file);
+  };
+
+  const handleUseImageUrl = () => {
+    const nextUrl = urlInput.trim();
+
+    if (!nextUrl) {
+      onChange('');
+      return;
+    }
+
+    if (!/^https?:\/\/.+/i.test(nextUrl)) {
+      toast.error('Vui lòng nhập link ảnh bắt đầu bằng http:// hoặc https://');
+      return;
+    }
+
+    onChange(nextUrl);
+    toast.success('Đã dùng link ảnh');
   };
 
   const imageUrl = value ? (value.startsWith('http') ? value : `${API_BASE}${value}`) : '';
@@ -100,13 +122,38 @@ export default function ImageUpload({ value, onChange, label = 'Ảnh món ăn' 
                 <HiPhotograph className="text-2xl text-purple-600" />
               </div>
               <p className="text-sm font-medium text-gray-700">
-                Kéo thả ảnh hoặc <span className="text-purple-600">chọn file</span>
+                Kéo thả ảnh, <span className="text-purple-600">chọn file</span> hoặc dán link ảnh bên dưới
               </p>
               <p className="text-xs text-gray-400">JPG, PNG, WebP - Tối đa 5MB</p>
             </div>
           )}
         </div>
       )}
+
+      <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+          Hoặc dùng đường link ảnh
+        </label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            type="url"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            placeholder="https://example.com/anh-mon-an.jpg"
+            className="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none bg-white"
+          />
+          <button
+            type="button"
+            onClick={handleUseImageUrl}
+            className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition"
+          >
+            Dùng link
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-gray-400">
+          Hỗ trợ ảnh công khai từ internet. Link sẽ được lưu trực tiếp vào công thức.
+        </p>
+      </div>
 
       <input
         ref={fileRef}

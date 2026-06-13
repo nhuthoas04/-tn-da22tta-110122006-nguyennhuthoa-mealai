@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -43,7 +47,8 @@ export class PasswordResetService {
     const port = this.configService.get<number>('MAIL_PORT') || 587;
     const userMail = this.configService.get<string>('MAIL_USER');
     const passMail = this.configService.get<string>('MAIL_PASS');
-    const fromMail = this.configService.get<string>('MAIL_FROM') || 'no-reply@recipe-ai.com';
+    const fromMail =
+      this.configService.get<string>('MAIL_FROM') || 'no-reply@recipe-ai.com';
 
     if (!host || !userMail || !passMail) {
       console.log(`\n======================================================`);
@@ -55,7 +60,8 @@ export class PasswordResetService {
 
       return {
         success: true,
-        message: 'Mã OTP đã được tạo (Chế độ Fallback: Vui lòng kiểm tra Console của Server)',
+        message:
+          'Mã OTP đã được tạo (Chế độ Fallback: Vui lòng kiểm tra Console của Server)',
         email: dto.email,
         otp: otp, // Trả về OTP trong response khi chạy offline để tiện test
       };

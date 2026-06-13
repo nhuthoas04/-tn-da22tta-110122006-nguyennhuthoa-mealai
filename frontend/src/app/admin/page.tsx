@@ -29,7 +29,7 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-gray-900">Tổng quan</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-32 bg-white rounded-2xl border border-gray-200 animate-pulse" />
           ))}
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((card, i) => {
           const cardContent = (
             <div className="flex items-center justify-between">
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
       {/* Quick Actions */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Hành động nhanh</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <Link
             href="/admin/recipes/create"
             className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all"

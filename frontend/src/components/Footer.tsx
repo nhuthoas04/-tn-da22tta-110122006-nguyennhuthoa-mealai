@@ -2,8 +2,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { HiSparkles, HiMail, HiGlobeAlt } from 'react-icons/hi';
-import { FaGithub } from 'react-icons/fa';
+import { HiSparkles, HiMail } from 'react-icons/hi';
+import { FaFacebook, FaGithub, FaInstagram } from 'react-icons/fa';
 import ScrollReveal from '@/components/animations/ScrollReveal';
 
 export default function Footer() {
@@ -47,22 +47,27 @@ function LandingFooter() {
           <ul className="space-y-2.5 text-xs font-semibold">
             <li>
               <Link href="/recipes" className="hover:text-brand-primary hover:translate-x-1 inline-block transition-all duration-200">
-                AI Recommendation
+                Công thức
               </Link>
             </li>
             <li>
               <Link href="/meal-planner" className="hover:text-brand-primary hover:translate-x-1 inline-block transition-all duration-200">
-                Meal Planner
+                Thực đơn
               </Link>
             </li>
             <li>
-              <Link href="/inventory" className="hover:text-brand-primary hover:translate-x-1 inline-block transition-all duration-200">
-                Smart Inventory
+              <Link href="/nutrition" className="hover:text-brand-primary hover:translate-x-1 inline-block transition-all duration-200">
+                Dinh dưỡng & AI Insights
               </Link>
             </li>
             <li>
               <Link href="/shopping-list" className="hover:text-brand-primary hover:translate-x-1 inline-block transition-all duration-200">
-                Shopping List
+                Mua sắm
+              </Link>
+            </li>
+            <li>
+              <Link href="/inventory" className="hover:text-brand-primary hover:translate-x-1 inline-block transition-all duration-200">
+                Tủ lạnh
               </Link>
             </li>
           </ul>
@@ -73,19 +78,24 @@ function LandingFooter() {
           <h5 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Liên hệ</h5>
           <ul className="space-y-2.5 text-xs font-semibold">
             <li>
-              <a href="mailto:support@mealai.vn" className="flex items-center gap-2 hover:text-brand-primary hover:translate-x-1 inline-flex transition-all duration-200">
-                <HiMail className="text-sm" /> support@mealai.vn
+              <a href="mailto:nhuthoas04@gmail.com" className="flex items-center gap-2 hover:text-brand-primary hover:translate-x-1 inline-flex transition-all duration-200">
+                <HiMail className="text-sm" /> nhuthoas04@gmail.com
               </a>
             </li>
             <li>
-              <a href="https://github.com/recipe-meal-ai" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-brand-primary hover:translate-x-1 inline-flex transition-all duration-200">
-                <FaGithub className="text-sm" /> github.com/recipe-meal-ai
+              <a href="https://github.com/nhuthoas04/Meal-AI" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-brand-primary hover:translate-x-1 inline-flex transition-all duration-200">
+                <FaGithub className="text-sm" /> nhuthoas04/Meal-AI
               </a>
             </li>
             <li>
-              <Link href="/" className="flex items-center gap-2 hover:text-brand-primary hover:translate-x-1 inline-flex transition-all duration-200">
-                <HiGlobeAlt className="text-sm" /> mealai.vn
-              </Link>
+              <a href="https://www.facebook.com/nhathoa.nguyen.2711" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-brand-primary hover:translate-x-1 inline-flex transition-all duration-200">
+                <FaFacebook className="text-sm" /> nhathoa.nguyen.2711
+              </a>
+            </li>
+            <li>
+              <a href="https://www.instagram.com/nhhoas_/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-brand-primary hover:translate-x-1 inline-flex transition-all duration-200">
+                <FaInstagram className="text-sm" /> nhhoas_
+              </a>
             </li>
           </ul>
         </div>
@@ -95,12 +105,12 @@ function LandingFooter() {
           <h5 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Pháp lý</h5>
           <ul className="space-y-2.5 text-xs font-semibold">
             <li>
-              <Link href="/privacy" className="hover:text-brand-primary hover:translate-x-1 inline-block transition-all duration-200">
+              <Link href="/privacy-policy" className="hover:text-brand-primary hover:translate-x-1 inline-block transition-all duration-200">
                 Chính sách bảo mật
               </Link>
             </li>
             <li>
-              <Link href="/terms" className="hover:text-brand-primary hover:translate-x-1 inline-block transition-all duration-200">
+              <Link href="/terms-of-service" className="hover:text-brand-primary hover:translate-x-1 inline-block transition-all duration-200">
                 Điều khoản sử dụng
               </Link>
             </li>

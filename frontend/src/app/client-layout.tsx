@@ -8,6 +8,16 @@ import VoiceAssistantButton from '@/components/VoiceAssistantButton';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+const publicPaths = [
+  '/',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/privacy-policy',
+  '/terms-of-service',
+];
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -15,14 +25,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading) {
-      const isPublicPath = ['/', '/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
+      const isPublicPath = publicPaths.includes(pathname);
       if (!isPublicPath && !user) {
         router.push('/login');
       }
     }
   }, [user, loading, pathname, router]);
 
-  const isPublicPath = ['/', '/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
+  const isPublicPath = publicPaths.includes(pathname);
 
   if (loading || (!isPublicPath && !user)) {
     return (
@@ -43,7 +53,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className={`flex-grow ${isLandingPage ? "" : "max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full"}`}>
+      <main className={`flex-grow ${isLandingPage ? "" : "max-w-7xl mx-auto px-3 py-4 w-full sm:px-6 sm:py-6"}`}>
         <AuthGuard>{children}</AuthGuard>
       </main>
       <Footer />

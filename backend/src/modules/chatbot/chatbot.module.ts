@@ -17,7 +17,12 @@ import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ChatMessage, User, UserActionLog, VoiceCommandLog]),
+    TypeOrmModule.forFeature([
+      ChatMessage,
+      User,
+      UserActionLog,
+      VoiceCommandLog,
+    ]),
     RecipesModule,
     InventoryModule,
     MealPlanModule,

@@ -100,6 +100,11 @@ export default function ChatWidget() {
     }
   }, [isOpen]);
 
+  // Dispatch toggle event for VoiceAssistant synchronization
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('chat-widget-toggle', { detail: { isOpen } }));
+  }, [isOpen]);
+
   // Scroll to bottom on new messages
   useEffect(() => {
     scrollToBottom();
@@ -145,6 +150,28 @@ export default function ChatWidget() {
     return query ? `/meal-planner?${query}` : '/meal-planner';
   };
 
+  const normalizeRecipeResults = (result: any) => {
+    const source =
+      Array.isArray(result)
+        ? result
+        : Array.isArray(result?.recommendations)
+          ? result.recommendations
+          : Array.isArray(result?.data?.recommendations)
+            ? result.data.recommendations
+            : Array.isArray(result?.data)
+              ? result.data
+              : [];
+
+    return source
+      .map((item: any) => item?.recipe || item)
+      .filter((recipe: any) => recipe && recipe.id);
+  };
+
+  const formatNutritionValue = (value: any, suffix = '') => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? `${Math.round(parsed)}${suffix}` : `0${suffix}`;
+  };
+
   const fetchHistory = async () => {
     try {
       const res = await chatbotAPI.getHistory();
@@ -175,6 +202,10 @@ export default function ChatWidget() {
 
     try {
       const res = await chatbotAPI.sendMessage(text);
+      console.log('[MealAI][chatbot] raw response:', res.data);
+      if (res.data?.actionTaken?.name === 'get_recommendations') {
+        console.log('[MealAI][chatbot][recommendations] result:', res.data.actionTaken.result);
+      }
       const assistantMsg: Message = {
         role: 'model',
         content: res.data.text,
@@ -263,10 +294,15 @@ export default function ChatWidget() {
     switch (name) {
       case 'get_recommendations':
       case 'search_recipes':
-        const recipes = result.recommendations 
-          ? result.recommendations.map((r: any) => r.recipe) 
-          : result.data;
-        if (!recipes || recipes.length === 0) return null;
+        const recipes = normalizeRecipeResults(result);
+        console.log('[MealAI][chatbot][recipes normalized]:', recipes);
+        if (!recipes || recipes.length === 0) {
+          return (
+            <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300">
+              Không tìm thấy món ăn phù hợp với nhu cầu hiện tại.
+            </div>
+          );
+        }
         return (
           <div className="mt-3 grid grid-cols-1 gap-2">
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
@@ -291,9 +327,12 @@ export default function ChatWidget() {
                   )}
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">{recipe.name}</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      ⏱️ {recipe.cookingTime} phút | 🔥 {recipe.calories} kcal
-                    </p>
+                    <div className="mt-1 grid grid-cols-2 gap-x-1 gap-y-0.5 text-[10px] sm:text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                      <span>🔥 {formatNutritionValue(recipe.calories)} kcal</span>
+                      <span>Đạm {formatNutritionValue(recipe.protein, 'g')}</span>
+                      <span>Carbs {formatNutritionValue(recipe.carbs, 'g')}</span>
+                      <span>Fat {formatNutritionValue(recipe.fat, 'g')}</span>
+                    </div>
                   </div>
                   <Link 
                     href={`/recipes/${recipe.id}`}
@@ -409,12 +448,12 @@ export default function ChatWidget() {
   if (!user) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 flex flex-col items-end bottom-safe pointer-events-none">
       {/* Floating Chat Button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="w-14 h-14 bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-all duration-300 relative group animate-bounce-subtle"
+          className="w-14 h-14 bg-gradient-to-tr from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-all duration-300 relative group animate-bounce-subtle cursor-pointer pointer-events-auto"
           title="Trợ lý MealAI"
         >
           <span className="absolute -top-1.5 -right-1 flex h-3 w-3">
@@ -440,11 +479,11 @@ export default function ChatWidget() {
 
       {/* Chat Window Panel */}
       {isOpen && (
-        <div className="w-[380px] sm:w-[420px] h-[600px] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden transition-all duration-300 ease-out transform scale-100 animate-slide-in relative">
+        <div className="w-full sm:w-[420px] h-[80vh] sm:h-[600px] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 flex flex-col overflow-hidden transition-all duration-300 ease-out transform scale-100 animate-slide-in relative pointer-events-auto">
 
           {/* Header */}
-          <div className="p-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex items-center justify-between shadow-md">
-            <div className="flex items-center gap-3">
+          <div className="p-3 sm:p-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex items-center justify-between shadow-md">
+            <div className="flex items-center gap-2.5 sm:gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl font-bold border border-white/20">
                 🤖
               </div>
@@ -456,10 +495,10 @@ export default function ChatWidget() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={clearHistory}
-                className="p-1.5 hover:bg-white/10 rounded-lg text-emerald-100 hover:text-white transition"
+                className="w-11 h-11 flex items-center justify-center hover:bg-white/10 rounded-lg text-emerald-100 hover:text-white transition cursor-pointer"
                 title="Xóa cuộc trò chuyện"
               >
                 <svg
@@ -479,7 +518,7 @@ export default function ChatWidget() {
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 hover:bg-white/10 rounded-lg text-emerald-100 hover:text-white transition"
+                className="w-11 h-11 flex items-center justify-center hover:bg-white/10 rounded-lg text-emerald-100 hover:text-white transition cursor-pointer"
                 title="Đóng chat"
               >
                 <svg
@@ -590,7 +629,7 @@ export default function ChatWidget() {
                 key={i}
                 onClick={() => handleSend(s.prompt)}
                 disabled={loading}
-                className="whitespace-nowrap bg-white hover:bg-emerald-50 dark:bg-gray-800 dark:hover:bg-emerald-950 text-gray-700 hover:text-emerald-700 dark:text-gray-300 dark:hover:text-emerald-400 border border-gray-200 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-900 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm transition"
+                className="whitespace-nowrap bg-white hover:bg-emerald-50 dark:bg-gray-800 dark:hover:bg-emerald-950 text-gray-700 hover:text-emerald-700 dark:text-gray-300 dark:hover:text-emerald-400 border border-gray-200 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-900 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm transition cursor-pointer"
               >
                 {s.text}
               </button>
@@ -606,14 +645,14 @@ export default function ChatWidget() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSend();
               }}
-              placeholder="Ví dụ: tạo thực đơn ngày mai, thêm phở bò bữa sáng..."
+              placeholder="Ví dụ: tạo thực đơn ngày mai, thêm phở bò..."
               disabled={loading}
-              className="flex-1 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+              className="flex-1 bg-gray-50 dark:bg-gray-955 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
             />
             <button
               onClick={() => handleSend()}
               disabled={loading || !input.trim()}
-              className="w-10 h-10 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl flex items-center justify-center shadow-md shadow-emerald-500/10 hover:shadow-lg transition-all"
+              className="w-11 h-11 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl flex items-center justify-center shadow-md shadow-emerald-500/10 hover:shadow-lg transition-all cursor-pointer shrink-0"
             >
               <svg
                 className="w-5 h-5 transform rotate-90"
@@ -634,7 +673,7 @@ export default function ChatWidget() {
         </div>
       )}
 
-      {/* Global CSS Inject for simple custom animations */}
+      {/* Global CSS Inject for simple custom animations and safe area bottom positioning */}
       <style jsx global>{`
         @keyframes slideIn {
           from {
@@ -673,6 +712,9 @@ export default function ChatWidget() {
         .scrollbar-none {
           -ms-overflow-style: none;
           scrollbar-width: none;
+        }
+        .bottom-safe {
+          bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
         }
       `}</style>
     </div>

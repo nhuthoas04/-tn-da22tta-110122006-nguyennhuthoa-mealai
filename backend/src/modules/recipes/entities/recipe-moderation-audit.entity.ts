@@ -19,6 +19,9 @@ export class RecipeModerationAudit {
   @Column({ type: 'int' })
   qualityScore: number; // 0 - 100
 
+  @Column({ type: 'boolean', default: false })
+  aiEvaluationFailed: boolean;
+
   @Column({ type: 'simple-array', nullable: true })
   missingIngredients: string[];
 

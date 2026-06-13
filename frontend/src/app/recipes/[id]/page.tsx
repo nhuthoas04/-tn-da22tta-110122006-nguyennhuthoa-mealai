@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { recipesAPI, mealPlanAPI } from '@/lib/api';
+import { recipesAPI, mealPlanAPI, favoritesAPI } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
-import { HiClock, HiFire, HiHeart, HiUsers, HiArrowLeft, HiCalendar, HiX, HiStar } from 'react-icons/hi';
+import { HiClock, HiFire, HiHeart, HiOutlineHeart, HiUsers, HiArrowLeft, HiCalendar, HiX, HiStar } from 'react-icons/hi';
 import Link from 'next/link';
+import RecipeImage from '@/components/RecipeImage';
 
 const MEAL_OPTIONS = [
   {
@@ -36,23 +37,7 @@ const MEAL_OPTIONS = [
     text: 'text-blue-600',
     selected: 'ring-blue-300 border-blue-400 bg-blue-50',
   },
-  {
-    key: 'snack',
-    label: 'Phụ',
-    icon: '🍴',
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    text: 'text-purple-600',
-    selected: 'ring-purple-300 border-purple-400 bg-purple-50',
-  },
 ];
-
-const formatCount = (value: unknown) => {
-  const count = Number(value) || 0;
-  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(count >= 10_000_000 ? 0 : 1)}M`;
-  if (count >= 1_000) return `${(count / 1_000).toFixed(count >= 10_000 ? 0 : 1)}K`;
-  return String(count);
-};
 
 export default function RecipeDetailPage() {
   const params = useParams();
@@ -61,6 +46,7 @@ export default function RecipeDetailPage() {
   const [recipe, setRecipe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isFav, setIsFav] = useState(false);
+  const [favoriteSubmitting, setFavoriteSubmitting] = useState(false);
   const [servings, setServings] = useState<number>(4);
 
   const [planSelectorOpen, setPlanSelectorOpen] = useState(false);
@@ -113,15 +99,24 @@ export default function RecipeDetailPage() {
     if (!recipeId || Array.isArray(recipeId)) return;
     try {
       const res = await recipesAPI.getById(recipeId);
-      setRecipe(res.data);
-      setIsFav(Boolean(res.data.isFavorite ?? res.data.isFavorited));
+      const nextRecipe = res.data;
+      console.log(nextRecipe.imageUrl);
+
+      setRecipe(nextRecipe);
+      setIsFav(Boolean(nextRecipe.isFavorite ?? nextRecipe.isFavorited));
       const profileServings = (user as any)?.preferences?.servings;
-      setServings(profileServings || res.data.servings || 4);
+      setServings(profileServings || nextRecipe.servings || 4);
       
       // Save recipe to recently viewed list
-      saveToRecentlyViewed(res.data);
-    } catch {
-      toast.error('Không tìm thấy công thức');
+      saveToRecentlyViewed(nextRecipe);
+    } catch (err: any) {
+      console.error('Recipe detail request failed:', {
+        recipeId,
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
+      toast.error(err.response?.data?.message || 'Không tìm thấy công thức');
     }
   };
 
@@ -144,7 +139,7 @@ export default function RecipeDetailPage() {
       setLoading(false);
     };
     init();
-  }, [params.id]);
+  }, [params.id, user?.id]);
 
   const handleRatingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,8 +203,40 @@ export default function RecipeDetailPage() {
       toast.error('Vui lòng đăng nhập');
       return;
     }
+
+    if (!recipe?.id) {
+      toast.error('Không xác định được công thức cần yêu thích');
+      return;
+    }
+
+    if (favoriteSubmitting) return;
+
+    const tokenExists = typeof window !== 'undefined' && !!localStorage.getItem('accessToken');
+    const favoriteRequest = isFav
+      ? {
+          method: 'delete',
+          url: `/favorites/${recipe.id}`,
+          payload: null,
+        }
+      : {
+          method: 'post',
+          url: '/favorites',
+          payload: { recipeId: recipe.id },
+        };
+
+    console.log({
+      recipeId: recipe?.id,
+      userId: user?.id,
+      isFav,
+      tokenExists,
+      request: favoriteRequest,
+    });
+
+    setFavoriteSubmitting(true);
     try {
-      const res = await recipesAPI.toggleFavorite(recipe.id);
+      const res = isFav 
+        ? await favoritesAPI.remove(recipe.id)
+        : await favoritesAPI.add(recipe.id);
       const nextIsFavorite = Boolean(res.data.isFavorite ?? res.data.isFavorited);
       setIsFav(nextIsFavorite);
       setRecipe((prev: any) => prev ? {
@@ -219,8 +246,24 @@ export default function RecipeDetailPage() {
         favoriteCount: res.data.favoriteCount ?? prev.favoriteCount ?? 0,
       } : prev);
       toast.success(res.data.message);
-    } catch {
-      toast.error('Có lỗi xảy ra');
+    } catch (err: any) {
+      console.error('Favorite update failed:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+        url: err.config?.url,
+        method: err.config?.method,
+        baseURL: err.config?.baseURL,
+        requestPayload: err.config?.data,
+        recipeId: recipe?.id,
+        userId: user?.id,
+        action: isFav ? 'remove' : 'add',
+        tokenExists,
+        expectedRequest: favoriteRequest,
+      });
+      toast.error(err.response?.data?.message || err.message || 'Không thể cập nhật yêu thích');
+    } finally {
+      setFavoriteSubmitting(false);
     }
   };
 
@@ -323,17 +366,13 @@ export default function RecipeDetailPage() {
 
       <div className="bg-white border border-brand-light-border rounded-brand-lg overflow-hidden shadow-brand-md transition-all duration-300">
         <div className="h-64 bg-slate-100 relative overflow-hidden select-none">
-          {recipe.imageUrl ? (
-            <img
-              src={recipe.imageUrl.startsWith('http') ? recipe.imageUrl : `http://localhost:3001${recipe.imageUrl}`}
-              alt={recipe.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-r from-brand-emerald to-brand-teal flex items-center justify-center">
-              <span className="text-8xl animate-brand-float">🍳</span>
-            </div>
-          )}
+          <RecipeImage
+            src={recipe.imageUrl}
+            alt={recipe.name}
+            className="h-full w-full object-cover"
+            fallbackClassName="flex h-full w-full items-center justify-center bg-gradient-to-r from-brand-emerald to-brand-teal text-white"
+            iconClassName="text-8xl animate-brand-float"
+          />
         </div>
         <div className="p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -358,24 +397,26 @@ export default function RecipeDetailPage() {
                 <p className="text-xs text-slate-400 mt-2 font-medium">Chưa có đánh giá nào</p>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={openPlanSelector}
-                className="btn-primary"
+                className="btn-primary w-full sm:w-auto justify-center"
               >
                 <HiCalendar className="text-base" />
                 Thêm vào thực đơn
               </button>
               <button
                 onClick={toggleFav}
-                className={`inline-flex items-center gap-1.5 px-3 py-3 rounded-brand-sm border transition-all cursor-pointer ${
-                  isFav ? 'bg-red-50 border-brand-danger/30 text-brand-danger shadow-brand-sm' : 'bg-slate-50 border-brand-light-border text-slate-400 hover:text-brand-danger'
-                }`}
+                disabled={favoriteSubmitting}
+                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-brand-sm border font-semibold text-sm transition-all cursor-pointer w-full sm:w-auto ${
+                  isFav 
+                    ? 'bg-red-50 border-brand-danger/30 text-brand-danger shadow-brand-sm' 
+                    : 'bg-slate-50 border-brand-light-border text-slate-600 hover:text-brand-danger hover:bg-red-50/30'
+                } ${favoriteSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                 aria-label="Yêu thích"
-                title="Lưu công thức"
               >
-                <HiHeart className="text-xl" />
-                <span className="text-sm font-bold">{formatCount(recipe.favoriteCount)}</span>
+                {isFav ? <HiHeart className="text-xl" /> : <HiOutlineHeart className="text-xl" />}
+                <span>{isFav ? 'Đã yêu thích' : 'Yêu thích'}</span>
               </button>
             </div>
           </div>
@@ -740,7 +781,7 @@ export default function RecipeDetailPage() {
 
       {planSelectorOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-brand-lg bg-white shadow-brand-lg border border-brand-light-border overflow-hidden">
+          <div className="w-full max-w-2xl rounded-brand-lg bg-white shadow-brand-lg border border-brand-light-border overflow-hidden max-h-[90vh] flex flex-col animate-scale-up">
             <div className="flex items-start justify-between gap-4 px-7 py-6 border-b border-brand-light-border">
               <div>
                 <h2 className="flex items-center gap-3 text-2xl font-bold text-slate-955">
@@ -760,10 +801,10 @@ export default function RecipeDetailPage() {
               </button>
             </div>
 
-            <div className="px-7 py-6 space-y-7 bg-slate-50/20">
+            <div className="px-7 py-6 space-y-7 bg-slate-50/20 overflow-y-auto flex-1">
               <section>
                 <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider mb-3">Chọn ngày</h3>
-                <div className="flex flex-wrap gap-2.5 mb-4">
+                <div className="grid grid-cols-3 gap-2.5 mb-4">
                   {[
                     { label: 'Hôm nay', offset: 0 },
                     { label: 'Ngày mai', offset: 1 },
@@ -779,7 +820,7 @@ export default function RecipeDetailPage() {
                         key={item.label}
                         type="button"
                         onClick={() => setQuickDate(item.offset)}
-                        className={`px-4 py-2 rounded-brand-sm border font-bold text-sm transition-all cursor-pointer ${
+                        className={`h-10 rounded-brand-sm border font-bold text-sm transition-all cursor-pointer ${
                           active
                             ? 'bg-brand-primary border-brand-primary text-white shadow-brand-glow'
                             : 'bg-white border-brand-light-border text-slate-800 hover:border-brand-primary/30 hover:bg-brand-primary/5'
@@ -791,27 +832,25 @@ export default function RecipeDetailPage() {
                   })}
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_112px] gap-3">
                   <div className="relative flex-1">
                     <input
                       type="date"
                       value={selectedDate}
                       min={todayValue}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full rounded-brand-sm border border-brand-light-border px-4 py-3 text-slate-900 shadow-brand-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10"
+                      className="h-12 w-full rounded-brand-sm border border-brand-light-border px-4 text-slate-900 shadow-brand-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10"
                     />
                   </div>
-                  {selectedDate === todayValue && (
-                    <span className="self-start sm:self-auto rounded-brand-sm bg-slate-100 px-4 py-3 text-sm text-slate-650 font-bold border border-brand-light-border">
-                      Hôm nay
-                    </span>
-                  )}
+                  <span className="flex h-12 items-center justify-center rounded-brand-sm bg-slate-100 px-4 text-sm text-slate-650 font-bold border border-brand-light-border">
+                    {selectedDate === todayValue ? 'Hôm nay' : 'Đã chọn'}
+                  </span>
                 </div>
               </section>
 
               <section>
                 <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wider mb-3">Chọn bữa ăn</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {MEAL_OPTIONS.map((meal) => {
                     const active = selectedMeal === meal.key;
 
@@ -820,13 +859,13 @@ export default function RecipeDetailPage() {
                         key={meal.key}
                         type="button"
                         onClick={() => setSelectedMeal(meal.key)}
-                        className={`min-h-[128px] rounded-brand-md border p-5 text-left transition-all shadow-brand-sm cursor-pointer ${
+                        className={`min-h-[132px] rounded-brand-md border p-5 text-left transition-all shadow-brand-sm cursor-pointer ${
                           active
                             ? `${meal.selected} ring-2 ring-brand-primary`
                             : `${meal.bg} ${meal.border} hover:shadow-brand-md hover:-translate-y-0.5`
                         }`}
                       >
-                        <div className="flex items-center gap-4">
+                        <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
                           <span className={`flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl shadow-brand-sm ${meal.text}`}>
                             {meal.icon}
                           </span>

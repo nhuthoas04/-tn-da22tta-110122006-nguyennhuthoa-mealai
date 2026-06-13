@@ -8,11 +8,21 @@ export class TtsService {
   constructor(private readonly configService: ConfigService) {}
 
   async generateSpeech(text: string): Promise<Buffer | null> {
-    const azureKey = this.configService.get<string>('AZURE_SPEECH_KEY') || process.env.AZURE_SPEECH_KEY;
-    const azureRegion = this.configService.get<string>('AZURE_SPEECH_REGION') || process.env.AZURE_SPEECH_REGION || 'southeastasia';
-    
-    const elevenLabsKey = this.configService.get<string>('ELEVENLABS_API_KEY') || process.env.ELEVENLABS_API_KEY;
-    const elevenLabsVoiceId = this.configService.get<string>('ELEVENLABS_VOICE_ID') || process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
+    const azureKey =
+      this.configService.get<string>('AZURE_SPEECH_KEY') ||
+      process.env.AZURE_SPEECH_KEY;
+    const azureRegion =
+      this.configService.get<string>('AZURE_SPEECH_REGION') ||
+      process.env.AZURE_SPEECH_REGION ||
+      'southeastasia';
+
+    const elevenLabsKey =
+      this.configService.get<string>('ELEVENLABS_API_KEY') ||
+      process.env.ELEVENLABS_API_KEY;
+    const elevenLabsVoiceId =
+      this.configService.get<string>('ELEVENLABS_VOICE_ID') ||
+      process.env.ELEVENLABS_VOICE_ID ||
+      '21m00Tcm4TlvDq8ikWAM';
 
     // 1. Try Azure Speech Service (Preferred for Vietnamese Neural Voice)
     if (azureKey) {
@@ -44,7 +54,9 @@ export class TtsService {
           return Buffer.from(arrayBuffer);
         } else {
           const errText = await response.text();
-          this.logger.warn(`Azure TTS failed: Status ${response.status} - ${errText}`);
+          this.logger.warn(
+            `Azure TTS failed: Status ${response.status} - ${errText}`,
+          );
         }
       } catch (e: any) {
         this.logger.error(`Azure TTS Exception: ${e.message}`);
@@ -61,7 +73,7 @@ export class TtsService {
           headers: {
             'xi-api-key': elevenLabsKey,
             'Content-Type': 'application/json',
-            'accept': 'audio/mpeg',
+            accept: 'audio/mpeg',
           },
           body: JSON.stringify({
             text: text,
@@ -78,7 +90,9 @@ export class TtsService {
           return Buffer.from(arrayBuffer);
         } else {
           const errText = await response.text();
-          this.logger.warn(`ElevenLabs TTS failed: Status ${response.status} - ${errText}`);
+          this.logger.warn(
+            `ElevenLabs TTS failed: Status ${response.status} - ${errText}`,
+          );
         }
       } catch (e: any) {
         this.logger.error(`ElevenLabs TTS Exception: ${e.message}`);
@@ -92,12 +106,18 @@ export class TtsService {
   private escapeXml(unsafe: string): string {
     return unsafe.replace(/[<>&'"]/g, (c) => {
       switch (c) {
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '&': return '&amp;';
-        case '\'': return '&apos;';
-        case '"': return '&quot;';
-        default: return c;
+        case '<':
+          return '&lt;';
+        case '>':
+          return '&gt;';
+        case '&':
+          return '&amp;';
+        case "'":
+          return '&apos;';
+        case '"':
+          return '&quot;';
+        default:
+          return c;
       }
     });
   }

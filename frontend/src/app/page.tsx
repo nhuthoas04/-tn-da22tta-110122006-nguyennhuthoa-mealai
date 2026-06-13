@@ -17,11 +17,83 @@ import {
   HiTrendingUp, HiPlus, HiFolderOpen
 } from 'react-icons/hi';
 
+type RecommendationItem = {
+  recipe: any;
+  score: {
+    total: number;
+    nutritionScore: number;
+    ingredientMatch: number;
+    wasteReduction: number;
+    preferenceMatch: number;
+    cookTimeScore: number;
+  };
+  reasons?: string[];
+  matchedInventory?: any[];
+  missingIngredients?: any[];
+};
+
+const EMPTY_RECOMMENDATION_MESSAGE = 'Không tìm thấy món ăn phù hợp với nhu cầu hiện tại.';
+
+const toNumber = (value: any, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeScore = (score: any = {}) => ({
+  total: toNumber(score.total),
+  nutritionScore: toNumber(score.nutritionScore),
+  ingredientMatch: toNumber(score.ingredientMatch),
+  wasteReduction: toNumber(score.wasteReduction),
+  preferenceMatch: toNumber(score.preferenceMatch),
+  cookTimeScore: toNumber(score.cookTimeScore),
+});
+
+const normalizeRecommendationResponse = (payload: any): RecommendationItem[] => {
+  const source =
+    Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.recommendations)
+        ? payload.recommendations
+        : Array.isArray(payload?.data?.recommendations)
+          ? payload.data.recommendations
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+
+  return source
+    .map((item: any) => {
+      const recipe = item?.recipe || item;
+      if (!recipe || !recipe.id) return null;
+
+      return {
+        ...item,
+        recipe: {
+          ...recipe,
+          calories: toNumber(recipe.calories),
+          protein: toNumber(recipe.protein),
+          carbs: toNumber(recipe.carbs),
+          fat: toNumber(recipe.fat),
+        },
+        score: normalizeScore(item?.score),
+        reasons: Array.isArray(item?.reasons) ? item.reasons : [],
+        matchedInventory: Array.isArray(item?.matchedInventory) ? item.matchedInventory : [],
+        missingIngredients: Array.isArray(item?.missingIngredients) ? item.missingIngredients : [],
+      };
+    })
+    .filter(Boolean) as RecommendationItem[];
+};
+
+const getRecommendationScorePercent = (rec: RecommendationItem) => {
+  const total = toNumber(rec.score?.total);
+  return total <= 1 ? Math.round(total * 100) : Math.round(total);
+};
+
 export default function HomePage() {
   const { user } = useAuth();
-  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationError, setRecommendationError] = useState<string | null>(null);
   const [antiWaste, setAntiWaste] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [selectedRecForExplanation, setSelectedRecForExplanation] = useState<any>(null);
 
   // Chat Demo Refs & State
@@ -41,7 +113,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!user) { 
-      setLoading(false); 
+      setRecommendationLoading(false); 
       return; 
     }
     loadData();
@@ -111,16 +183,28 @@ export default function HomePage() {
   }, [user, chatInView, activeChatTab]);
 
   const loadData = async () => {
+    setDashboardLoading(true);
+    setRecommendationLoading(true);
+    setRecommendationError(null);
     try {
       const [recRes, wasteRes, planRes, invRes, statsRes] = await Promise.all([
-        recommendationAPI.get({ mealType: 'lunch', limit: 4 }),
-        recommendationAPI.getAntiWaste(),
+        recommendationAPI.get({ mealType: 'lunch', limit: 4 }).catch((error) => ({ data: null, error })),
+        recommendationAPI.getAntiWaste().catch(() => ({ data: null })),
         mealPlanAPI.get().catch(() => ({ data: null })), // handle empty plan gracefully
         inventoryAPI.getAll().catch(() => ({ data: { data: [] } })),
         authAPI.getProfileStats().catch(() => ({ data: null }))
       ]);
 
-      setRecommendations(recRes.data.recommendations || []);
+      if ((recRes as any).error) {
+        console.error('[MealAI][recommendations] API error:', (recRes as any).error);
+        setRecommendationError('Không thể tải gợi ý món ăn. Vui lòng thử lại sau.');
+        setRecommendations([]);
+      } else {
+        console.log('[MealAI][recommendations] raw response:', recRes.data);
+        const normalizedRecommendations = normalizeRecommendationResponse(recRes.data);
+        console.log('[MealAI][recommendations] normalized:', normalizedRecommendations);
+        setRecommendations(normalizedRecommendations);
+      }
       setAntiWaste(wasteRes.data);
 
       const plan = planRes?.data;
@@ -163,10 +247,12 @@ export default function HomePage() {
       ]);
 
     } catch (err) {
-      console.error(err);
+      console.error('[MealAI][dashboard] load failed:', err);
+      setRecommendationError('Không thể tải gợi ý món ăn. Vui lòng thử lại sau.');
+      setRecommendations([]);
     } finally {
-      setLoading(false);
       setDashboardLoading(false);
+      setRecommendationLoading(false);
     }
   };
 
@@ -398,7 +484,7 @@ export default function HomePage() {
             </div>
 
             {/* Background floating element 1 */}
-            <div className="absolute -top-6 -right-4 bg-white/95 border border-brand-primary/15 p-3.5 rounded-xl shadow-brand-md z-20 animate-float-slow max-w-[180px] text-left">
+            <div className="hidden sm:block absolute -top-6 -right-4 bg-white/95 border border-brand-primary/15 p-3.5 rounded-xl shadow-brand-md z-20 animate-float-slow max-w-[180px] text-left">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
                   ⚠️
@@ -411,7 +497,7 @@ export default function HomePage() {
             </div>
 
             {/* Background floating element 2 */}
-            <div className="absolute -bottom-6 -left-4 bg-white/95 border border-brand-primary/15 p-3.5 rounded-xl shadow-brand-md z-20 animate-float max-w-[200px] text-left" style={{ animationDelay: '2s' }}>
+            <div className="hidden sm:block absolute -bottom-6 -left-4 bg-white/95 border border-brand-primary/15 p-3.5 rounded-xl shadow-brand-md z-20 animate-float max-w-[200px] text-left" style={{ animationDelay: '2s' }}>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
                   🛒
@@ -813,7 +899,7 @@ export default function HomePage() {
         </div>
 
         {/* Progress Ring Visualizer */}
-        <div className="flex items-center gap-6 bg-white border border-brand-primary/15 rounded-brand-md p-5 shrink-0 relative z-10 w-full sm:w-auto justify-center sm:justify-start shadow-brand-sm">
+        <div className="flex flex-col sm:flex-row items-center gap-6 bg-white border border-brand-primary/15 rounded-brand-md p-5 shrink-0 relative z-10 w-full sm:w-auto justify-center sm:justify-start shadow-brand-sm">
           <div className="relative w-24 h-24 shrink-0">
             {/* SVG Progress Circle */}
             <svg className="w-full h-full transform -rotate-90">
@@ -843,7 +929,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="text-left space-y-1">
+          <div className="text-center sm:text-left space-y-1">
             <p className="text-xs text-slate-500 font-bold">Calories ngày hôm nay</p>
             <p className="text-2xl font-black text-slate-900">{caloriesConsumed} <span className="text-xs font-normal text-slate-500">/ {calorieTarget} kcal</span></p>
             <p className="text-[10px] text-brand-secondary italic font-semibold">
@@ -978,68 +1064,100 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {loading ? (
+            {recommendationLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {[1, 2].map((i) => (
+                {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="bg-white border border-gray-200 rounded-3xl h-64 animate-pulse" />
                 ))}
+              </div>
+            ) : recommendationError ? (
+              <div className="text-center py-12 bg-white border border-red-100 rounded-3xl p-6">
+                <p className="text-4xl mb-2">⚠️</p>
+                <h4 className="font-bold text-gray-900 text-sm">{recommendationError}</h4>
               </div>
             ) : recommendations.length === 0 ? (
               <div className="text-center py-12 bg-white border border-gray-200 rounded-3xl p-6">
                 <p className="text-4xl mb-2">🍽️</p>
-                <h4 className="font-bold text-gray-900 text-sm">Chưa có đề xuất nào phù hợp</h4>
+                <h4 className="font-bold text-gray-900 text-sm">{EMPTY_RECOMMENDATION_MESSAGE}</h4>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {recommendations.slice(0, 2).map((rec: any, i: number) => (
-                  <div key={i} className="card-ai-recommendation flex flex-col justify-between group">
-                    <div className="relative h-44 bg-gradient-to-br from-brand-primary/10 to-brand-secondary/10 flex items-center justify-center shrink-0">
-                      <span className="text-6xl group-hover:scale-105 transition duration-300">🍲</span>
-                      
-                      {/* Floating Similarity Match score */}
-                      <div className="absolute top-3 left-3 bg-slate-900/95 border border-slate-800 text-brand-primary px-2.5 py-0.5 rounded-brand-sm text-xs font-extrabold shadow-md">
-                        Độ phù hợp: {Math.round(rec.score.total * 100)}%
-                      </div>
-                    </div>
-
-                    <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
-                      <div className="space-y-1 text-left">
-                        <h3 className="font-bold text-gray-950 text-base line-clamp-1 group-hover:text-emerald-700">
-                          <Link href={`/recipes/${rec.recipe.id}`}>{rec.recipe.name}</Link>
-                        </h3>
-                        <div className="flex gap-4 text-xs text-gray-500 font-medium">
-                          <span>🔥 {rec.recipe.calories} kcal</span>
-                          <span>⏱️ {rec.recipe.cookingTime} phút</span>
-                          <span>💰 ~{Math.round((rec.recipe.estimatedCost || 0) / 1000)}k VNĐ</span>
-                        </div>
-                        
-                        {/* AI Reason for recommendation */}
-                        {rec.reasons?.length > 0 && (
-                          <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-brand-sm p-3 mt-3 text-xs text-slate-700 flex items-start gap-2 text-left">
-                            <span className="text-brand-primary">💡</span>
-                            <p className="font-medium italic leading-relaxed">"{rec.reasons[0]}"</p>
-                          </div>
+                {recommendations.map((rec: RecommendationItem, i: number) => {
+                  const recipe = rec.recipe;
+                  return (
+                    <div key={recipe.id || i} className="card-ai-recommendation flex flex-col justify-between group">
+                      <div className="relative h-44 bg-gradient-to-br from-brand-primary/10 to-brand-secondary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                        {recipe.imageUrl ? (
+                          <img
+                            src={recipe.imageUrl.startsWith('http') ? recipe.imageUrl : `http://localhost:3001${recipe.imageUrl}`}
+                            alt={recipe.name}
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <span className="text-6xl group-hover:scale-105 transition duration-300">🍲</span>
                         )}
+
+                        {/* Floating Similarity Match score */}
+                        <div className="absolute top-3 left-3 bg-slate-900/95 border border-slate-800 text-brand-primary px-2.5 py-0.5 rounded-brand-sm text-xs font-extrabold shadow-md">
+                          Độ phù hợp: {getRecommendationScorePercent(rec)}%
+                        </div>
                       </div>
 
-                      <div className="flex justify-between items-center pt-3 border-t border-gray-100 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRecForExplanation(rec)}
-                          className="text-xs font-bold text-brand-primary hover:text-brand-primary-hover flex items-center gap-0.5 hover:underline cursor-pointer outline-none"
-                        >
-                          <HiSparkles className="text-brand-primary animate-pulse" /> Giải thích AI
-                        </button>
-                        <Link 
-                          href={`/recipes/${rec.recipe.id}`}
-                          className="btn-primary-sm"
-                        >
-                          Nấu món này
-                        </Link>
+                      <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
+                        <div className="space-y-3 text-left">
+                          <div className="space-y-1">
+                            <h3 className="font-bold text-gray-950 text-base line-clamp-1 group-hover:text-emerald-700">
+                              <Link href={`/recipes/${recipe.id}`}>{recipe.name}</Link>
+                            </h3>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-medium">
+                              <span>🔥 {recipe.calories} kcal</span>
+                              {recipe.cookingTime ? <span>⏱️ {recipe.cookingTime} phút</span> : null}
+                              {recipe.estimatedCost ? <span>💰 ~{Math.round((recipe.estimatedCost || 0) / 1000)}k VNĐ</span> : null}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-4 gap-2 text-center">
+                            {[
+                              { label: 'Calories', value: `${recipe.calories}` },
+                              { label: 'Protein', value: `${recipe.protein}g` },
+                              { label: 'Carbs', value: `${recipe.carbs}g` },
+                              { label: 'Fat', value: `${recipe.fat}g` },
+                            ].map((macro) => (
+                              <div key={macro.label} className="rounded-brand-sm border border-brand-light-border bg-white/80 px-2 py-2">
+                                <p className="text-[10px] font-bold uppercase text-slate-400">{macro.label}</p>
+                                <p className="text-xs font-extrabold text-slate-800">{macro.value}</p>
+                              </div>
+                            ))}
+                          </div>
+                        
+                          {/* AI Reason for recommendation */}
+                          {(rec.reasons?.length ?? 0) > 0 && (
+                            <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-brand-sm p-3 text-xs text-slate-700 flex items-start gap-2 text-left">
+                              <span className="text-brand-primary">💡</span>
+                              <p className="font-medium italic leading-relaxed">"{rec.reasons?.[0]}"</p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex justify-between items-center pt-3 border-t border-gray-100 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRecForExplanation(rec)}
+                            className="text-xs font-bold text-brand-primary hover:text-brand-primary-hover flex items-center gap-0.5 hover:underline cursor-pointer outline-none"
+                          >
+                            <HiSparkles className="text-brand-primary animate-pulse" /> Giải thích AI
+                          </button>
+                          <Link 
+                            href={`/recipes/${recipe.id}`}
+                            className="btn-primary-sm"
+                          >
+                            Nấu món này
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1211,7 +1329,7 @@ export default function HomePage() {
       {/* XAI explanation modal */}
       {selectedRecForExplanation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in">
-          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-gray-100 overflow-hidden transform transition-all animate-scale-in">
+          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-gray-100 overflow-hidden transform transition-all animate-scale-in max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-start justify-between gap-4 px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
               <div>
@@ -1233,7 +1351,7 @@ export default function HomePage() {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto">
               {/* Overall Score */}
               <div className="text-center p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
                 <span className="text-sm text-gray-500 block font-semibold">Độ phù hợp tổng thể</span>

@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { type AxiosResponse } from 'axios';
+import { normalizeWeekStart, notifyMealPlanChanged } from './mealPlanEvents';
 
 // Create axios instance configured for our NestJS backend
 const api = axios.create({
@@ -57,8 +58,6 @@ export const authAPI = {
 export const recipesAPI = {
     getAll: (params?: any) => api.get('/recipes', { params }),
     getById: (id: string) => api.get(`/recipes/${id}`),
-    toggleFavorite: (id: string) => api.post(`/recipes/${id}/favorite`),
-    getFavorites: (params?: any) => api.get('/recipes/favorites', { params }),
     getMyReviews: (params?: any) => api.get('/recipes/my-reviews', { params }),
     // User submission
     submit: (data: any) => api.post('/recipes/submit', data),
@@ -78,6 +77,14 @@ export const recipesAPI = {
         api.delete(`/recipes/${recipeId}/ratings/${ratingId}`),
     createReply: (recipeId: string, parentId: string, data: { review: string }) =>
         api.post(`/recipes/${recipeId}/ratings/${parentId}/replies`, data),
+    getEditHistory: (recipeId: string) => api.get(`/recipes/${recipeId}/edit-history`),
+};
+
+// ==================== FAVORITES API ====================
+export const favoritesAPI = {
+    getAll: (params?: any) => api.get('/favorites', { params }),
+    add: (recipeId: string) => api.post('/favorites', { recipeId }),
+    remove: (recipeId: string) => api.delete(`/favorites/${recipeId}`),
 };
 
 // ==================== ADMIN API ====================
@@ -94,6 +101,8 @@ export const adminAPI = {
     approve: (id: string) => api.post(`/recipes/admin/${id}/approve`),
     reject: (id: string, reason: string) => api.post(`/recipes/admin/${id}/reject`, { reason }),
     getAudit: (recipeId: string) => api.get(`/recipes/admin/moderation/${recipeId}/audit`),
+    retryAudit: (recipeId: string) => api.post(`/recipes/admin/moderation/${recipeId}/audit/retry`),
+    editPending: (id: string, data: any) => api.put(`/recipes/admin/${id}/edit-pending`, data),
 };
 
 // ==================== UPLOAD API ====================
@@ -128,23 +137,78 @@ export const recommendationAPI = {
 };
 
 // ==================== MEAL PLAN API ====================
+type MealPlanInvalidationOptions = {
+    mutation: string;
+    weekStart?: string;
+    planId?: string;
+};
+
+const getObjectValue = (payload: unknown, key: string) =>
+    typeof payload === 'object' && payload !== null
+        ? (payload as Record<string, unknown>)[key]
+        : undefined;
+
+const inferMealPlanWeekStart = (payload: unknown) => {
+    const mealPlan = getObjectValue(payload, 'mealPlan');
+    return normalizeWeekStart(getObjectValue(payload, 'weekStart') || getObjectValue(mealPlan, 'weekStart'));
+};
+
+const inferMealPlanId = (payload: unknown) => {
+    const id = getObjectValue(payload, 'id') || getObjectValue(payload, 'planId');
+    return id ? String(id) : undefined;
+};
+
+const invalidateMealPlanAfter = <T extends AxiosResponse<unknown>>(
+    request: Promise<T>,
+    options: MealPlanInvalidationOptions,
+) =>
+    request.then((response) => {
+        notifyMealPlanChanged({
+            source: 'mealPlanAPI',
+            mutation: options.mutation,
+            weekStart: normalizeWeekStart(options.weekStart) || inferMealPlanWeekStart(response.data),
+            planId: options.planId || inferMealPlanId(response.data),
+        });
+        return response;
+    });
+
 export const mealPlanAPI = {
     get: (weekStart?: string) =>
         api.get('/meal-plans', { params: { weekStart } }),
-    generate: (data: any) => api.post('/meal-plans/generate', data),
-    generateForDays: (data: { weekStart?: string; days?: number[]; mealDates?: string[]; useAntiWaste?: boolean; overwrite?: boolean }) =>
-        api.post('/meal-plans/generate-days', data),
-    setMealSlot: (data: { weekStart?: string; dayOfWeek?: number; mealDate?: string; mealType: string; recipeId: string; overwrite?: boolean }) =>
-        api.put('/meal-plans/slot', data),
+    generate: (data: any) =>
+        invalidateMealPlanAfter(api.post('/meal-plans/generate', data), {
+            mutation: 'generate',
+            weekStart: data?.weekStart,
+        }),
+    generateForDays: (data: { weekStart?: string; days?: number[]; mealDates?: string[]; useAntiWaste?: boolean; overwrite?: boolean; optimizePortions?: boolean; prioritizeNew?: boolean; noRepeatIn7Days?: boolean; avoidRepeatMeals?: boolean }) =>
+        invalidateMealPlanAfter(api.post('/meal-plans/generate-days', data), {
+            mutation: 'generate-days',
+            weekStart: data.weekStart,
+        }),
+    setMealSlot: (data: { weekStart?: string; dayOfWeek?: number; mealDate?: string; mealType: string; recipeId?: string; recipeIds?: string[]; overwrite?: boolean }) =>
+        invalidateMealPlanAfter(api.put('/meal-plans/slot', data), {
+            mutation: 'set-slot',
+            weekStart: data.weekStart,
+        }),
     swapRecipe: (planId: string, itemId: string, recipeId: string) =>
-        api.put(`/meal-plans/${planId}/items/${itemId}`, { recipeId }),
+        invalidateMealPlanAfter(api.put(`/meal-plans/${planId}/items/${itemId}`, { recipeId }), {
+            mutation: 'swap-recipe',
+            planId,
+        }),
     toggleLock: (planId: string, itemId: string, isLocked: boolean) =>
         api.patch(`/meal-plans/${planId}/items/${itemId}/lock`, { isLocked }),
     toggleConsume: (planId: string, itemId: string, isConsumed: boolean) =>
         api.patch(`/meal-plans/${planId}/items/${itemId}/consume`, { isConsumed }),
-    delete: (planId: string) => api.delete(`/meal-plans/${planId}`),
+    delete: (planId: string) =>
+        invalidateMealPlanAfter(api.delete(`/meal-plans/${planId}`), {
+            mutation: 'delete-plan',
+            planId,
+        }),
     removeItem: (planId: string, itemId: string) =>
-        api.delete(`/meal-plans/${planId}/items/${itemId}`),
+        invalidateMealPlanAfter(api.delete(`/meal-plans/${planId}/items/${itemId}`), {
+            mutation: 'remove-item',
+            planId,
+        }),
     getNutrition: (planId: string) =>
         api.get(`/meal-plans/${planId}/nutrition`),
 };

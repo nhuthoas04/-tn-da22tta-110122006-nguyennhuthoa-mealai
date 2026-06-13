@@ -11,13 +11,13 @@ import { RecommendationModule } from '../recommendation/recommendation.module';
 import { PdfModule } from '../pdf/pdf.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([MealPlan, MealPlanItem, Recipe, User, Inventory]),
-        RecommendationModule,
-        PdfModule,
-    ],
-    controllers: [MealPlanController],
-    providers: [MealPlanService],
-    exports: [MealPlanService],
+  imports: [
+    TypeOrmModule.forFeature([MealPlan, MealPlanItem, Recipe, User, Inventory]),
+    RecommendationModule,
+    PdfModule,
+  ],
+  controllers: [MealPlanController],
+  providers: [MealPlanService],
+  exports: [MealPlanService],
 })
-export class MealPlanModule { }
+export class MealPlanModule {}

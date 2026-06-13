@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RecipesController } from './recipes.controller';
 import { AdminModerationController } from './admin-moderation.controller';
+import { FavoritesController } from './favorites.controller';
 import { RecipesService } from './recipes.service';
 import { RecipeModerationService } from './recipe-moderation.service';
 import { RecipeRatingService } from './recipe-rating.service';
@@ -15,17 +16,42 @@ import { RecipeRating } from './entities/recipe-rating.entity';
 import { AdminNotification } from './entities/admin-notification.entity';
 import { User } from '../auth/entities/user.entity';
 import { RecipeView } from './entities/recipe-view.entity';
+import { RecipeEditHistory } from './entities/recipe-edit-history.entity';
 import { NotificationModule } from '../notification/notification.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([
-            Recipe, Ingredient, RecipeIngredient, Favorite, RecipeModerationAudit, RecipeRating, AdminNotification, User, RecipeView,
-        ]),
-        NotificationModule,
-    ],
-    controllers: [RecipesController, AdminModerationController],
-    providers: [RecipesService, RecipeModerationService, RecipeRatingService, ReviewModerationService],
-    exports: [RecipesService, RecipeModerationService, RecipeRatingService, ReviewModerationService, TypeOrmModule],
+  imports: [
+    TypeOrmModule.forFeature([
+      Recipe,
+      Ingredient,
+      RecipeIngredient,
+      Favorite,
+      RecipeModerationAudit,
+      RecipeRating,
+      AdminNotification,
+      User,
+      RecipeView,
+      RecipeEditHistory,
+    ]),
+    NotificationModule,
+  ],
+  controllers: [
+    RecipesController,
+    AdminModerationController,
+    FavoritesController,
+  ],
+  providers: [
+    RecipesService,
+    RecipeModerationService,
+    RecipeRatingService,
+    ReviewModerationService,
+  ],
+  exports: [
+    RecipesService,
+    RecipeModerationService,
+    RecipeRatingService,
+    ReviewModerationService,
+    TypeOrmModule,
+  ],
 })
-export class RecipesModule { }
+export class RecipesModule {}

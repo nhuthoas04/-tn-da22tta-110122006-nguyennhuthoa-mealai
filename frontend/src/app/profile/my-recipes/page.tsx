@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   HiPlus, HiEye, HiPencil, HiTrash, HiRefresh,
   HiChevronLeft, HiChevronRight,
-  HiStar, HiChatAlt2, HiCalendar
+  HiStar, HiChatAlt2
 } from 'react-icons/hi';
 
 export default function MyRecipesPage() {
@@ -23,6 +23,13 @@ export default function MyRecipesPage() {
     isOpen: false,
     recipeId: '',
     recipeName: ''
+  });
+
+  // Edit history modal
+  const [historyModal, setHistoryModal] = useState<{ isOpen: boolean; recipeId: string; histories: any[] }>({
+    isOpen: false,
+    recipeId: '',
+    histories: [],
   });
 
   useEffect(() => {
@@ -69,6 +76,19 @@ export default function MyRecipesPage() {
       }
     } catch (err) {
       toast.error('Không thể xóa công thức');
+    }
+  };
+
+  const handleViewChanges = async (recipeId: string) => {
+    try {
+      const res = await recipesAPI.getEditHistory(recipeId);
+      setHistoryModal({
+        isOpen: true,
+        recipeId,
+        histories: res.data || [],
+      });
+    } catch (err) {
+      toast.error('Không thể tải lịch sử chỉnh sửa.');
     }
   };
 
@@ -179,6 +199,11 @@ export default function MyRecipesPage() {
                       {recipe.name}
                     </h3>
                     {getStatusBadge(recipe.status)}
+                    {recipe.hasBeenEditedByAdmin && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-blue-700 bg-blue-50 rounded-brand-sm border border-blue-200">
+                        Đã chỉnh sửa bởi Admin
+                      </span>
+                    )}
                   </div>
                   
                   {recipe.description && (
@@ -210,8 +235,17 @@ export default function MyRecipesPage() {
                     href={`/recipes/${recipe.id}`}
                     className="px-3 py-1.5 border border-brand-light-border rounded-brand-sm text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-all flex items-center gap-1 cursor-pointer"
                   >
-                    <HiEye /> Xem
+                    <HiEye /> Xem bài viết
                   </Link>
+
+                  {recipe.hasBeenEditedByAdmin && (
+                    <button 
+                      onClick={() => handleViewChanges(recipe.id)}
+                      className="px-3 py-1.5 border border-blue-300 rounded-brand-sm text-xs font-bold text-blue-750 bg-blue-55/10 hover:bg-blue-100 transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <HiEye className="text-blue-700" /> Xem chi tiết thay đổi
+                    </button>
+                  )}
 
                   {/* Can edit if pending or rejected. Resubmitting will reset status */}
                   <Link 
@@ -269,7 +303,7 @@ export default function MyRecipesPage() {
       {/* Delete Confirmation Modal */}
       {deleteModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-brand-lg max-w-md w-full p-6 shadow-brand-lg space-y-4 border border-brand-light-border">
+          <div className="bg-white rounded-brand-lg max-w-md w-full p-5 sm:p-6 shadow-brand-lg space-y-4 border border-brand-light-border max-h-[90vh] overflow-y-auto animate-scale-up">
             <div>
               <h3 className="text-lg font-bold text-slate-900">Xác nhận xóa công thức</h3>
               <p className="text-sm text-slate-500 mt-2 leading-relaxed">
@@ -289,6 +323,69 @@ export default function MyRecipesPage() {
                 className="px-5 py-2.5 bg-brand-danger hover:bg-red-600 text-white rounded-brand-sm text-sm font-bold transition-all cursor-pointer shadow-brand-sm border-none outline-none"
               >
                 Xóa công thức
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit History Modal */}
+      {historyModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl p-4 sm:p-6 shadow-2xl border border-gray-250 max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+            <div className="flex items-center justify-between border-b pb-3 flex-shrink-0">
+              <h3 className="text-base font-bold text-slate-800">Lịch sử thay đổi nội dung từ Admin</h3>
+              <button
+                onClick={() => setHistoryModal(prev => ({ ...prev, isOpen: false }))}
+                className="text-gray-400 hover:text-gray-650 font-bold border-none bg-transparent cursor-pointer text-xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 my-4 pr-1">
+              {historyModal.histories.length === 0 ? (
+                <p className="text-sm text-slate-455 italic text-center py-6">Không tìm thấy lịch sử chỉnh sửa nào.</p>
+              ) : (
+                <div className="space-y-6">
+                  <p className="text-xs font-bold text-brand-primary uppercase bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                    Bài viết đã được chỉnh sửa bởi Quản trị viên
+                  </p>
+                  <div className="divide-y divide-gray-100">
+                    {historyModal.histories.map((hist, i) => (
+                      <div key={hist.id} className={`py-4 ${i > 0 ? 'mt-4' : ''}`}>
+                        <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
+                          <span className="font-semibold text-gray-700">Người sửa: {hist.editor?.fullName || 'Admin'}</span>
+                          <span>Thời gian: {new Date(hist.createdAt).toLocaleString('vi-VN')}</span>
+                        </div>
+                        <div className="space-y-3">
+                          {hist.changes?.map((change: any, idx: number) => (
+                            <div key={idx} className="space-y-1">
+                              <span className="text-xs font-bold text-slate-600 block">{change.field}:</span>
+                              <div className="text-xs font-medium space-y-1">
+                                <pre className="bg-red-50 text-red-700 p-2.5 rounded-xl border border-red-150/40 font-mono whitespace-pre-wrap leading-relaxed">
+                                  - {change.oldValue}
+                                </pre>
+                                <pre className="bg-green-50 text-green-700 p-2.5 rounded-xl border border-green-150/40 font-mono whitespace-pre-wrap leading-relaxed">
+                                  + {change.newValue}
+                                </pre>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-3 border-t flex-shrink-0">
+              <button
+                onClick={() => setHistoryModal(prev => ({ ...prev, isOpen: false }))}
+                className="px-5 py-2.5 bg-gray-100 hover:bg-gray-205 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer"
+              >
+                Đóng
               </button>
             </div>
           </div>

@@ -54,8 +54,12 @@ export class RecipeRatingService {
 
     // Check if user is locked out from commenting
     if (user.commentLockedUntil && new Date() < user.commentLockedUntil) {
-      const lockDate = new Date(user.commentLockedUntil).toLocaleString('vi-VN');
-      throw new ForbiddenException(`Tài khoản của bạn tạm thời bị khóa quyền bình luận đến ${lockDate} do vi phạm nhiều lần.`);
+      const lockDate = new Date(user.commentLockedUntil).toLocaleString(
+        'vi-VN',
+      );
+      throw new ForbiddenException(
+        `Tài khoản của bạn tạm thời bị khóa quyền bình luận đến ${lockDate} do vi phạm nhiều lần.`,
+      );
     }
 
     // 2. Perform Keyword and AI moderation
@@ -92,7 +96,9 @@ export class RecipeRatingService {
     if (isFlagged) {
       user.violationCount += 1;
       if (user.violationCount >= 5) {
-        user.commentLockedUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Lock 7 days
+        user.commentLockedUntil = new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000,
+        ); // Lock 7 days
       } else if (user.violationCount >= 3) {
         user.isCommentModerated = true; // Flag for future manual reviews
       }
@@ -137,7 +143,7 @@ export class RecipeRatingService {
             userId,
             recipeId,
             'COMMENT_POST',
-            `${actorName} đã bình luận bài viết của bạn.`
+            `${actorName} đã bình luận bài viết của bạn.`,
           );
         } else {
           await this.notificationService.createNotification(
@@ -145,11 +151,14 @@ export class RecipeRatingService {
             userId,
             recipeId,
             'RATE_POST',
-            `${actorName} đã đánh giá bài viết của bạn ${rating} sao.`
+            `${actorName} đã đánh giá bài viết của bạn ${rating} sao.`,
           );
         }
       } catch (err: any) {
-        this.logger.error('Failed to create personal notification:', err.message);
+        this.logger.error(
+          'Failed to create personal notification:',
+          err.message,
+        );
       }
     }
 
@@ -190,7 +199,7 @@ export class RecipeRatingService {
     if (currentUserId) {
       qb.andWhere(
         '(rating.moderationStatus = :status OR rating.userId = :userId)',
-        { status: 'reviewed', userId: currentUserId }
+        { status: 'reviewed', userId: currentUserId },
       );
     } else {
       qb.andWhere('rating.moderationStatus = :status', { status: 'reviewed' });
@@ -218,8 +227,12 @@ export class RecipeRatingService {
           avatarUrl: r.user?.avatarUrl,
         },
         replies: (r.replies || [])
-          .filter(rep => rep.moderationStatus === 'reviewed' || rep.userId === currentUserId)
-          .map(rep => ({
+          .filter(
+            (rep) =>
+              rep.moderationStatus === 'reviewed' ||
+              rep.userId === currentUserId,
+          )
+          .map((rep) => ({
             id: rep.id,
             review: rep.review,
             createdAt: rep.createdAt,
@@ -227,7 +240,7 @@ export class RecipeRatingService {
               id: rep.user?.id,
               fullName: rep.user?.fullName,
               avatarUrl: rep.user?.avatarUrl,
-            }
+            },
           })),
       })),
       total,
@@ -244,13 +257,17 @@ export class RecipeRatingService {
       throw new BadRequestException('Điểm đánh giá phải từ 1 đến 5 sao.');
     }
 
-    const ratingObj = await this.ratingRepo.findOne({ where: { id: ratingId } });
+    const ratingObj = await this.ratingRepo.findOne({
+      where: { id: ratingId },
+    });
     if (!ratingObj) {
       throw new NotFoundException('Không tìm thấy bình luận đánh giá.');
     }
 
     if (ratingObj.userId !== userId) {
-      throw new ForbiddenException('Bạn không có quyền chỉnh sửa bình luận này.');
+      throw new ForbiddenException(
+        'Bạn không có quyền chỉnh sửa bình luận này.',
+      );
     }
 
     // 1. Fetch user to check constraints
@@ -261,11 +278,17 @@ export class RecipeRatingService {
 
     // Check if user is locked out
     if (user.commentLockedUntil && new Date() < user.commentLockedUntil) {
-      const lockDate = new Date(user.commentLockedUntil).toLocaleString('vi-VN');
-      throw new ForbiddenException(`Tài khoản của bạn tạm thời bị khóa quyền bình luận đến ${lockDate} do vi phạm nhiều lần.`);
+      const lockDate = new Date(user.commentLockedUntil).toLocaleString(
+        'vi-VN',
+      );
+      throw new ForbiddenException(
+        `Tài khoản của bạn tạm thời bị khóa quyền bình luận đến ${lockDate} do vi phạm nhiều lần.`,
+      );
     }
 
-    const recipe = await this.recipeRepo.findOne({ where: { id: ratingObj.recipeId } });
+    const recipe = await this.recipeRepo.findOne({
+      where: { id: ratingObj.recipeId },
+    });
 
     // 2. Perform Keyword and AI moderation
     let isFlagged = false;
@@ -297,7 +320,9 @@ export class RecipeRatingService {
     if (isFlagged) {
       user.violationCount += 1;
       if (user.violationCount >= 5) {
-        user.commentLockedUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        user.commentLockedUntil = new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000,
+        );
       } else if (user.violationCount >= 3) {
         user.isCommentModerated = true;
       }
@@ -338,7 +363,9 @@ export class RecipeRatingService {
     userRole: string,
     ratingId: string,
   ): Promise<{ message: string }> {
-    const ratingObj = await this.ratingRepo.findOne({ where: { id: ratingId } });
+    const ratingObj = await this.ratingRepo.findOne({
+      where: { id: ratingId },
+    });
     if (!ratingObj) {
       throw new NotFoundException('Không tìm thấy bình luận đánh giá.');
     }
@@ -351,7 +378,9 @@ export class RecipeRatingService {
     return { message: 'Đã xóa bình luận đánh giá thành công.' };
   }
 
-  async getAverageRatingForRecipe(recipeId: string): Promise<{ average: number; count: number }> {
+  async getAverageRatingForRecipe(
+    recipeId: string,
+  ): Promise<{ average: number; count: number }> {
     const result = await this.ratingRepo
       .createQueryBuilder('rating')
       .select('AVG(rating.rating)', 'avg')
@@ -381,7 +410,9 @@ export class RecipeRatingService {
       throw new BadRequestException('Nội dung phản hồi không được để trống.');
     }
 
-    const parentRating = await this.ratingRepo.findOne({ where: { id: parentId } });
+    const parentRating = await this.ratingRepo.findOne({
+      where: { id: parentId },
+    });
     if (!parentRating) {
       throw new NotFoundException('Không tìm thấy bình luận gốc để trả lời.');
     }
@@ -398,8 +429,12 @@ export class RecipeRatingService {
     }
 
     if (user.commentLockedUntil && new Date() < user.commentLockedUntil) {
-      const lockDate = new Date(user.commentLockedUntil).toLocaleString('vi-VN');
-      throw new ForbiddenException(`Tài khoản của bạn tạm thời bị khóa quyền bình luận đến ${lockDate} do vi phạm nhiều lần.`);
+      const lockDate = new Date(user.commentLockedUntil).toLocaleString(
+        'vi-VN',
+      );
+      throw new ForbiddenException(
+        `Tài khoản của bạn tạm thời bị khóa quyền bình luận đến ${lockDate} do vi phạm nhiều lần.`,
+      );
     }
 
     // 2. Perform Keyword and AI moderation
@@ -432,7 +467,9 @@ export class RecipeRatingService {
     if (isFlagged) {
       user.violationCount += 1;
       if (user.violationCount >= 5) {
-        user.commentLockedUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        user.commentLockedUntil = new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000,
+        );
       } else if (user.violationCount >= 3) {
         user.isCommentModerated = true;
       }
@@ -458,7 +495,8 @@ export class RecipeRatingService {
     if (parentRating.userId && moderationStatus === 'reviewed') {
       try {
         const actorName = user.fullName || 'Ai đó';
-        const isRating = parentRating.rating !== null && parentRating.rating !== undefined;
+        const isRating =
+          parentRating.rating !== null && parentRating.rating !== undefined;
         const message = isRating
           ? `${actorName} đã trả lời đánh giá của bạn.`
           : `${actorName} đã phản hồi bình luận của bạn.`;
@@ -467,10 +505,13 @@ export class RecipeRatingService {
           userId,
           recipeId,
           'REPLY_COMMENT',
-          message
+          message,
         );
       } catch (err: any) {
-        this.logger.error('Failed to create personal reply notification:', err.message);
+        this.logger.error(
+          'Failed to create personal reply notification:',
+          err.message,
+        );
       }
     }
 
@@ -495,12 +536,17 @@ export class RecipeRatingService {
   }
 
   // ==================== ADMIN MODERATION METHODS ====================
-  async getAdminNotifications(): Promise<{ data: AdminNotification[]; unreadCount: number }> {
+  async getAdminNotifications(): Promise<{
+    data: AdminNotification[];
+    unreadCount: number;
+  }> {
     const notifications = await this.notificationRepo.find({
       relations: ['review', 'review.recipe', 'user'],
       order: { createdAt: 'DESC' },
     });
-    const unreadCount = await this.notificationRepo.count({ where: { isRead: false } });
+    const unreadCount = await this.notificationRepo.count({
+      where: { isRead: false },
+    });
     return { data: notifications, unreadCount };
   }
 
@@ -522,7 +568,9 @@ export class RecipeRatingService {
     review.moderationStatus = 'reviewed';
     const saved = await this.ratingRepo.save(review);
 
-    const notification = await this.notificationRepo.findOne({ where: { reviewId } });
+    const notification = await this.notificationRepo.findOne({
+      where: { reviewId },
+    });
     if (notification) {
       notification.isRead = true;
       await this.notificationRepo.save(notification);
@@ -538,7 +586,9 @@ export class RecipeRatingService {
     review.moderationStatus = 'removed';
     const saved = await this.ratingRepo.save(review);
 
-    const notification = await this.notificationRepo.findOne({ where: { reviewId } });
+    const notification = await this.notificationRepo.findOne({
+      where: { reviewId },
+    });
     if (notification) {
       notification.isRead = true;
       await this.notificationRepo.save(notification);
@@ -565,11 +615,13 @@ export class RecipeRatingService {
         rating: r.rating,
         review: r.review,
         createdAt: r.createdAt,
-        recipe: r.recipe ? {
-          id: r.recipe.id,
-          name: r.recipe.name,
-          imageUrl: r.recipe.imageUrl,
-        } : null,
+        recipe: r.recipe
+          ? {
+              id: r.recipe.id,
+              name: r.recipe.name,
+              imageUrl: r.recipe.imageUrl,
+            }
+          : null,
       })),
       total,
     };

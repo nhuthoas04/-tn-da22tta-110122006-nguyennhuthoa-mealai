@@ -18,7 +18,9 @@ export class AdminModerationController {
 
   private verifyAdmin(req: any) {
     if (req.user.role !== 'admin') {
-      throw new ForbiddenException('Yêu cầu quyền Quản trị viên (Admin access required).');
+      throw new ForbiddenException(
+        'Yêu cầu quyền Quản trị viên (Admin access required).',
+      );
     }
   }
 

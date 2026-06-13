@@ -4,7 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import {
-  HiChartBar, HiBookOpen, HiClipboardCheck, HiArrowLeft, HiUsers, HiBell, HiMicrophone,
+  HiChartBar, HiBookOpen, HiClipboardCheck, HiArrowLeft, HiUsers, HiBell,
 } from 'react-icons/hi';
 
 const adminNav = [
@@ -13,7 +13,6 @@ const adminNav = [
   { href: '/admin/pending', label: 'Chờ duyệt', icon: HiClipboardCheck },
   { href: '/admin/users', label: 'Thành viên', icon: HiUsers },
   { href: '/admin/notifications', label: 'Cảnh báo', icon: HiBell },
-  { href: '/admin/voice-dashboard', label: 'Thống kê thoại AI', icon: HiMicrophone },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -38,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!isAdmin) return null;
 
   return (
-    <div className="flex gap-6 min-h-[calc(100vh-100px)]">
+    <div className="flex gap-10 min-h-[calc(100vh-100px)]">
       {/* Sidebar */}
       <aside className="w-64 shrink-0">
         <div className="bg-white rounded-2xl border border-gray-200 p-4 sticky top-24">
@@ -52,7 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
 
-          <nav className="space-y-1">
+          <nav className="space-y-2">
             {adminNav.map((item) => {
               const isActive = pathname === item.href;
               return (

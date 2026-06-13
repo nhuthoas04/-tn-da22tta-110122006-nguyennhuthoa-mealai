@@ -1,46 +1,45 @@
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {
-    @IsEmail()
-    email: string;
+  @IsEmail()
+  email: string;
 
-    @IsString()
-    @MinLength(6)
-    password: string;
+  @IsString()
+  @MinLength(6)
+  password: string;
 
-    @IsString()
-    @IsNotEmpty()
-    fullName: string;
+  @IsString()
+  @IsNotEmpty()
+  fullName: string;
 }
 
 export class LoginDto {
-    @IsEmail()
-    email: string;
+  @IsEmail()
+  email: string;
 
-    @IsString()
-    password: string;
+  @IsString()
+  password: string;
 }
 
 export class RefreshTokenDto {
-    @IsString()
-    refreshToken: string;
+  @IsString()
+  refreshToken: string;
 }
 
 export class ForgotPasswordDto {
-    @IsEmail()
-    email: string;
+  @IsEmail()
+  email: string;
 }
 
 export class ResetPasswordDto {
-    @IsEmail()
-    email: string;
+  @IsEmail()
+  email: string;
 
-    @IsString()
-    @IsNotEmpty()
-    token: string;
+  @IsString()
+  @IsNotEmpty()
+  token: string;
 
-    @IsString()
-    @MinLength(6)
-    newPassword: string;
+  @IsString()
+  @MinLength(6)
+  newPassword: string;
 }
-

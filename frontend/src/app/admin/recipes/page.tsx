@@ -105,14 +105,14 @@ export default function AdminRecipesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý công thức</h1>
           <p className="text-gray-500 mt-1">Tạo, sửa, xóa công thức trong hệ thống</p>
         </div>
         <Link
           href="/admin/recipes/create"
-          className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors w-full sm:w-auto text-sm shrink-0"
         >
           <HiPlus className="text-lg" />
           Tạo mới
@@ -121,22 +121,22 @@ export default function AdminRecipesPage() {
 
       {/* Search & Filter */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <form onSubmit={handleSearch} className="flex gap-3">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <HiSearch className="absolute left-3 top-3 text-gray-400" />
+            <HiSearch className="absolute left-3 top-3.5 text-gray-400" />
             <input
               type="text"
               placeholder="Tìm công thức..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm"
             />
           </div>
-          <button type="submit" className="px-6 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition">
+          <button type="submit" className="px-6 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition w-full sm:w-auto text-sm">
             Tìm
           </button>
         </form>
-        <div className="flex gap-2 mt-3">
+        <div className="flex flex-wrap gap-2 mt-3">
           {statusOptions.map((opt) => (
             <button
               key={opt.value}
@@ -170,50 +170,52 @@ export default function AdminRecipesPage() {
           {recipes.map((recipe) => (
             <div
               key={recipe.id}
-              className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 hover:shadow-sm transition-shadow"
+              className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-sm transition-shadow"
             >
-              {/* Thumbnail */}
-              {recipe.imageUrl ? (
-                <img
-                  src={getImgUrl(recipe.imageUrl)}
-                  alt={recipe.name}
-                  className="w-16 h-16 rounded-xl object-cover shrink-0 border border-gray-100"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 text-2xl">
-                  🍽️
-                </div>
-              )}
+              <div className="flex items-center gap-4 min-w-0">
+                {/* Thumbnail */}
+                {recipe.imageUrl ? (
+                  <img
+                    src={getImgUrl(recipe.imageUrl)}
+                    alt={recipe.name}
+                    className="w-16 h-16 rounded-xl object-cover shrink-0 border border-gray-100"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 text-2xl">
+                    🍽️
+                  </div>
+                )}
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-gray-900 truncate">{recipe.name}</h3>
-                  {statusBadge(recipe.status)}
-                </div>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span className="flex items-center gap-1"><HiClock /> {recipe.cookingTime}p</span>
-                  <span className="flex items-center gap-1"><HiFire /> {recipe.calories} kcal</span>
-                  {recipe.cuisineRegion && <span>{recipe.cuisineRegion}</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h3 className="font-semibold text-gray-900 truncate text-sm">{recipe.name}</h3>
+                    {statusBadge(recipe.status)}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                    <span className="flex items-center gap-1"><HiClock /> {recipe.cookingTime}p</span>
+                    <span className="flex items-center gap-1"><HiFire /> {recipe.calories} kcal</span>
+                    {recipe.cuisineRegion && <span>{recipe.cuisineRegion}</span>}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 ml-4">
+              <div className="flex items-center justify-end gap-1 w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0">
                 <button
                   onClick={() => handleView(recipe.id)}
-                  className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                  className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors flex-1 sm:flex-initial flex justify-center"
                   title="Xem chi tiết"
                 >
                   <HiEye className="text-lg" />
                 </button>
                 <Link
                   href={`/admin/recipes/${recipe.id}/edit`}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex-1 sm:flex-initial flex justify-center"
                   title="Sửa"
                 >
                   <HiPencil className="text-lg" />
                 </Link>
                 <button
                   onClick={() => handleDelete(recipe.id, recipe.name)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-1 sm:flex-initial flex justify-center"
                   title="Xóa"
                 >
                   <HiTrash className="text-lg" />
@@ -245,9 +247,9 @@ export default function AdminRecipesPage() {
 
       {/* Detail Modal */}
       {(viewRecipe || detailLoading) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setViewRecipe(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setViewRecipe(null)}>
           <div
-            className="bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[85vh] overflow-y-auto shadow-xl"
+            className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-xl animate-scale-up"
             onClick={(e) => e.stopPropagation()}
           >
             {detailLoading ? (
@@ -261,11 +263,11 @@ export default function AdminRecipesPage() {
                   <img
                     src={getImgUrl(viewRecipe.imageUrl)}
                     alt={viewRecipe.name}
-                    className="w-full h-56 object-cover rounded-t-2xl"
+                    className="w-full h-40 sm:h-56 object-cover rounded-t-2xl shrink-0"
                   />
                 )}
 
-                <div className="p-6 space-y-4">
+                <div className="p-5 sm:p-6 space-y-4 flex-1 overflow-y-auto">
                   {/* Header */}
                   <div className="flex items-start justify-between">
                     <div>

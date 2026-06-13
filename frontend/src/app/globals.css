@@ -93,10 +93,10 @@ html {
 
 /* 1. BUTTONS */
 .btn-primary {
-  @apply bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold rounded-brand-sm shadow-brand-sm hover:shadow-brand-glow hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 px-4 py-2 text-sm border-none outline-none;
+  @apply bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold rounded-brand-sm shadow-brand-sm hover:shadow-brand-glow hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 px-3 py-2 text-sm border-none outline-none sm:px-4;
 }
 .btn-primary-sm {
-  @apply bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold rounded-brand-sm shadow-brand-sm hover:shadow-brand-glow hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs border-none outline-none;
+  @apply bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold rounded-brand-sm shadow-brand-sm hover:shadow-brand-glow hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 px-3 py-2 text-xs border-none outline-none sm:py-1.5;
 }
 
 .btn-secondary {
@@ -107,17 +107,17 @@ html {
 }
 
 .btn-outline {
-  @apply border border-brand-primary text-brand-primary font-bold rounded-brand-sm hover:bg-brand-primary hover:text-white transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 px-4 py-2 text-sm outline-none;
+  @apply border border-brand-primary text-brand-primary font-bold rounded-brand-sm hover:bg-brand-primary hover:text-white transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 px-3 py-2 text-sm outline-none sm:px-4;
 }
 .btn-outline-sm {
-  @apply border border-brand-primary text-brand-primary font-bold rounded-brand-sm hover:bg-brand-primary hover:text-white transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs outline-none;
+  @apply border border-brand-primary text-brand-primary font-bold rounded-brand-sm hover:bg-brand-primary hover:text-white transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 px-3 py-2 text-xs outline-none sm:py-1.5;
 }
 
 .btn-ghost {
-  @apply text-slate-600 font-bold rounded-brand-sm hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 px-4 py-2 text-sm border-none outline-none;
+  @apply text-slate-600 font-bold rounded-brand-sm hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 px-3 py-2 text-sm border-none outline-none sm:px-4;
 }
 .btn-ghost-sm {
-  @apply text-slate-600 font-bold rounded-brand-sm hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs border-none outline-none;
+  @apply text-slate-600 font-bold rounded-brand-sm hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 px-3 py-2 text-xs border-none outline-none sm:py-1.5;
 }
 
 /* 2. GLASSMORPHISM */
@@ -139,7 +139,7 @@ html {
 
 /* 3. CARDS */
 .card-dashboard {
-  @apply bg-brand-light-card border border-brand-light-border rounded-brand-lg p-6 shadow-brand-md transition-all duration-300;
+  @apply bg-brand-light-card border border-brand-light-border rounded-brand-lg p-4 shadow-brand-md transition-all duration-300 sm:p-6;
 }
 
 .card-recipe {
@@ -147,11 +147,11 @@ html {
 }
 
 .card-stats {
-  @apply bg-brand-light-card border border-brand-light-border rounded-brand-md p-4 shadow-brand-sm transition-all duration-300;
+  @apply bg-brand-light-card border border-brand-light-border rounded-brand-md p-3 shadow-brand-sm transition-all duration-300 sm:p-4;
 }
 
 .card-dark {
-  @apply bg-brand-navy-card border border-brand-navy-border rounded-brand-md p-5 shadow-brand-md hover:shadow-brand-lg transition-all duration-300;
+  @apply bg-brand-navy-card border border-brand-navy-border rounded-brand-md p-4 shadow-brand-md hover:shadow-brand-lg transition-all duration-300 sm:p-5;
 }
 
 /* 4. AI COMPONENTS LIBRARY */

@@ -391,7 +391,7 @@ export default function ProfilePage() {
               </p>
               <div className="badge-ai">🤖 AI Đo lường</div>
             </div>
-            <div className="grid grid-cols-3 gap-3 mt-3 relative z-10">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 relative z-10">
               <div className="text-center bg-white/60 p-3 rounded-brand-sm border border-brand-primary/10 hover:border-brand-primary/30 transition-all shadow-brand-sm">
                 <p className="text-[10px] text-brand-primary font-extrabold uppercase tracking-wider">🌅 Sáng (30%)</p>
                 <p className="font-extrabold text-slate-900 text-sm mt-1.5">{calorieInfo.breakdown?.breakfast} kcal</p>

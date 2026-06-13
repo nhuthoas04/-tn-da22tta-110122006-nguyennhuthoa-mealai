@@ -26,9 +26,14 @@ export class ChatbotActionHandler {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
   ) {}
 
-
-  async handleAction(actionName: string, args: any, userId: string): Promise<any> {
-    this.logger.log(`Executing AI action: ${actionName} with args: ${JSON.stringify(args)} for user: ${userId}`);
+  async handleAction(
+    actionName: string,
+    args: any,
+    userId: string,
+  ): Promise<any> {
+    this.logger.log(
+      `Executing AI action: ${actionName} with args: ${JSON.stringify(args)} for user: ${userId}`,
+    );
 
     try {
       switch (actionName) {
@@ -38,7 +43,7 @@ export class ChatbotActionHandler {
             relations: ['preferences'],
           });
           const searchAllergies = searchUser?.preferences?.allergies || [];
-          
+
           const rawResults = await this.recipesService.findAll({
             search: args.search,
             mealType: args.mealType,
@@ -46,18 +51,25 @@ export class ChatbotActionHandler {
             minCalories: args.minCalories,
             maxCalories: args.maxCalories,
             region: args.region,
-            limit: searchAllergies.length > 0 ? 30 : (args.limit || 5),
+            limit: searchAllergies.length > 0 ? 30 : args.limit || 5,
           });
 
           if (searchAllergies.length > 0) {
-            const lowercaseAllergens = searchAllergies.map(a => a.toLowerCase().trim());
+            const lowercaseAllergens = searchAllergies.map((a) =>
+              a.toLowerCase().trim(),
+            );
             const filteredRecipes = [];
-            
+
             for (const recipe of rawResults.data) {
-              const detailedRecipe = await this.recipesService.findOne(recipe.id, { userId });
+              const detailedRecipe = await this.recipesService.findOne(
+                recipe.id,
+                { userId },
+              );
               const hasAllergen = detailedRecipe.ingredients?.some((ing) => {
                 const ingName = ing.name?.toLowerCase() || '';
-                return lowercaseAllergens.some(allergen => ingName.includes(allergen));
+                return lowercaseAllergens.some((allergen) =>
+                  ingName.includes(allergen),
+                );
               });
               if (!hasAllergen) {
                 filteredRecipes.push(recipe);
@@ -104,7 +116,8 @@ export class ChatbotActionHandler {
           });
 
         case 'generate_meal_plan':
-          let generateWeekStart = args.weekStart || this.getMondayString(new Date());
+          let generateWeekStart =
+            args.weekStart || this.getMondayString(new Date());
           // Advance weekStart until the week has at least one creatable date (i.e. weekEnd >= today)
           while (true) {
             const parsedWS = this.parseDateInput(generateWeekStart);
@@ -138,7 +151,8 @@ export class ChatbotActionHandler {
           let recipeId = args.recipeId;
 
           // If recipeId is not a valid UUID (or not provided) but recipeName is provided
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const uuidRegex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           if ((!recipeId || !uuidRegex.test(recipeId)) && args.recipeName) {
             const searchResult = await this.recipesService.findAll({
               search: args.recipeName,
@@ -147,12 +161,16 @@ export class ChatbotActionHandler {
             if (searchResult.data && searchResult.data.length > 0) {
               recipeId = searchResult.data[0].id;
             } else {
-              return { error: `Không tìm thấy món ăn nào có tên khớp với "${args.recipeName}" trong hệ thống.` };
+              return {
+                error: `Không tìm thấy món ăn nào có tên khớp với "${args.recipeName}" trong hệ thống.`,
+              };
             }
           }
 
           if (!recipeId) {
-            return { error: 'Thiếu thông tin món ăn (cần recipeId hoặc recipeName).' };
+            return {
+              error: 'Thiếu thông tin món ăn (cần recipeId hoặc recipeName).',
+            };
           }
 
           const result = await this.mealPlanService.setMealSlot(
@@ -164,7 +182,9 @@ export class ChatbotActionHandler {
           );
 
           const formattedDate = this.formatDateInput(new Date(mealDate));
-          let reqStr = args.userRequest || `Đổi thực đơn ngày ${new Date(mealDate).getDate()} tháng ${new Date(mealDate).getMonth() + 1} năm ${new Date(mealDate).getFullYear()}`;
+          let reqStr =
+            args.userRequest ||
+            `Đổi thực đơn ngày ${new Date(mealDate).getDate()} tháng ${new Date(mealDate).getMonth() + 1} năm ${new Date(mealDate).getFullYear()}`;
           if (formattedDate === '2026-06-08') {
             reqStr = 'Đổi ngày 08-06-2026';
           }
@@ -193,38 +213,70 @@ export class ChatbotActionHandler {
             removeMealDate = this.formatDateInput(new Date());
           }
 
-          const removeWeekStart = this.formatDateInput(this.mealPlanService['getMonday'](this.parseDateInput(removeMealDate)));
-          const planToRemoveFrom = await this.mealPlanService.findByWeek(userId, removeWeekStart);
+          const removeWeekStart = this.formatDateInput(
+            this.mealPlanService['getMonday'](
+              this.parseDateInput(removeMealDate),
+            ),
+          );
+          const planToRemoveFrom = await this.mealPlanService.findByWeek(
+            userId,
+            removeWeekStart,
+          );
           if (!planToRemoveFrom) {
             return { message: 'Không tìm thấy thực đơn tuần này để xóa.' };
           }
           const itemsToRemove = planToRemoveFrom.items.filter(
-            (i: any) => i.mealDate === removeMealDate && i.mealType === args.mealType,
+            (i: any) =>
+              i.mealDate === removeMealDate && i.mealType === args.mealType,
           );
           if (itemsToRemove.length === 0) {
-            return { message: `Bữa ăn này hiện đang trống, không có món nào để xóa.` };
+            return {
+              message: `Bữa ăn này hiện đang trống, không có món nào để xóa.`,
+            };
           }
           if (args.recipeId) {
             const targetItem = itemsToRemove.find(
-              (i: any) => i.recipeId === args.recipeId || (i.recipe && i.recipe.id === args.recipeId),
+              (i: any) =>
+                i.recipeId === args.recipeId ||
+                (i.recipe && i.recipe.id === args.recipeId),
             );
             if (!targetItem) {
-              return { message: `Không tìm thấy món ăn yêu cầu trong bữa này.` };
+              return {
+                message: `Không tìm thấy món ăn yêu cầu trong bữa này.`,
+              };
             }
-            await this.mealPlanService.removeItem(userId, planToRemoveFrom.id, targetItem.id);
-            return { message: `Đã xóa thành công món ăn "${targetItem.recipe?.name || 'món ăn'}" khỏi bữa ${args.mealType === 'breakfast' ? 'Sáng' : args.mealType === 'lunch' ? 'Trưa' : 'Tối'}!` };
+            await this.mealPlanService.removeItem(
+              userId,
+              planToRemoveFrom.id,
+              targetItem.id,
+            );
+            return {
+              message: `Đã xóa thành công món ăn "${targetItem.recipe?.name || 'món ăn'}" khỏi bữa ${args.mealType === 'breakfast' ? 'Sáng' : args.mealType === 'lunch' ? 'Trưa' : 'Tối'}!`,
+            };
           } else {
             for (const item of itemsToRemove) {
-              await this.mealPlanService.removeItem(userId, planToRemoveFrom.id, item.id);
+              await this.mealPlanService.removeItem(
+                userId,
+                planToRemoveFrom.id,
+                item.id,
+              );
             }
-            return { message: `Đã xóa thành công tất cả các món ăn khỏi bữa ${args.mealType === 'breakfast' ? 'Sáng' : args.mealType === 'lunch' ? 'Trưa' : 'Tối'}!` };
+            return {
+              message: `Đã xóa thành công tất cả các món ăn khỏi bữa ${args.mealType === 'breakfast' ? 'Sáng' : args.mealType === 'lunch' ? 'Trưa' : 'Tối'}!`,
+            };
           }
 
         case 'delete_meal_plan':
-          const deleteWeekStart = args.weekStart || this.getMondayString(new Date());
-          const planToDelete = await this.mealPlanService.findByWeek(userId, deleteWeekStart);
+          const deleteWeekStart =
+            args.weekStart || this.getMondayString(new Date());
+          const planToDelete = await this.mealPlanService.findByWeek(
+            userId,
+            deleteWeekStart,
+          );
           if (!planToDelete) {
-            return { message: 'Bạn không có thực đơn nào cho tuần này để xóa.' };
+            return {
+              message: 'Bạn không có thực đơn nào cho tuần này để xóa.',
+            };
           }
           await this.mealPlanService.remove(userId, planToDelete.id);
           return { message: 'Đã xóa thực đơn tuần thành công!' };
@@ -233,8 +285,8 @@ export class ChatbotActionHandler {
           let mealDates = args.mealDates;
           if ((!mealDates || mealDates.length === 0) && args.days) {
             const startW = args.weekStart || this.getMondayString(new Date());
-            const daysArray = Array.isArray(args.days) 
-              ? args.days.map((d: any) => Number(d)) 
+            const daysArray = Array.isArray(args.days)
+              ? args.days.map((d: any) => Number(d))
               : [Number(args.days)];
             const start = this.parseDateInput(startW);
             mealDates = daysArray.map((day) => {
@@ -249,7 +301,9 @@ export class ChatbotActionHandler {
 
           for (const mDate of mealDates) {
             const formattedDate = this.formatDateInput(new Date(mDate));
-            let reqStr = args.userRequest || `Đổi thực đơn ngày ${new Date(mDate).getDate()} tháng ${new Date(mDate).getMonth() + 1} năm ${new Date(mDate).getFullYear()}`;
+            let reqStr =
+              args.userRequest ||
+              `Đổi thực đơn ngày ${new Date(mDate).getDate()} tháng ${new Date(mDate).getMonth() + 1} năm ${new Date(mDate).getFullYear()}`;
             if (formattedDate === '2026-06-08') {
               reqStr = 'Đổi ngày 08-06-2026';
             }
@@ -265,19 +319,29 @@ export class ChatbotActionHandler {
             this.logger.log(`Database Updated: ${formattedDate}`);
           }
 
-          const daysResult = await this.mealPlanService.generateForDays(userId, {
-            mealDates,
-            useAntiWaste: args.useAntiWaste !== false,
-            mealType: args.mealType,
-            overwrite: args.overwrite === true,
-          });
+          const daysResult = await this.mealPlanService.generateForDays(
+            userId,
+            {
+              mealDates,
+              useAntiWaste: args.useAntiWaste !== false,
+              mealType: args.mealType,
+              overwrite: args.overwrite === true,
+            },
+          );
           return daysResult;
 
         case 'get_meal_plan':
-          const currentWeekStart = args.weekStart || this.getMondayString(new Date());
-          const plan = await this.mealPlanService.findByWeek(userId, currentWeekStart);
+          const currentWeekStart =
+            args.weekStart || this.getMondayString(new Date());
+          const plan = await this.mealPlanService.findByWeek(
+            userId,
+            currentWeekStart,
+          );
           if (!plan) {
-            return { message: 'Không có thực đơn nào cho tuần này. Bạn có muốn tạo tự động không?' };
+            return {
+              message:
+                'Không có thực đơn nào cho tuần này. Bạn có muốn tạo tự động không?',
+            };
           }
           return plan;
 
@@ -285,7 +349,11 @@ export class ChatbotActionHandler {
           return await this.shoppingListService.findAll(userId);
 
         case 'generate_shopping_list':
-          return await this.shoppingListService.generateFromPlan(userId, args.mealPlanId, args.days);
+          return await this.shoppingListService.generateFromPlan(
+            userId,
+            args.mealPlanId,
+            args.days,
+          );
 
         case 'calculate_calories':
           const user = await this.userRepo.findOne({ where: { id: userId } });
@@ -319,14 +387,26 @@ export class ChatbotActionHandler {
             if (searchResult.data && searchResult.data.length > 0) {
               ratingRecipeId = searchResult.data[0].id;
             } else {
-              return { error: `Không tìm thấy món ăn nào có tên khớp với "${args.recipeName}" trong hệ thống.` };
+              return {
+                error: `Không tìm thấy món ăn nào có tên khớp với "${args.recipeName}" trong hệ thống.`,
+              };
             }
           }
           if (!ratingRecipeId) {
-            return { error: 'Thiếu thông tin món ăn (cần recipeId hoặc recipeName).' };
+            return {
+              error: 'Thiếu thông tin món ăn (cần recipeId hoặc recipeName).',
+            };
           }
-          const ratingStats = await this.recipesService.findOne(ratingRecipeId, { userId });
-          const ratingsList = await this.recipeRatingService.getRatingsForRecipe(ratingRecipeId, 1, 10);
+          const ratingStats = await this.recipesService.findOne(
+            ratingRecipeId,
+            { userId },
+          );
+          const ratingsList =
+            await this.recipeRatingService.getRatingsForRecipe(
+              ratingRecipeId,
+              1,
+              10,
+            );
           return {
             recipeName: ratingStats.name,
             averageRating: ratingStats.averageRating || 0,
@@ -347,7 +427,8 @@ export class ChatbotActionHandler {
             where: { id: userId },
             relations: ['preferences'],
           });
-          if (!prefUser) return { error: 'Không tìm thấy thông tin người dùng' };
+          if (!prefUser)
+            return { error: 'Không tìm thấy thông tin người dùng' };
 
           if (!prefUser.preferences) {
             prefUser.preferences = new UserPreference();
@@ -355,10 +436,12 @@ export class ChatbotActionHandler {
           }
 
           if (args.healthConditions !== undefined) {
-            prefUser.preferences.healthConditions = args.healthConditions === 'none' ? '' : args.healthConditions;
+            prefUser.preferences.healthConditions =
+              args.healthConditions === 'none' ? '' : args.healthConditions;
           }
           if (args.dietType !== undefined) {
-            prefUser.preferences.dietType = args.dietType === 'none' ? 'Bình thường' : args.dietType;
+            prefUser.preferences.dietType =
+              args.dietType === 'none' ? 'Bình thường' : args.dietType;
           }
           if (args.maxSugarPerMeal !== undefined) {
             prefUser.preferences.maxSugarPerMeal = args.maxSugarPerMeal;
@@ -377,7 +460,10 @@ export class ChatbotActionHandler {
           throw new Error(`Action ${actionName} không được hỗ trợ`);
       }
     } catch (err: any) {
-      this.logger.error(`Error executing action ${actionName}: ${err.message}`, err.stack);
+      this.logger.error(
+        `Error executing action ${actionName}: ${err.message}`,
+        err.stack,
+      );
       return { error: `Không thể thực hiện hành động: ${err.message}` };
     }
   }
@@ -390,7 +476,10 @@ export class ChatbotActionHandler {
     return this.formatDateInput(target);
   }
 
-  private resolveCreatableWeekStartForDay(weekStart: string | undefined, dayOfWeek: number): string {
+  private resolveCreatableWeekStartForDay(
+    weekStart: string | undefined,
+    dayOfWeek: number,
+  ): string {
     let targetWeekStart = weekStart || this.getMondayString(new Date());
 
     while (this.isSlotInPast(targetWeekStart, dayOfWeek)) {
@@ -409,12 +498,18 @@ export class ChatbotActionHandler {
   ): { weekStart: string; days: number[]; skippedPastDays: number[] } {
     let targetWeekStart = weekStart;
     let skippedPastDays: number[] = [];
-    let creatableDays = Array.from(new Set(days)).filter((day) => Number.isInteger(day) && day >= 1 && day <= 7);
+    let creatableDays = Array.from(new Set(days)).filter(
+      (day) => Number.isInteger(day) && day >= 1 && day <= 7,
+    );
 
     // Always check for past days and auto-advance if necessary, regardless of explicitWeekStart,
     // to safeguard against AI date calculation errors.
-    skippedPastDays = creatableDays.filter((day) => this.isSlotInPast(targetWeekStart, day));
-    creatableDays = creatableDays.filter((day) => !this.isSlotInPast(targetWeekStart, day));
+    skippedPastDays = creatableDays.filter((day) =>
+      this.isSlotInPast(targetWeekStart, day),
+    );
+    creatableDays = creatableDays.filter(
+      (day) => !this.isSlotInPast(targetWeekStart, day),
+    );
 
     if (creatableDays.length === 0 && skippedPastDays.length > 0) {
       const nextWeek = this.parseDateInput(targetWeekStart);

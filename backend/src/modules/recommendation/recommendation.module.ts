@@ -16,15 +16,27 @@ import { UserActionLog } from '../chatbot/entities/user-action-log.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([
-            Recipe, RecipeIngredient, Inventory,
-            User, UserPreference, Favorite, WeeklyNutritionAnalysis, MealPlan, UserActionLog,
-        ]),
-        forwardRef(() => AuthModule),
-    ],
-    controllers: [RecommendationController],
-    providers: [CalorieService, RecommendationService, NutritionAnalyzerService],
-    exports: [CalorieService, RecommendationService, NutritionAnalyzerService, TypeOrmModule],
+  imports: [
+    TypeOrmModule.forFeature([
+      Recipe,
+      RecipeIngredient,
+      Inventory,
+      User,
+      UserPreference,
+      Favorite,
+      WeeklyNutritionAnalysis,
+      MealPlan,
+      UserActionLog,
+    ]),
+    forwardRef(() => AuthModule),
+  ],
+  controllers: [RecommendationController],
+  providers: [CalorieService, RecommendationService, NutritionAnalyzerService],
+  exports: [
+    CalorieService,
+    RecommendationService,
+    NutritionAnalyzerService,
+    TypeOrmModule,
+  ],
 })
-export class RecommendationModule { }
+export class RecommendationModule {}

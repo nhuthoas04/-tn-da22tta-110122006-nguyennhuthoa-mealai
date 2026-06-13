@@ -231,16 +231,16 @@ export default function AdminUsersPage() {
 
       {/* Create / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl border border-gray-100 max-w-md w-full shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-gray-100 bg-gray-55 flex items-center gap-2.5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-gray-100 max-w-md w-full shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+            <div className="p-6 border-b border-gray-100 bg-gray-55 flex items-center gap-2.5 flex-shrink-0">
               <HiUserAdd className="text-xl text-purple-600" />
               <h3 className="text-lg font-bold text-gray-900">
                 {editingUser ? 'Sửa thông tin thành viên' : 'Thêm thành viên mới'}
               </h3>
             </div>
             
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            <form onSubmit={handleSave} className="p-6 space-y-4 flex-1 overflow-y-auto">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Họ và Tên</label>
                 <input
@@ -315,7 +315,7 @@ export default function AdminUsersPage() {
       {/* Delete Confirmation Modal */}
       {deleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto animate-scale-up">
             <h3 className="text-lg font-bold text-gray-900">Xác nhận xóa tài khoản?</h3>
             <p className="text-gray-500 text-sm mt-2">
               Hành động này không thể hoàn tác. Mọi thông tin liên quan đến tài khoản này sẽ bị xóa khỏi hệ thống.

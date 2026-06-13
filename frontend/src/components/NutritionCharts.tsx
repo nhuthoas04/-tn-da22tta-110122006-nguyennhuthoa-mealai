@@ -29,6 +29,7 @@ interface CaloriesBarProps {
 }
 
 export function WeeklyCaloriesChart({ daily, calorieTarget }: CaloriesBarProps) {
+  console.count("Nutrition Chart Render");
   const data = {
     labels: daily.map((d) => d.label),
     datasets: [
@@ -107,6 +108,7 @@ interface MacroPieProps {
 }
 
 export function MacroDistributionChart({ protein, carbs, fat }: MacroPieProps) {
+  console.count("Nutrition Chart Render");
   // Calculate calorie contribution: Protein/Carbs = 4 cal/g, Fat = 9 cal/g
   const proteinCal = protein * 4;
   const carbsCal = carbs * 4;
@@ -165,6 +167,7 @@ interface DailyMacroProps {
 }
 
 export function DailyMacroChart({ daily }: DailyMacroProps) {
+  console.count("Nutrition Chart Render");
   const data = {
     labels: daily.map((d) => d.label),
     datasets: [
@@ -205,6 +208,59 @@ export function DailyMacroChart({ daily }: DailyMacroProps) {
         beginAtZero: true,
         title: { display: true, text: 'Grams (g)', font: { size: 12 } },
         grid: { color: 'rgba(0,0,0,0.05)' },
+      },
+    },
+  };
+
+  return <Bar data={data} options={options} />;
+}
+
+// ==================== 4. SINGLE NUTRIENT BY DAY BAR CHART ====================
+
+interface NutrientByDayProps {
+  daily: DailyNutrition[];
+  nutrient: 'protein' | 'carbs' | 'fat';
+  label: string;
+  color: string;
+}
+
+export function NutrientByDayChart({ daily, nutrient, label, color }: NutrientByDayProps) {
+  console.count("Nutrition Chart Render");
+  const data = {
+    labels: daily.map((d) => d.label),
+    datasets: [
+      {
+        label,
+        data: daily.map((d) => d[nutrient]),
+        backgroundColor: color,
+        borderColor: color.replace('0.7', '1'),
+        borderWidth: 2,
+        borderRadius: 8,
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) => `${label}: ${ctx.raw}g`,
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: { display: true, text: 'Gram (g)', font: { size: 12 } },
+        grid: { color: 'rgba(0,0,0,0.05)' },
+      },
+      x: {
+        grid: { display: false },
       },
     },
   };

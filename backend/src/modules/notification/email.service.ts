@@ -1,0 +1,56 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
+
+@Injectable()
+export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
+
+  constructor(private readonly configService: ConfigService) {}
+
+  async sendMail(to: string, subject: string, html: string) {
+    const host = this.configService.get<string>('MAIL_HOST');
+    const port = this.configService.get<number>('MAIL_PORT') || 587;
+    const userMail = this.configService.get<string>('MAIL_USER');
+    const passMail = this.configService.get<string>('MAIL_PASS');
+    const fromMail =
+      this.configService.get<string>('MAIL_FROM') || 'no-reply@recipe-ai.com';
+
+    if (!host || !userMail || !passMail) {
+      this.logger.warn(`MAIL CONFIG IS MISSING. FALLBACK TO CONSOLE LOG.`);
+      this.logger.log(
+        `\n======================================================`,
+      );
+      this.logger.log(`[EMAIL FALLBACK]`);
+      this.logger.log(`To: ${to}`);
+      this.logger.log(`Subject: ${subject}`);
+      this.logger.log(`Content:\n${html}`);
+      this.logger.log(
+        `======================================================\n`,
+      );
+      return;
+    }
+
+    try {
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: {
+          user: userMail,
+          pass: passMail,
+        },
+      });
+
+      await transporter.sendMail({
+        from: `"AI Meal Planner" <${fromMail}>`,
+        to,
+        subject,
+        html,
+      });
+      this.logger.log(`Email sent successfully to ${to}`);
+    } catch (err: any) {
+      this.logger.error(`Failed to send email to ${to}: ${err.message}`);
+    }
+  }
+}

@@ -7,7 +7,9 @@ import { RecipeIngredient } from '../recipes/entities/recipe-ingredient.entity';
 import { User } from '../auth/entities/user.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Ingredient, Recipe, RecipeIngredient, User])],
-    providers: [SeedService],
+  imports: [
+    TypeOrmModule.forFeature([Ingredient, Recipe, RecipeIngredient, User]),
+  ],
+  providers: [SeedService],
 })
-export class SeedModule { }
+export class SeedModule {}

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { AuthModule } from './modules/auth/auth.module';
 import { RecipesModule } from './modules/recipes/recipes.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
@@ -21,17 +21,35 @@ import { NotificationModule } from './modules/notification/notification.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 5432),
-        username: config.get('DB_USERNAME', 'postgres'),
-        password: config.get('DB_PASSWORD', 'postgres'),
-        database: config.get('DB_NAME', 'recipe_ai'),
-        autoLoadEntities: true,   // Auto-detect entities from modules
-        synchronize: true,        // Auto-sync schema (disable in production!)
-        logging: false,
-      }),
+      useFactory: (config: ConfigService): TypeOrmModuleOptions => {
+        const commonConfig: TypeOrmModuleOptions = {
+          type: 'postgres' as const,
+          autoLoadEntities: true,
+          synchronize: config.get<string>('DB_SYNC', 'true') === 'true',
+          ssl:
+            config.get<string>('DB_SSL', 'false') === 'true'
+              ? { rejectUnauthorized: false }
+              : false,
+          logging: false,
+        };
+        const databaseUrl = config.get<string>('DATABASE_URL');
+
+        if (databaseUrl) {
+          return {
+            ...commonConfig,
+            url: databaseUrl,
+          };
+        }
+
+        return {
+          ...commonConfig,
+          host: config.get<string>('DB_HOST', 'localhost'),
+          port: config.get<number>('DB_PORT', 5432),
+          username: config.get<string>('DB_USERNAME', 'postgres'),
+          password: config.get<string>('DB_PASSWORD', 'postgres'),
+          database: config.get<string>('DB_NAME', 'recipe_ai'),
+        };
+      },
     }),
 
     // Feature modules
@@ -47,4 +65,4 @@ import { NotificationModule } from './modules/notification/notification.module';
     NotificationModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}

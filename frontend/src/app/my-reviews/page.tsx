@@ -252,7 +252,7 @@ export default function MyReviewsPage() {
       {/* Edit Review Modal */}
       {editingReview && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-brand-lg bg-white shadow-brand-lg border border-brand-light-border overflow-hidden animate-scale-in">
+          <div className="w-full max-w-lg rounded-brand-lg bg-white shadow-brand-lg border border-brand-light-border max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-brand-light-border bg-slate-50/50">
               <div>
                 <h3 className="text-base font-bold text-slate-900">
@@ -264,14 +264,14 @@ export default function MyReviewsPage() {
               </div>
               <button
                 onClick={() => setEditingReview(null)}
-                className="p-1 hover:bg-slate-100 rounded-brand-sm text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                className="p-1 hover:bg-slate-100 rounded-brand-sm text-slate-400 hover:text-slate-650 transition cursor-pointer"
                 aria-label="Đóng"
               >
                 <HiX className="text-xl" />
               </button>
             </div>
-
-            <div className="p-6 space-y-5">
+ 
+            <div className="p-6 space-y-5 flex-1 overflow-y-auto">
               {/* Star Rating */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500 font-bold mr-2">Đánh giá lại:</span>

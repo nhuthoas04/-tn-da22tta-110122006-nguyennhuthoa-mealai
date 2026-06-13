@@ -12,15 +12,14 @@ import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { RecommendationModule } from '../recommendation/recommendation.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([User, UserPreference, PasswordResetToken]),
-        PassportModule,
-        JwtModule.register({}), // Config is done per-sign in AuthService
-        forwardRef(() => RecommendationModule),
-    ],
-    controllers: [AuthController],
-    providers: [AuthService, PasswordResetService, JwtStrategy],
-    exports: [AuthService, PasswordResetService, TypeOrmModule],
+  imports: [
+    TypeOrmModule.forFeature([User, UserPreference, PasswordResetToken]),
+    PassportModule,
+    JwtModule.register({}), // Config is done per-sign in AuthService
+    forwardRef(() => RecommendationModule),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, PasswordResetService, JwtStrategy],
+  exports: [AuthService, PasswordResetService, TypeOrmModule],
 })
-export class AuthModule { }
-
+export class AuthModule {}

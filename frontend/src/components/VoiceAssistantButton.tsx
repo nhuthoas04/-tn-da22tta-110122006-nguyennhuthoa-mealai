@@ -21,6 +21,7 @@ export default function VoiceAssistantButton() {
   const [transcript, setTranscript] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [supported, setSupported] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
@@ -62,6 +63,35 @@ export default function VoiceAssistantButton() {
     }
     isRecognitionRunningRef.current = false;
   }, []);
+
+  // Listen to ChatWidget toggle events to avoid overlap and resource conflict
+  useEffect(() => {
+    const handleChatToggle = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const chatOpen = !!customEvent.detail?.isOpen;
+      setIsChatOpen(chatOpen);
+      
+      if (chatOpen) {
+        // Stop recognition and speaking if chatbot opens
+        if (stateRef.current !== 'DISABLED') {
+          stopRecognition();
+          if (synthRef.current) {
+            synthRef.current.cancel();
+          }
+        }
+      } else {
+        // Resume recognition if chatbot closes and VoiceAssistant was active
+        if (stateRef.current !== 'DISABLED') {
+          startRecognition();
+        }
+      }
+    };
+
+    window.addEventListener('chat-widget-toggle', handleChatToggle);
+    return () => {
+      window.removeEventListener('chat-widget-toggle', handleChatToggle);
+    };
+  }, [startRecognition, stopRecognition]);
 
   // Play short programmatic double-beep chirp sound using Web Audio API
   const playChirpSound = useCallback(() => {
@@ -227,7 +257,6 @@ export default function VoiceAssistantButton() {
         else if (page === 'recipes') path = '/recipes';
         else if (page === 'profile') path = '/profile';
         else if (page === 'nutrition') path = '/nutrition';
-        else if (page === 'voice-dashboard') path = '/admin/voice-dashboard';
         
         router.push(path);
         break;
@@ -710,12 +739,14 @@ export default function VoiceAssistantButton() {
     }
   };
 
+  if (isChatOpen) return null;
+
   return (
-    <div className="fixed bottom-24 right-6 z-50 flex flex-col items-end gap-3 select-none">
+    <div className="fixed bottom-20 right-4 left-4 sm:left-auto sm:bottom-24 sm:right-6 z-50 flex flex-col items-end gap-3 select-none bottom-safe-voice pointer-events-none">
       {/* Floating Status Card */}
       {state !== 'DISABLED' && (
         <div
-          className="bg-white/95 backdrop-blur-md border border-brand-light-border rounded-2xl p-3 shadow-brand-lg max-w-[280px] flex flex-col gap-2 items-center text-center"
+          className="bg-white/95 backdrop-blur-md border border-brand-light-border rounded-2xl p-3 shadow-brand-lg max-w-[280px] flex flex-col gap-2 items-center text-center pointer-events-auto"
           style={{ animation: 'slideInUp 0.3s ease-out' }}
         >
           <div className="flex items-center justify-between w-full border-b border-gray-100 pb-1.5 px-1">
@@ -779,7 +810,7 @@ export default function VoiceAssistantButton() {
       {/* Floating Microphone Button */}
       <button
         onClick={state === 'DISABLED' ? handleToggleAssistant : handleDirectActivate}
-        className={`w-14 h-14 rounded-full shadow-brand-glow flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer relative group ${
+        className={`w-14 h-14 rounded-full shadow-brand-glow flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer relative group pointer-events-auto ${
           state === 'DISABLED'
             ? 'bg-slate-100 hover:bg-slate-200 text-slate-500 border border-slate-200'
             : state === 'LISTENING_COMMAND'
@@ -811,6 +842,14 @@ export default function VoiceAssistantButton() {
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+        .bottom-safe-voice {
+          bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+        }
+        @media (min-width: 640px) {
+          .bottom-safe-voice {
+            bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
           }
         }
       `}</style>

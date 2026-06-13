@@ -61,7 +61,10 @@ export class RecipeRating {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @ManyToOne(() => RecipeRating, (rating) => rating.replies, { onDelete: 'CASCADE', nullable: true })
+  @ManyToOne(() => RecipeRating, (rating) => rating.replies, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn({ name: 'parentId' })
   parent: RecipeRating;
 

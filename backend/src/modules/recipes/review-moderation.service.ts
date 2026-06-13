@@ -3,8 +3,28 @@ import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const BAD_WORDS = [
-  'dit', 'du', 'cac', 'lon', 'ngu', 'cho', 'suc vat', 'djt', 'vcl', 'vl', 'cl', 'dcm', 'dm', 'đm', 'đmm',
-  'fuck', 'shit', 'bitch', 'ass', 'bastard', 'idiot', 'retard'
+  'dit',
+  'du',
+  'cac',
+  'lon',
+  'ngu',
+  'cho',
+  'suc vat',
+  'djt',
+  'vcl',
+  'vl',
+  'cl',
+  'dcm',
+  'dm',
+  'đm',
+  'đmm',
+  'fuck',
+  'shit',
+  'bitch',
+  'ass',
+  'bastard',
+  'idiot',
+  'retard',
 ];
 
 @Injectable()
@@ -17,23 +37,34 @@ export class ReviewModerationService implements OnModuleInit {
 
   onModuleInit() {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-    const isPlaceholder = !apiKey || apiKey.trim() === '' || apiKey.includes('YOUR_') || apiKey.includes('your_');
+    const isPlaceholder =
+      !apiKey ||
+      apiKey.trim() === '' ||
+      apiKey.includes('YOUR_') ||
+      apiKey.includes('your_');
     if (isPlaceholder) {
-      this.logger.warn('GEMINI_API_KEY is not defined or is a placeholder. Review AI Moderation will run in fallback/static mode.');
+      this.logger.warn(
+        'GEMINI_API_KEY is not defined or is a placeholder. Review AI Moderation will run in fallback/static mode.',
+      );
       this.genAI = null;
     } else {
       try {
         this.genAI = new GoogleGenerativeAI(apiKey);
       } catch (err: any) {
-        this.logger.error('Failed to initialize Gemini AI for Review Moderation:', err.message);
+        this.logger.error(
+          'Failed to initialize Gemini AI for Review Moderation:',
+          err.message,
+        );
         this.genAI = null;
       }
     }
   }
 
   private removeAccentChar(char: string): string {
-    const accents = 'àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ';
-    const noAccents = 'aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyyd';
+    const accents =
+      'àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ';
+    const noAccents =
+      'aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyyd';
     const index = accents.indexOf(char);
     return index !== -1 ? noAccents[index] : char;
   }
@@ -50,13 +81,18 @@ export class ReviewModerationService implements OnModuleInit {
       else if (char === '3') char = 'e';
       else if (char === '1') char = 'i';
       else if (char === '7') char = 't';
-      else if (char === '*' || char === '_' || char === '-' || char === '.') char = ' '; // Maintain length
+      else if (char === '*' || char === '_' || char === '-' || char === '.')
+        char = ' '; // Maintain length
       normalized += char;
     }
     return normalized;
   }
 
-  filterBadWords(text: string): { isViolating: boolean; censoredText: string; matchedWords: string[] } {
+  filterBadWords(text: string): {
+    isViolating: boolean;
+    censoredText: string;
+    matchedWords: string[];
+  } {
     const normalized = this.normalizeText(text);
     const matchedWords = new Set<string>();
     let isViolating = false;
@@ -68,10 +104,10 @@ export class ReviewModerationService implements OnModuleInit {
       while ((match = regex.exec(normalized)) !== null) {
         isViolating = true;
         matchedWords.add(badWord);
-        
+
         const start = match.index;
         const end = start + badWord.length;
-        
+
         for (let i = start; i < end; i++) {
           if (originalChars[i] && originalChars[i] !== ' ') {
             originalChars[i] = '*';
@@ -87,7 +123,9 @@ export class ReviewModerationService implements OnModuleInit {
     };
   }
 
-  async auditReviewWithAI(text: string): Promise<{ isFlagged: boolean; reason: string }> {
+  async auditReviewWithAI(
+    text: string,
+  ): Promise<{ isFlagged: boolean; reason: string }> {
     if (!this.genAI) {
       return { isFlagged: false, reason: '' };
     }
@@ -118,10 +156,13 @@ export class ReviewModerationService implements OnModuleInit {
         }
         Không bao gồm bất kỳ giải thích nào khác ngoài chuỗi JSON sạch.
       `;
-      
+
       const response = await model.generateContent(prompt);
       const responseText = response.response.text();
-      const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const cleanedText = responseText
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim();
       const result = JSON.parse(cleanedText);
       return {
         isFlagged: !!result.isFlagged,

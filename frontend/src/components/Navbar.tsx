@@ -6,8 +6,8 @@ import { useEffect, useState, useRef } from 'react';
 import { adminModerationAPI } from '@/lib/api';
 import {
   HiHome, HiBookOpen, HiCalendar, HiShoppingCart,
-  HiCube, HiUser, HiMenu, HiX, HiLogout, HiSparkles, HiChartBar,
-  HiShieldCheck, HiBell, HiHeart,
+  HiCube, HiMenu, HiX, HiLogout, HiSparkles, HiChartBar,
+  HiShieldCheck, HiBell, HiUser,
 } from 'react-icons/hi';
 import { notificationsAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
@@ -16,12 +16,13 @@ import toast from 'react-hot-toast';
 const navItems = [
   { href: '/', label: 'Trang chủ', icon: HiHome },
   { href: '/recipes', label: 'Công thức', icon: HiBookOpen },
-  { href: '/favorites', label: 'Yêu thích', icon: HiHeart },
   { href: '/meal-planner', label: 'Thực đơn', icon: HiCalendar },
-  { href: '/nutrition', label: 'Dinh dưỡng', icon: HiChartBar },
-  { href: '/insights', label: 'AI Insights', icon: HiSparkles },
+  { href: '/nutrition', label: 'Dinh dưỡng & AI Insights', icon: HiChartBar },
   { href: '/shopping-list', label: 'Mua sắm', icon: HiShoppingCart },
   { href: '/inventory', label: 'Tủ lạnh', icon: HiCube },
+];
+
+const userOnlyNavItems = [
   { href: '/profile', label: 'Cá nhân', icon: HiUser },
 ];
 
@@ -40,6 +41,56 @@ export default function Navbar() {
 
   const notifiedIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'APPROVED': return '✅';
+      case 'REJECTED': return '❌';
+      case 'EDITED': return '📝';
+      case 'RATE_POST': return '⭐';
+      case 'COMMENT_POST': return '💬';
+      case 'REPLY_COMMENT': return '↩️';
+      case 'SAVE_RECIPE': return '❤️';
+      case 'COMMENT': return '💬';
+      case 'LIKE': return '❤️';
+      default: return '🔔';
+    }
+  };
+
+  const formatRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (diffSec < 60) return 'Vừa xong';
+    if (diffMin < 60) return `${diffMin} phút trước`;
+    if (diffHour < 24) return `${diffHour} giờ trước`;
+    if (diffDay === 1) return 'Hôm qua';
+    return `${diffDay} ngày trước`;
+  };
+
+  const handleNotificationClick = async (notif: any) => {
+    setDropdownOpen(false);
+    try {
+      if (!notif.isRead) {
+        await notificationsAPI.markAsRead(notif.id);
+        loadPersonalUnreadCount();
+      }
+      if (notif.type === 'EDITED') {
+        router.push('/notifications');
+      } else if (notif.post?.id) {
+        router.push(`/recipes/${notif.post.id}`);
+      } else {
+        router.push('/notifications');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const checkNewNotifications = async () => {
     try {
@@ -100,23 +151,6 @@ export default function Navbar() {
     setDropdownOpen(!dropdownOpen);
   };
 
-  const handleNotificationClick = async (notif: any) => {
-    setDropdownOpen(false);
-    try {
-      if (!notif.isRead) {
-        await notificationsAPI.markAsRead(notif.id);
-        loadPersonalUnreadCount();
-      }
-      if (notif.post?.id) {
-        router.push(`/recipes/${notif.post.id}`);
-      } else {
-        router.push('/notifications');
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const markAllAsRead = async () => {
     try {
       await notificationsAPI.markAllAsRead();
@@ -125,32 +159,6 @@ export default function Navbar() {
     } catch (err) {
       console.error(err);
     }
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'RATE_POST': return '⭐';
-      case 'COMMENT_POST': return '💬';
-      case 'REPLY_COMMENT': return '↩️';
-      case 'SAVE_RECIPE': return '💾';
-      default: return '🔔';
-    }
-  };
-
-  const formatRelativeTime = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now.getTime() - date.getTime();
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHour = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHour / 24);
-
-    if (diffSec < 60) return 'Vừa xong';
-    if (diffMin < 60) return `${diffMin} phút trước`;
-    if (diffHour < 24) return `${diffHour} giờ trước`;
-    if (diffDay === 1) return 'Hôm qua';
-    return `${diffDay} ngày trước`;
   };
 
   useEffect(() => {
@@ -214,25 +222,25 @@ export default function Navbar() {
           ? 'bg-brand-navy/80 border-b border-slate-800 text-white'
           : 'bg-white/80 border-b border-gray-200 text-gray-900'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16">
+        <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10">
+          <div className="grid h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 sm:h-16 lg:gap-6 xl:gap-8">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
-              <HiSparkles className="text-2xl text-emerald-500" />
-              <span className={`font-bold text-xl ${isDarkNavbar ? 'text-white' : 'text-gray-900'}`}>
+            <Link href="/" className="flex shrink-0 items-center gap-2">
+              <HiSparkles className="text-xl text-emerald-500 sm:text-2xl" />
+              <span className={`text-lg font-bold sm:text-xl ${isDarkNavbar ? 'text-white' : 'text-gray-900'}`}>
                 Meal<span className="text-emerald-500">AI</span>
               </span>
             </Link>
 
             {/* Desktop Links */}
-            <div className="hidden lg:flex items-center gap-1.5">
-              {user && navItems.map((item) => {
+            <div className="hidden min-w-0 items-center justify-center gap-2 lg:flex 2xl:gap-3">
+              {user && [...navItems, ...(!isAdmin ? userOnlyNavItems : [])].map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-brand-primary/20 ${
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-brand-primary/20 2xl:gap-2 2xl:px-3.5 ${
                       isActive
                         ? isDarkNavbar
                           ? 'bg-emerald-950/50 text-brand-primary'
@@ -250,10 +258,10 @@ export default function Navbar() {
             </div>
 
             {/* User / Auth */}
-            <div className="hidden lg:flex items-center gap-3">
+            <div className="hidden items-center gap-3 lg:flex 2xl:gap-4">
               {user ? (
                 <>
-                  <span className={`text-sm ${isDarkNavbar ? 'text-slate-300' : 'text-gray-600'}`}>
+                  <span className={`max-w-24 truncate text-sm ${isDarkNavbar ? 'text-slate-300' : 'text-gray-600'}`}>
                     {user.fullName}
                   </span>
 
@@ -305,7 +313,7 @@ export default function Navbar() {
                                 }`}
                               >
                                 <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 text-sm font-bold overflow-hidden">
-                                  {notif.actor?.avatarUrl ? (
+                                  {notif.actor?.avatarUrl && notif.type !== 'APPROVED' && notif.type !== 'REJECTED' && notif.type !== 'EDITED' ? (
                                     <img src={notif.actor.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
                                   ) : (
                                     <span className="text-xs">{getNotificationIcon(notif.type)}</span>
@@ -372,10 +380,10 @@ export default function Navbar() {
             </div>
 
             {/* Mobile Menu Button / Mobile Login */}
-            <div className="lg:hidden flex items-center">
+            <div className="flex items-center justify-end lg:hidden">
               {user ? (
                 <button
-                  className={`p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 rounded-lg ${
+                  className={`rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
                     isDarkNavbar ? 'text-slate-300 hover:bg-slate-800' : 'text-gray-600 hover:bg-gray-100'
                   }`}
                   onClick={() => setMobileOpen(!mobileOpen)}
@@ -396,17 +404,17 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {user && mobileOpen && (
-          <div className={`lg:hidden border-t pb-4 transition-colors duration-300 ${
+          <div className={`max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-t px-3 py-3 transition-colors duration-300 lg:hidden sm:max-h-[calc(100dvh-4rem)] ${
             isDarkNavbar ? 'bg-brand-navy-card border-slate-800' : 'bg-white border-gray-200'
           }`}>
-            {navItems.map((item) => {
+            {[...navItems, ...(!isAdmin ? userOnlyNavItems : [])].map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-6 py-3 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors ${
                     isActive
                       ? isDarkNavbar
                         ? 'text-brand-primary bg-brand-primary/10'
@@ -425,7 +433,7 @@ export default function Navbar() {
               <Link
                 href="/admin"
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-6 py-3 text-sm font-medium relative ${
+                className={`relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium ${
                   pathname.startsWith('/admin') ? 'text-purple-700 bg-purple-50' : 'text-purple-600 hover:bg-purple-50'
                 }`}
               >
@@ -441,7 +449,7 @@ export default function Navbar() {
             <Link
               href="/notifications"
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-6 py-3 text-sm font-medium relative ${
+              className={`relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium ${
                 pathname === '/notifications' ? 'text-brand-primary bg-brand-primary/10' : 'text-slate-600 hover:bg-brand-secondary/10 hover:text-brand-secondary'
               }`}
             >
@@ -455,7 +463,7 @@ export default function Navbar() {
             </Link>
             <button
               onClick={logout}
-              className="flex items-center gap-3 px-6 py-3 text-sm text-red-600 w-full animate-none"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-red-600 animate-none"
             >
               <HiLogout className="text-lg" />
               Đăng xuất
@@ -465,7 +473,7 @@ export default function Navbar() {
       </nav>
 
       {/* Spacer for fixed navbar */}
-      <div className="h-16" />
+      <div className="h-14 sm:h-16" />
     </>
   );
 }

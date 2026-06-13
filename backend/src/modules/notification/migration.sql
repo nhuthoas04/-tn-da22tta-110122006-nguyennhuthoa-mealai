@@ -1,12 +1,12 @@
--- SQL Migration for MealAI Notification and Like Systems
+-- SQL Migration for MealAI Notification and Favorite Systems
 
--- 1. Create recipe_likes table
-CREATE TABLE IF NOT EXISTS "recipe_likes" (
+-- 1. Create favorite_recipes table
+CREATE TABLE IF NOT EXISTS "favorite_recipes" (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "recipeId" UUID NOT NULL REFERENCES "recipes"("id") ON DELETE CASCADE,
   "userId" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
   "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
-  CONSTRAINT "uq_recipe_user_like" UNIQUE("recipeId", "userId")
+  CONSTRAINT "uq_favorite_recipe_user" UNIQUE("recipeId", "userId")
 );
 
 -- 2. Add parentId column to recipe_ratings table for replies, and make rating nullable

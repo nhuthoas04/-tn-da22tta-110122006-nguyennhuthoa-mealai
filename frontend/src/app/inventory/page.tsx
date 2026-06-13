@@ -110,14 +110,14 @@ export default function InventoryPage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto px-4 py-6 bg-brand-light-bg min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Tủ lạnh của tôi 🧊</h1>
           <p className="text-sm text-slate-500 mt-1">Quản lý nguyên liệu và hạn sử dụng</p>
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="btn-primary"
+          className="btn-primary w-full sm:w-auto justify-center"
         >
           <HiPlus /> Thêm nguyên liệu
         </button>

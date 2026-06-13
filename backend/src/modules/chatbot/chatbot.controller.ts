@@ -1,4 +1,14 @@
-import { Controller, Post, Get, Delete, Body, UseGuards, Req, Query, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  UseGuards,
+  Req,
+  Query,
+  Res,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ChatbotAIService } from './chatbot-ai.service';
 import { TtsService } from './tts.service';
@@ -15,16 +25,17 @@ export class ChatbotController {
   ) {}
 
   @Get('tts')
-  async getTts(
-    @Query('text') text: string,
-    @Res() res: express.Response,
-  ) {
+  async getTts(@Query('text') text: string, @Res() res: express.Response) {
     if (!text) {
-      return res.status(400).json({ error: 'Text query parameter is required' });
+      return res
+        .status(400)
+        .json({ error: 'Text query parameter is required' });
     }
     const audioBuffer = await this.ttsService.generateSpeech(text);
     if (!audioBuffer) {
-      return res.status(400).json({ error: 'No TTS provider configured or generation failed' });
+      return res
+        .status(400)
+        .json({ error: 'No TTS provider configured or generation failed' });
     }
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Length', audioBuffer.length);
@@ -32,10 +43,7 @@ export class ChatbotController {
   }
 
   @Post('message')
-  async sendMessage(
-    @Req() req: any,
-    @Body() body: { message: string },
-  ) {
+  async sendMessage(@Req() req: any, @Body() body: { message: string }) {
     return await this.chatbotAIService.sendMessage(req.user.id, body.message);
   }
 
@@ -44,7 +52,11 @@ export class ChatbotController {
     @Req() req: any,
     @Body() body: { message: string; durationMs: number },
   ) {
-    return await this.chatbotAIService.sendVoiceMessage(req.user.id, body.message, body.durationMs || 0);
+    return await this.chatbotAIService.sendVoiceMessage(
+      req.user.id,
+      body.message,
+      body.durationMs || 0,
+    );
   }
 
   @Get('voice/stats')
@@ -68,10 +80,7 @@ export class ChatbotController {
   }
 
   @Post('action-log')
-  async logAction(
-    @Req() req: any,
-    @Body() body: any,
-  ) {
+  async logAction(@Req() req: any, @Body() body: any) {
     const log = await this.chatbotAIService.logUserAction(req.user.id, body);
     return { data: log };
   }

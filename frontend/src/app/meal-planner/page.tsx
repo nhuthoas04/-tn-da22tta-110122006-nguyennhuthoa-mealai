@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { HiChevronLeft, HiChevronRight, HiOutlineTrash, HiOutlineDownload, HiSparkles } from 'react-icons/hi';
 import { useAuth } from '@/context/AuthContext';
 import api, { mealPlanAPI, recipesAPI, shoppingListAPI, recommendationAPI } from '@/lib/api';
+import { calculateMealPortionWarning, getMaxRecommendedDishes, MealPortionWarningResult } from '@/lib/mealPortion';
 
 const DAYS = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
 const MEALS = [
@@ -13,6 +14,11 @@ const MEALS = [
   { key: 'lunch',     label: 'Trưa' },
   { key: 'dinner',    label: 'Tối'  },
 ];
+
+type PortionWarningState = MealPortionWarningResult & {
+  dayOfWeek: number;
+  mealDate: string;
+};
 
 export default function MealPlannerPage() {
   const { user } = useAuth();
@@ -23,10 +29,16 @@ export default function MealPlannerPage() {
 
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ itemId: string | null; day: number; mealType: string } | null>(null);
+  const [selectedRecipeIds, setSelectedRecipeIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchingRecipes, setSearchingRecipes] = useState(false);
   const [aiSuggestingDay, setAiSuggestingDay] = useState<number | null>(null);
+  const [aiSuggestionError, setAiSuggestionError] = useState<string | null>(null);
+  const [portionWarning, setPortionWarning] = useState<PortionWarningState | null>(null);
+  const [optimizingPortions, setOptimizingPortions] = useState(false);
+  const [prioritizeNew, setPrioritizeNew] = useState(true);
+  const [noRepeatIn7Days, setNoRepeatIn7Days] = useState(false);
 
   useEffect(() => {
     if (user) loadPlan();
@@ -80,6 +92,32 @@ export default function MealPlannerPage() {
     });
   };
 
+  const getUserServings = () => {
+    const servings = Number((user as any)?.preferences?.servings);
+    return Number.isFinite(servings) && servings > 0 ? Math.floor(servings) : 4;
+  };
+
+  const getUserDailyCalories = () => {
+    const calories = Number((user as any)?.dailyCalorieTarget);
+    return Number.isFinite(calories) && calories > 0 ? calories : 0;
+  };
+
+  const checkMealPortionWarning = (dayOfWeek: number, mealDate: string, items: any[]) => {
+    const warning = calculateMealPortionWarning({
+      servings: getUserServings(),
+      totalDishes: items.length,
+      dailyCalories: getUserDailyCalories(),
+    }, true);
+
+    if (warning.shouldWarn) {
+      setPortionWarning({
+        ...warning,
+        dayOfWeek,
+        mealDate,
+      });
+    }
+  };
+
   const handleAISuggestButtonClick = async (dayOfWeek: number) => {
     const isToday = getSlotDateInput(weekStart, dayOfWeek - 1) === getTodayInputValue();
     const dayLabelText = isToday ? 'hôm nay' : `ngày ${DAYS[dayOfWeek - 1]}`;
@@ -104,25 +142,86 @@ export default function MealPlannerPage() {
     const dateStr = getSlotDateInput(weekStart, dayOfWeek - 1);
 
     setAiSuggestingDay(dayOfWeek);
+    setAiSuggestionError(null);
     try {
-      await mealPlanAPI.generateForDays({
+      const res = await mealPlanAPI.generateForDays({
         weekStart,
         days: [dayOfWeek],
         mealDates: [dateStr],
         useAntiWaste: true,
         overwrite,
+        prioritizeNew,
+        noRepeatIn7Days,
       });
+      console.log('[MealAI][meal-planner][AI suggest] raw response:', res.data);
+
+      if (res.data?.items) {
+        applyPlanUpdateKeepingScroll(res.data);
+        if (res.data.warning) {
+          toast.error(res.data.warning, { duration: 6000 });
+        }
+        const dayItems = res.data.items.filter((item: any) => item.mealDate === dateStr && item.recipe);
+        console.log('[MealAI][meal-planner][AI suggest] rendered day items:', dayItems);
+
+        if (dayItems.length === 0) {
+          const emptyMessage = 'Không tìm thấy món ăn phù hợp với nhu cầu hiện tại.';
+          setAiSuggestionError(emptyMessage);
+          toast.error(emptyMessage);
+          return;
+        }
+
+        checkMealPortionWarning(dayOfWeek, dateStr, dayItems);
+      } else {
+        await loadPlan();
+      }
+
       toast.success(
         overwrite
           ? `AI đã tạo lại thực đơn cho ngày ${DAYS[dayOfWeek - 1]}! 🤖`
           : `Đã bổ sung món ăn cho các bữa còn thiếu.`
       );
-      await loadPlan();
     } catch (err: any) {
       const errMsg = err.response?.data?.message || 'Có lỗi khi gọi AI gợi ý';
+      console.error('[MealAI][meal-planner][AI suggest] error:', err);
+      setAiSuggestionError(errMsg);
       toast.error(errMsg);
     } finally {
       setAiSuggestingDay(null);
+    }
+  };
+
+  const handleOptimizePortions = async () => {
+    if (!portionWarning) return;
+
+    setOptimizingPortions(true);
+    setAiSuggestionError(null);
+    try {
+      const res = await mealPlanAPI.generateForDays({
+        weekStart,
+        days: [portionWarning.dayOfWeek],
+        mealDates: [portionWarning.mealDate],
+        useAntiWaste: true,
+        overwrite: true,
+        optimizePortions: true,
+        prioritizeNew,
+        noRepeatIn7Days,
+      });
+
+      if (res.data?.items) {
+        applyPlanUpdateKeepingScroll(res.data);
+      } else {
+        await loadPlan();
+      }
+
+      toast.success('Đã tự động tối ưu thực đơn theo số người ăn.');
+      setPortionWarning(null);
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || 'Không thể tối ưu thực đơn lúc này';
+      console.error('[MealAI][meal-planner][portion optimize] error:', err);
+      setAiSuggestionError(errMsg);
+      toast.error(errMsg);
+    } finally {
+      setOptimizingPortions(false);
     }
   };
 
@@ -142,9 +241,32 @@ export default function MealPlannerPage() {
   const handleOpenSelector = (itemId: string | null, day: number, mealType: string) => {
     if (isPastSlotDate(weekStart, day - 1)) { toast.error('Không thể thêm hoặc đổi món cho ngày đã qua.'); return; }
     setSelectedSlot({ itemId, day, mealType });
+    setSelectedRecipeIds([]);
     setSelectorOpen(true);
     setSearchQuery('');
     fetchInitialRecipes();
+  };
+
+  const handleCloseSelector = () => {
+    setSelectorOpen(false);
+    setSelectedSlot(null);
+    setSelectedRecipeIds([]);
+    setSearchQuery('');
+  };
+
+  const applyPlanUpdateKeepingScroll = (nextPlan: any) => {
+    const scrollX = typeof window !== 'undefined' ? window.scrollX : 0;
+    const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+    setPlan(nextPlan);
+    requestAnimationFrame(() => window.scrollTo(scrollX, scrollY));
+  };
+
+  const toggleRecipeSelection = (recipeId: string) => {
+    setSelectedRecipeIds((current) =>
+      current.includes(recipeId)
+        ? current.filter((id) => id !== recipeId)
+        : [...current, recipeId],
+    );
   };
 
   const fetchInitialRecipes = async () => {
@@ -167,19 +289,91 @@ export default function MealPlannerPage() {
   const handleSelectRecipe = async (recipeId: string) => {
     if (!selectedSlot) return;
     if (isPastSlotDate(weekStart, selectedSlot.day - 1)) { toast.error('Không thể thêm hoặc đổi món cho ngày đã qua.'); return; }
+
     const dateStr = getSlotDateInput(weekStart, selectedSlot.day - 1);
+    const selectedRecipe = searchResults.find((recipe: any) => recipe.id === recipeId);
+
     try {
+      let nextPlan = null;
       if (plan && selectedSlot.itemId) {
-        await mealPlanAPI.swapRecipe(plan.id, selectedSlot.itemId, recipeId);
+        const res = await mealPlanAPI.swapRecipe(plan.id, selectedSlot.itemId, recipeId);
+        const updatedPlan = {
+          ...plan,
+          items: plan.items.map((item: any) =>
+            item.id === selectedSlot.itemId
+              ? {
+                  ...item,
+                  ...res.data,
+                  recipe: selectedRecipe
+                    ? {
+                        id: selectedRecipe.id,
+                        name: selectedRecipe.name,
+                        imageUrl: selectedRecipe.imageUrl,
+                        calories: selectedRecipe.calories,
+                        cookingTime: selectedRecipe.cookingTime,
+                      }
+                    : res.data.recipe,
+                }
+              : item,
+          ),
+        };
+        nextPlan = updatedPlan;
+        applyPlanUpdateKeepingScroll(updatedPlan);
         toast.success('Đã cập nhật món ăn thành công!');
       } else {
-        await mealPlanAPI.setMealSlot({ weekStart, dayOfWeek: selectedSlot.day, mealDate: dateStr, mealType: selectedSlot.mealType, recipeId });
+        const res = await mealPlanAPI.setMealSlot({ weekStart, dayOfWeek: selectedSlot.day, mealDate: dateStr, mealType: selectedSlot.mealType, recipeId });
+        nextPlan = res.data;
+        applyPlanUpdateKeepingScroll(res.data);
         toast.success('Đã chọn món ăn thành công!');
       }
       setHighlightedSlot({ weekStart, day: selectedSlot.day, mealType: selectedSlot.mealType });
-      await loadPlan();
-      setSelectorOpen(false);
+      handleCloseSelector();
+
+      if (nextPlan) {
+        const dayItems = nextPlan.items.filter((item: any) => item.mealDate === dateStr && item.recipe);
+        const warning = calculateMealPortionWarning({
+          servings: getUserServings(),
+          totalDishes: dayItems.length,
+          dailyCalories: getUserDailyCalories(),
+        }, false);
+        if (warning.shouldWarn) {
+          toast.error(warning.message || 'Bạn đã vượt số lượng món khuyến nghị cho số người ăn hiện tại.', { duration: 5000 });
+        }
+      }
     } catch { toast.error('Không thể cập nhật món ăn'); }
+  };
+
+  const handleAddSelectedRecipes = async () => {
+    if (!selectedSlot || selectedSlot.itemId || selectedRecipeIds.length === 0) return;
+    if (isPastSlotDate(weekStart, selectedSlot.day - 1)) { toast.error('Không thể thêm món cho ngày đã qua.'); return; }
+
+    const dateStr = getSlotDateInput(weekStart, selectedSlot.day - 1);
+    try {
+      const res = await mealPlanAPI.setMealSlot({
+        weekStart,
+        dayOfWeek: selectedSlot.day,
+        mealDate: dateStr,
+        mealType: selectedSlot.mealType,
+        recipeIds: selectedRecipeIds,
+      });
+
+      applyPlanUpdateKeepingScroll(res.data);
+      setHighlightedSlot({ weekStart, day: selectedSlot.day, mealType: selectedSlot.mealType });
+      toast.success(`Đã thêm ${selectedRecipeIds.length} món vào ${getMealLabel(selectedSlot.mealType)}!`);
+      handleCloseSelector();
+
+      const dayItems = res.data.items.filter((item: any) => item.mealDate === dateStr && item.recipe);
+      const warning = calculateMealPortionWarning({
+        servings: getUserServings(),
+        totalDishes: dayItems.length,
+        dailyCalories: getUserDailyCalories(),
+      }, false);
+      if (warning.shouldWarn) {
+        toast.error(warning.message || 'Bạn đã vượt số lượng món khuyến nghị cho số người ăn hiện tại.', { duration: 5000 });
+      }
+    } catch {
+      toast.error('Không thể thêm các món đã chọn');
+    }
   };
 
   const handleDeleteItem = async (item: any) => {
@@ -322,6 +516,39 @@ export default function MealPlannerPage() {
           </div>
         </div>
 
+        {aiSuggestionError && (
+          <div className="mb-4 rounded-brand-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+            {aiSuggestionError}
+          </div>
+        )}
+
+        {/* AI Suggestion Settings */}
+        <div className="card-dashboard mb-6 p-4 flex flex-col sm:flex-row sm:items-center gap-4 bg-emerald-50/5 border-brand-primary/20">
+          <div className="text-sm font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
+            ⚙️ Tùy chọn gợi ý AI:
+          </div>
+          <div className="flex flex-wrap items-center gap-6">
+            <label className="flex items-center gap-2 text-sm text-slate-600 font-semibold cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={prioritizeNew}
+                onChange={(e) => setPrioritizeNew(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary cursor-pointer"
+              />
+              Ưu tiên món mới
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-600 font-semibold cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={noRepeatIn7Days}
+                onChange={(e) => setNoRepeatIn7Days(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary cursor-pointer"
+              />
+              Không lặp món trong 7 ngày
+            </label>
+          </div>
+        </div>
+
         {/* Loading */}
         {loading ? (
           <div className="flex h-64 items-center justify-center">
@@ -339,6 +566,10 @@ export default function MealPlannerPage() {
               const isPastDay = isPastSlotDate(weekStart, dayIdx);
               const isToday = slotDate === todayInput;
 
+              const dayItemsForDay = plan?.items?.filter((item: any) => item.dayOfWeek === dayOfWeekNumber && item.recipe !== null) || [];
+              const usedDishesCount = dayItemsForDay.length;
+              const maxDishesCount = getMaxRecommendedDishes(getUserServings());
+
               return (
                 <section
                   key={dayLabel}
@@ -351,9 +582,12 @@ export default function MealPlannerPage() {
                   {/* Day Header */}
                   <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-base font-bold text-slate-800">
+                      <h2 className="text-base font-bold text-slate-800 flex items-center gap-2 flex-wrap">
                         {dayLabel}{' '}
                         <span className="font-normal text-slate-400 text-sm">{dateStr}</span>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          Đã sử dụng: {usedDishesCount}/{maxDishesCount} món
+                        </span>
                       </h2>
                       {isToday && (
                         <span className="rounded-brand-sm bg-brand-primary px-2 py-0.5 text-xs font-semibold text-white">
@@ -364,7 +598,7 @@ export default function MealPlannerPage() {
 
                     {/* Actions — only show for non-past days */}
                     {!isPastDay && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => handleAISuggestButtonClick(dayOfWeekNumber)}
                           disabled={aiSuggestingDay === dayOfWeekNumber}
@@ -531,10 +765,76 @@ export default function MealPlannerPage() {
           </div>
         )}
 
+        {/* Meal Portion Warning Modal */}
+        {portionWarning && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-lg overflow-hidden rounded-brand-lg border border-amber-200 bg-white shadow-brand-lg max-h-[90vh] flex flex-col animate-scale-up">
+              <div className="border-b border-amber-100 bg-amber-50 px-5 py-4 flex-shrink-0">
+                <h3 className="text-base font-extrabold text-amber-800">
+                  Cảnh báo khẩu phần thực đơn
+                </h3>
+                <p className="mt-1 text-sm font-medium leading-relaxed text-amber-700">
+                  {portionWarning.message}
+                </p>
+              </div>
+
+              <div className="space-y-4 px-5 py-4 overflow-y-auto flex-1 bg-white">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="rounded-brand-sm border border-brand-light-border bg-slate-50 p-3 text-center">
+                    <p className="text-[10px] font-bold uppercase text-slate-400">Số người</p>
+                    <p className="mt-1 text-lg font-black text-slate-900">{portionWarning.servings}</p>
+                  </div>
+                  <div className="rounded-brand-sm border border-brand-light-border bg-slate-50 p-3 text-center">
+                    <p className="text-[10px] font-bold uppercase text-slate-400">Số món</p>
+                    <p className="mt-1 text-lg font-black text-slate-900">{portionWarning.totalDishes}</p>
+                  </div>
+                  <div className="rounded-brand-sm border border-brand-light-border bg-slate-50 p-3 text-center">
+                    <p className="text-[10px] font-bold uppercase text-slate-400">Ngưỡng</p>
+                    <p className="mt-1 text-lg font-black text-slate-900">{portionWarning.maxRecommendedDishes}</p>
+                  </div>
+                  <div className="rounded-brand-sm border border-brand-light-border bg-slate-50 p-3 text-center">
+                    <p className="text-[10px] font-bold uppercase text-slate-400">Khẩu phần</p>
+                    <p className="mt-1 text-lg font-black text-slate-900">{portionWarning.totalPortions}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-brand-md border border-brand-primary/15 bg-brand-primary/5 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-brand-primary">Tổng calories cần thiết</p>
+                  <p className="mt-1 text-2xl font-black text-slate-900">
+                    {portionWarning.totalCaloriesNeeded > 0
+                      ? `${portionWarning.totalCaloriesNeeded.toLocaleString('vi-VN')} kcal/ngày`
+                      : 'Chưa đủ dữ liệu calories'}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
+                    Hệ thống sẽ ưu tiên giữ món chính theo từng bữa, món đã khóa và món có giá trị dinh dưỡng tốt hơn khi tối ưu.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 border-t border-brand-light-border bg-slate-50 px-5 py-4 sm:flex-row sm:justify-end flex-shrink-0">
+                <button
+                  onClick={() => setPortionWarning(null)}
+                  disabled={optimizingPortions}
+                  className="btn-ghost-sm justify-center"
+                >
+                  Giữ nguyên
+                </button>
+                <button
+                  onClick={handleOptimizePortions}
+                  disabled={optimizingPortions}
+                  className="btn-primary-sm justify-center"
+                >
+                  {optimizingPortions ? 'Đang tối ưu...' : 'Tự động tối ưu thực đơn'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Recipe Selector Modal */}
         {selectorOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-            <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-brand-lg bg-white shadow-brand-lg border border-brand-light-border">
+            <div className="flex max-h-[90vh] sm:max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-brand-lg bg-white shadow-brand-lg border border-brand-light-border animate-scale-up">
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-brand-light-border px-5 py-4">
                 <div>
@@ -544,7 +844,7 @@ export default function MealPlannerPage() {
                   <p className="text-xs text-slate-400 mt-0.5">Tìm và chọn công thức muốn thêm vào thực đơn.</p>
                 </div>
                 <button
-                  onClick={() => setSelectorOpen(false)}
+                  onClick={handleCloseSelector}
                   className="btn-ghost-sm"
                 >
                   Đóng
@@ -577,51 +877,104 @@ export default function MealPlannerPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {searchResults.map((recipe: any) => (
-                      <div
-                        key={recipe.id}
-                        className="flex items-center justify-between gap-3 rounded-brand-md border border-brand-light-border bg-white p-3 shadow-brand-sm transition hover:border-brand-primary/30 hover:shadow-brand-md"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-brand-sm border border-brand-light-border bg-slate-100">
-                            {recipe.imageUrl ? (
-                              <img
-                                src={recipe.imageUrl.startsWith('http') ? recipe.imageUrl : `http://localhost:3001${recipe.imageUrl}`}
-                                alt={recipe.name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-gray-100 text-xs text-gray-400">Ảnh</div>
-                            )}
+                    {(() => {
+                      const dayRecipes = selectedSlot
+                        ? plan?.items?.filter((item: any) => item.dayOfWeek === selectedSlot.day && item.recipeId !== null)
+                        : [];
+                      const dayRecipeIds = dayRecipes?.map((item: any) => item.recipeId) || [];
+                      const filteredResults = searchResults.filter((recipe: any) => !dayRecipeIds.includes(recipe.id));
+
+                      if (filteredResults.length === 0) {
+                        return (
+                          <div className="col-span-2 py-6 text-center text-slate-400">
+                            <p className="text-sm font-medium">Không có món ăn phù hợp (các món khác đã có trong thực đơn ngày hôm nay)</p>
                           </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-slate-800">{recipe.name}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">
-                              {recipe.calories ? `${recipe.calories} kcal` : ''}
-                              {recipe.cookingTime ? ` · ${recipe.cookingTime} phút` : ''}
-                            </p>
+                        );
+                      }
+
+                      return filteredResults.map((recipe: any) => {
+                        const isAddMode = !selectedSlot?.itemId;
+                        const isSelected = selectedRecipeIds.includes(recipe.id);
+
+                        return (
+                          <div
+                            key={recipe.id}
+                            onClick={isAddMode ? () => toggleRecipeSelection(recipe.id) : undefined}
+                            className={`flex items-center justify-between gap-3 rounded-brand-md border bg-white p-3 shadow-brand-sm transition hover:border-brand-primary/30 hover:shadow-brand-md ${
+                              isSelected ? 'border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/25' : 'border-brand-light-border'
+                            } ${isAddMode ? 'cursor-pointer' : ''}`}
+                          >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-brand-sm border border-brand-light-border bg-slate-100">
+                              {recipe.imageUrl ? (
+                                <img
+                                  src={recipe.imageUrl.startsWith('http') ? recipe.imageUrl : `http://localhost:3001${recipe.imageUrl}`}
+                                  alt={recipe.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-gray-100 text-xs text-gray-400">Ảnh</div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-slate-800">{recipe.name}</p>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                {recipe.calories ? `${recipe.calories} kcal` : ''}
+                                {recipe.cookingTime ? ` · ${recipe.cookingTime} phút` : ''}
+                              </p>
+                            </div>
                           </div>
+                          {isAddMode ? (
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleRecipeSelection(recipe.id)}
+                              onClick={(event) => event.stopPropagation()}
+                              className="h-5 w-5 shrink-0 rounded border-brand-light-border text-brand-primary focus:ring-brand-primary cursor-pointer"
+                              aria-label={`Chọn ${recipe.name}`}
+                            />
+                          ) : (
+                            <button
+                              onClick={() => handleSelectRecipe(recipe.id)}
+                              className="btn-primary-sm shrink-0"
+                            >
+                              Chọn
+                            </button>
+                          )}
                         </div>
-                        <button
-                          onClick={() => handleSelectRecipe(recipe.id)}
-                          className="btn-primary-sm shrink-0"
-                        >
-                          Chọn
-                        </button>
-                      </div>
-                    ))}
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </div>
 
               {/* Modal Footer */}
-              <div className="border-t border-brand-light-border px-5 py-3 text-right">
-                <button
-                  onClick={() => setSelectorOpen(false)}
-                  className="btn-ghost-sm inline-flex"
-                >
-                  Hủy bỏ
-                </button>
+              <div className="flex flex-col gap-3 border-t border-brand-light-border px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-semibold text-slate-500">
+                  {!selectedSlot?.itemId && selectedRecipeIds.length > 0
+                    ? `Đã chọn ${selectedRecipeIds.length} món`
+                    : 'Có thể chọn nhiều món cùng lúc'}
+                </p>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={handleCloseSelector}
+                    className="btn-ghost-sm inline-flex"
+                  >
+                    Hủy bỏ
+                  </button>
+                  {!selectedSlot?.itemId && (
+                    <button
+                      onClick={handleAddSelectedRecipes}
+                      disabled={selectedRecipeIds.length === 0}
+                      className={`btn-primary-sm inline-flex ${
+                        selectedRecipeIds.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      Thêm {selectedRecipeIds.length} món đã chọn
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

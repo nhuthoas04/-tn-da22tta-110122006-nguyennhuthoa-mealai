@@ -32,7 +32,7 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT || 3001;
-  await app.listen(port, '127.0.0.1');
+  await app.listen(port);
   console.log(`🚀 Backend running on http://localhost:${port}/api/v1`);
 }
 bootstrap();

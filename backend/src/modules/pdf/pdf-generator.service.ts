@@ -195,11 +195,11 @@ export class PdfGeneratorService {
       doc.y = startY + 25;
       doc.moveDown(1.5);
 
-      // Section A: NGUYÊN LIỆU CẦN MUA
+      // Section: DANH SÁCH NGUYÊN LIỆU CẦN MUA
       doc
         .fillColor('#10b981')
         .fontSize(14)
-        .text('A. NGUYÊN LIỆU CẦN MUA', { underline: true });
+        .text('DANH SÁCH NGUYÊN LIỆU CẦN MUA', { underline: true });
       doc.moveDown(0.5);
 
       // Filter groups to only include items with quantity > 0
@@ -229,43 +229,17 @@ export class PdfGeneratorService {
             const name = item.ingredient.name;
             const qty = item.quantity;
             const unit = item.unit;
+            let itemText = `   ${purchasedCheck}   ${name}: ${qty} ${unit}`;
+            if (item.quantitySourced && item.quantitySourced > 0) {
+              itemText += ` (Đã trừ ${Number(item.quantitySourced)} ${unit} từ tủ lạnh)`;
+            }
 
             doc
               .fillColor(item.isPurchased ? '#9ca3af' : '#1f2937')
               .fontSize(11);
-            doc.text(`   ${purchasedCheck}   ${name}: ${qty} ${unit}`);
+            doc.text(itemText);
           }
           doc.moveDown(0.8);
-
-          // Check page boundary
-          if (doc.y > 720) {
-            doc.addPage();
-          }
-        }
-      }
-
-      doc.moveDown(1);
-
-      // Section B: NGUYÊN LIỆU ĐÃ LẤY TỪ TỦ LẠNH
-      doc
-        .fillColor('#2563eb')
-        .fontSize(14)
-        .text('B. NGUYÊN LIỆU ĐÃ LẤY TỪ TỦ LẠNH', { underline: true });
-      doc.moveDown(0.5);
-
-      if (!listData.allocations || listData.allocations.length === 0) {
-        doc
-          .fillColor('#9ca3af')
-          .fontSize(11)
-          .text('   (Không có nguyên liệu lấy từ tủ lạnh)');
-        doc.moveDown(1);
-      } else {
-        for (const alloc of listData.allocations) {
-          doc
-            .fillColor('#1f2937')
-            .fontSize(11);
-          doc.text(`   ✓   ${alloc.ingredientName}: ${alloc.quantity} ${alloc.unit}  -  Dành cho: ${alloc.destination}`);
-          doc.moveDown(0.2);
 
           // Check page boundary
           if (doc.y > 720) {

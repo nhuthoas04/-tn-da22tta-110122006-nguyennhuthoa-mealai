@@ -25,17 +25,14 @@ export function formatShoppingListShareText(shoppingList: any): string {
 
   if (items.length > 0) {
     items.forEach((item: any) => {
-      text += `- ${item.ingredient?.name || 'Nguyên liệu'}: ${item.quantity} ${item.unit}\n`;
+      let line = `- ${item.ingredient?.name || 'Nguyên liệu'}: ${item.quantity} ${item.unit}`;
+      if (item.quantitySourced && item.quantitySourced > 0) {
+        line += ` (Đã trừ ${item.quantitySourced} ${item.unit} từ tủ lạnh)`;
+      }
+      text += line + '\n';
     });
   } else {
     text += `(Không có nguyên liệu cần mua)\n`;
-  }
-
-  if (shoppingList.allocations && shoppingList.allocations.length > 0) {
-    text += `\nĐã lấy từ tủ lạnh:\n`;
-    shoppingList.allocations.forEach((alloc: any) => {
-      text += `- ${alloc.ingredientName}: ${alloc.quantity} ${alloc.unit} cho ${alloc.destination}\n`;
-    });
   }
 
   return text.trim();

@@ -398,27 +398,34 @@ export class ShoppingListService {
       );
     }
 
-    // Create shopping list items (including fully sourced ones)
-    const listItems = Array.from(mergedNeeded.values()).map((item) => {
-      const quantityToBuy = Math.max(
-        0,
-        item.quantityNeeded - item.quantitySourced,
-      );
-      const estimatedPrice = 0;
+    // Create shopping list items (only those that actually need to be bought, i.e. quantityToBuy > 0)
+    const listItems = Array.from(mergedNeeded.values())
+      .map((item) => {
+        const quantityToBuy = Math.max(
+          0,
+          item.quantityNeeded - item.quantitySourced,
+        );
+        const estimatedPrice = 0;
 
-      return this.itemRepo.create({
-        shoppingListId: list.id,
-        ingredientId: item.ingredientId,
-        quantity: parseFloat(quantityToBuy.toFixed(1)),
-        quantityNeeded: parseFloat(item.quantityNeeded.toFixed(1)),
-        quantitySourced: parseFloat(item.quantitySourced.toFixed(1)),
-        unit: item.unit,
-        category: item.category,
-        estimatedPrice: estimatedPrice,
-        isPurchased: quantityToBuy === 0,
-      });
-    });
-    await this.itemRepo.save(listItems);
+        if (quantityToBuy <= 0) return null;
+
+        return this.itemRepo.create({
+          shoppingListId: list.id,
+          ingredientId: item.ingredientId,
+          quantity: parseFloat(quantityToBuy.toFixed(1)),
+          quantityNeeded: parseFloat(item.quantityNeeded.toFixed(1)),
+          quantitySourced: parseFloat(item.quantitySourced.toFixed(1)),
+          unit: item.unit,
+          category: item.category,
+          estimatedPrice: estimatedPrice,
+          isPurchased: false,
+        });
+      })
+      .filter((i) => i !== null);
+
+    if (listItems.length > 0) {
+      await this.itemRepo.save(listItems);
+    }
 
     return {
       id: list.id,
@@ -655,26 +662,30 @@ export class ShoppingListService {
       );
     }
 
-    // Create ShoppingListItems
-    const listItems = Array.from(mergedNeeded.values()).map((item) => {
-      const quantityToBuy = Math.max(
-        0,
-        item.quantityNeeded - item.quantitySourced,
-      );
-      const estimatedPrice = 0;
+    // Create ShoppingListItems (only those that actually need to be bought, i.e. quantityToBuy > 0)
+    const listItems = Array.from(mergedNeeded.values())
+      .map((item) => {
+        const quantityToBuy = Math.max(
+          0,
+          item.quantityNeeded - item.quantitySourced,
+        );
+        const estimatedPrice = 0;
 
-      return this.itemRepo.create({
-        shoppingListId: list.id,
-        ingredientId: item.ingredientId,
-        quantity: parseFloat(quantityToBuy.toFixed(1)),
-        quantityNeeded: parseFloat(item.quantityNeeded.toFixed(1)),
-        quantitySourced: parseFloat(item.quantitySourced.toFixed(1)),
-        unit: item.unit,
-        category: item.category,
-        estimatedPrice: estimatedPrice,
-        isPurchased: quantityToBuy === 0,
-      });
-    });
+        if (quantityToBuy <= 0) return null;
+
+        return this.itemRepo.create({
+          shoppingListId: list.id,
+          ingredientId: item.ingredientId,
+          quantity: parseFloat(quantityToBuy.toFixed(1)),
+          quantityNeeded: parseFloat(item.quantityNeeded.toFixed(1)),
+          quantitySourced: parseFloat(item.quantitySourced.toFixed(1)),
+          unit: item.unit,
+          category: item.category,
+          estimatedPrice: estimatedPrice,
+          isPurchased: false,
+        });
+      })
+      .filter((i) => i !== null);
 
     if (listItems.length > 0) {
       await this.itemRepo.save(listItems);

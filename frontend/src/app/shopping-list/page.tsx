@@ -385,9 +385,16 @@ export default function ShoppingListPage() {
                               >
                                 {item.isPurchased && <HiCheck className="text-sm" />}
                               </button>
-                              <span className={`text-sm ${item.isPurchased ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}`}>
-                                {item.ingredient.name}
-                              </span>
+                              <div>
+                                <span className={`text-sm ${item.isPurchased ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}`}>
+                                  {item.ingredient.name}
+                                </span>
+                                {item.quantitySourced > 0 && (
+                                  <p className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-950/20 px-1.5 py-0.5 rounded mt-0.5 w-fit">
+                                    Đã trừ từ tủ lạnh: {item.quantitySourced} {item.unit}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                             <div className="text-right text-sm">
                               <span className="font-bold text-slate-600">{item.quantity} {item.unit}</span>
@@ -399,34 +406,6 @@ export default function ShoppingListPage() {
                   ));
                 })()}
               </div>
-
-              {/* Section B: NGUYÊN LIỆU ĐÃ LẤY TỪ TỦ LẠNH */}
-              {selectedList.allocations && selectedList.allocations.length > 0 && (
-                <div className="divide-y divide-brand-light-border border-t border-brand-light-border">
-                  <div className="p-5 bg-blue-50/30 border-b border-blue-100">
-                    <h4 className="font-bold text-blue-800 text-sm flex items-center gap-2">
-                      <span>❄️</span> NGUYÊN LIỆU ĐÃ LẤY TỪ TỦ LẠNH
-                    </h4>
-                  </div>
-                  <div className="p-5 space-y-3">
-                    {selectedList.allocations.map((alloc: any) => (
-                      <div key={alloc.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2.5 px-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 rounded-brand-sm transition-all gap-1">
-                        <div>
-                          <span className="text-sm font-semibold text-slate-800">{alloc.ingredientName}</span>
-                          <div className="text-xs text-slate-500 mt-0.5">
-                            Dành cho: <span className="font-medium text-slate-600">{alloc.destination}</span>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="px-2.5 py-1 rounded-full bg-blue-100/70 text-blue-800 text-xs font-bold">
-                            Đã lấy: {alloc.quantity} {alloc.unit}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>

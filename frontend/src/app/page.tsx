@@ -88,7 +88,7 @@ function isPastMealSlot(dateString: string, mealType: string) {
   return false;
 }
 
-const EMPTY_RECOMMENDATION_MESSAGE = 'KhÃ´ng tÃ¬m tháº¥y mÃ³n Äƒn phÃ¹ há»£p vá»›i nhu cáº§u hiá»‡n táº¡i.';
+const EMPTY_RECOMMENDATION_MESSAGE = 'Không tìm thấy món ăn phù hợp với nhu cầu hiện tại.';
 
 const toNumber = (value: any, fallback = 0) => {
   const parsed = Number(value);
@@ -170,28 +170,28 @@ const buildDashboardInsights = ({
   if (pastMealCount > 0) {
     if (calorieTarget > 0 && caloriesConsumed > calorieTarget) {
       insights.push({
-        label: 'Cáº£nh bÃ¡o calo',
+        label: 'Cảnh báo calo',
         tone: 'rose',
-        message: `ÄÃ£ tá»± Ä‘á»™ng tÃ­nh ${caloriesConsumed} kcal tá»« ${pastMealCount} mÃ³n Ä‘Ã£ qua, vÆ°á»£t má»¥c tiÃªu ${calorieTarget} kcal hÃ´m nay. NÃªn chá»n bá»¯a cÃ²n láº¡i nháº¹ hÆ¡n.`,
+        message: `Đã tự động tính ${caloriesConsumed} kcal từ ${pastMealCount} món đã qua, vượt mục tiêu ${calorieTarget} kcal hôm nay. Nên chọn bữa còn lại nhẹ hơn.`,
       });
     } else if (calorieTarget > 0) {
       insights.push({
-        label: 'Calo hÃ´m nay',
+        label: 'Calo hôm nay',
         tone: 'emerald',
-        message: `ÄÃ£ tá»± Ä‘á»™ng tÃ­nh calories tá»« ${pastMealCount}/${todayMeals.length} mÃ³n thuá»™c cÃ¡c bá»¯a Ä‘Ã£ qua: ${caloriesConsumed}/${calorieTarget} kcal.`,
+        message: `Đã tự động tính calories từ ${pastMealCount}/${todayMeals.length} món thuộc các bữa đã qua: ${caloriesConsumed}/${calorieTarget} kcal.`,
       });
     } else {
       insights.push({
-        label: 'Calo hÃ´m nay',
+        label: 'Calo hôm nay',
         tone: 'amber',
-        message: `ÄÃ£ ghi nháº­n ${caloriesConsumed} kcal tá»« ${pastMealCount} mÃ³n Ä‘Ã£ qua. HÃ£y cáº­p nháº­t há»“ sÆ¡ cÆ¡ thá»ƒ Ä‘á»ƒ há»‡ thá»‘ng tÃ­nh TDEE vÃ  so sÃ¡nh chÃ­nh xÃ¡c.`,
+        message: `Đã ghi nhận ${caloriesConsumed} kcal từ ${pastMealCount} món đã qua. Hãy cập nhật hồ sơ cơ thể để hệ thống tính TDEE và so sánh chính xác.`,
       });
     }
 
     insights.push({
-      label: 'Dá»¯ liá»‡u dinh dÆ°á»¡ng',
+      label: 'Dữ liệu dinh dưỡng',
       tone: 'teal',
-      message: `Macro Ä‘Ã£ ghi nháº­n: ${macros.protein}g protein, ${macros.carbs}g carbs vÃ  ${macros.fat}g cháº¥t bÃ©o. Há»‡ thá»‘ng chÆ°a káº¿t luáº­n Ä‘á»§ hoáº·c thiáº¿u khi chÆ°a cÃ³ má»¥c tiÃªu macro riÃªng.`,
+      message: `Macro đã ghi nhận: ${macros.protein}g protein, ${macros.carbs}g carbs và ${macros.fat}g chất béo. Hệ thống chưa kết luận đủ hoặc thiếu khi chưa có mục tiêu macro riêng.`,
     });
   }
 
@@ -203,19 +203,19 @@ const buildDashboardInsights = ({
       .filter(Boolean);
 
     insights.push({
-      label: 'Tá»§ láº¡nh',
+      label: 'Tủ lạnh',
       tone: 'amber',
       message: expiringNames.length > 0
-        ? `CÃ³ ${inventoryStats.expiring} nguyÃªn liá»‡u sáº¯p háº¿t háº¡n, gá»“m ${expiringNames.join(', ')}. MealAI sáº½ Æ°u tiÃªn gá»£i Ã½ mÃ³n dÃ¹ng cÃ¡c nguyÃªn liá»‡u nÃ y trÆ°á»›c.`
-        : `CÃ³ ${inventoryStats.expiring} nguyÃªn liá»‡u sáº¯p háº¿t háº¡n. MealAI sáº½ Æ°u tiÃªn gá»£i Ã½ mÃ³n dÃ¹ng cÃ¡c nguyÃªn liá»‡u nÃ y trÆ°á»›c.`,
+        ? `Có ${inventoryStats.expiring} nguyên liệu sắp hết hạn, gồm ${expiringNames.join(', ')}. MealAI sẽ ưu tiên gợi ý món dùng các nguyên liệu này trước.`
+        : `Có ${inventoryStats.expiring} nguyên liệu sắp hết hạn. MealAI sẽ ưu tiên gợi ý món dùng các nguyên liệu này trước.`,
     });
   }
 
   if (inventoryStats.expired > 0) {
     insights.push({
-      label: 'NguyÃªn liá»‡u háº¿t háº¡n',
+      label: 'Nguyên liệu hết hạn',
       tone: 'rose',
-      message: `CÃ³ ${inventoryStats.expired} nguyÃªn liá»‡u Ä‘Ã£ háº¿t háº¡n. CÃ¡c nguyÃªn liá»‡u nÃ y khÃ´ng nÃªn Ä‘Æ°á»£c dÃ¹ng Ä‘á»ƒ trá»« danh sÃ¡ch mua sáº¯m.`,
+      message: `Có ${inventoryStats.expired} nguyên liệu đã hết hạn. Các nguyên liệu này không nên được dùng để trừ danh sách mua sắm.`,
     });
   }
 
@@ -227,7 +227,7 @@ const buildDashboardInsights = ({
 
   if (analysisSummary && insights.length < 3) {
     insights.push({
-      label: 'PhÃ¢n tÃ­ch AI',
+      label: 'Phân tích AI',
       tone: 'teal',
       message: String(analysisSummary),
     });
@@ -257,14 +257,14 @@ function TodayMealsGroups({
               <span className="inline-flex rounded-full bg-brand-primary/10 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-brand-primary">
                 {getMealTypeLabel(mealType)}
               </span>
-              <span className="text-xs font-semibold text-slate-400">{items.length} mÃ³n</span>
+              <span className="text-xs font-semibold text-slate-400">{items.length} món</span>
               {allPast ? (
                 <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  ÄÃ£ qua
+                  Đã qua
                 </span>
               ) : (
                 <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
-                  ChÆ°a tá»›i giá»
+                  Chưa tới giờ
                 </span>
               )}
             </div>
@@ -293,11 +293,11 @@ function TodayMealsGroups({
                         </span>
                         {isPastSlot ? (
                           <span className="rounded-brand-sm bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
-                            ÄÃ£ qua
+                            Đã qua
                           </span>
                         ) : (
                           <span className="rounded-brand-sm bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
-                            ChÆ°a tá»›i giá»
+                            Chưa tới giờ
                           </span>
                         )}
                       </div>
@@ -313,14 +313,14 @@ function TodayMealsGroups({
                       </h4>
 
                       <div className="flex gap-3 text-[10px] font-medium text-gray-500">
-                        <span>ðŸ”¥ {item.recipe?.calories} kcal</span>
-                        <span>â±ï¸ {item.recipe?.cookingTime}p</span>
+                        <span>🔥 {item.recipe?.calories} kcal</span>
+                        <span>⏱️ {item.recipe?.cookingTime}p</span>
                       </div>
                     </div>
 
                     <div className="flex shrink-0 items-center justify-between border-t border-gray-100 pt-2">
                       <span className={`text-[10px] font-extrabold ${isPastSlot ? 'text-brand-primary' : 'text-slate-400'}`}>
-                        {isPastSlot ? 'âœ“ ÄÃ£ tÃ­nh calo' : 'â—‹ ChÆ°a tá»›i giá»'}
+                        {isPastSlot ? '✓ Đã tính calo' : '○ Chưa tới giờ'}
                       </span>
                       {recipeUrl && (
                         <Link
@@ -328,7 +328,7 @@ function TodayMealsGroups({
                           onClick={(e) => e.stopPropagation()}
                           className="text-[10px] font-extrabold text-brand-primary hover:text-brand-primary-hover hover:underline"
                         >
-                          Xem chi tiáº¿t
+                          Xem chi tiết
                         </Link>
                       )}
                     </div>
@@ -402,7 +402,7 @@ export default function HomePage() {
     if (activeChatTab === 'ingredients') {
       t1 = setTimeout(() => {
         setChatMessages([
-          { sender: 'user', text: 'TÃ´i cÃ²n 2 quáº£ trá»©ng, 3 quáº£ cÃ  chua vÃ  Ã­t hÃ nh lÃ¡ trong tá»§ láº¡nh. AI gá»£i Ã½ mÃ³n gÃ¬ nhanh gá»n?' }
+          { sender: 'user', text: 'Tôi còn 2 quả trứng, 3 quả cà chua và ít hành lá trong tủ lạnh. AI gợi ý món gì nhanh gọn?' }
         ]);
         setIsTyping(true);
 
@@ -411,10 +411,10 @@ export default function HomePage() {
             ...prev,
             {
               sender: 'ai',
-              text: 'ChÃ o báº¡n! MealAI Ä‘Ã£ tÃ¬m tháº¥y 2 mÃ³n Äƒn Viá»‡t Nam cá»±c ká»³ ngon miá»‡ng vÃ  phÃ¹ há»£p vá»›i nguyÃªn liá»‡u sáº¯p háº¿t háº¡n cá»§a báº¡n:',
+              text: 'Chào bạn! MealAI đã tìm thấy 2 món ăn Việt Nam cực kỳ ngon miệng và phù hợp với nguyên liệu sắp hết hạn của bạn:',
               recipes: [
-                { name: 'Canh cÃ  chua trá»©ng', time: 15, cal: 120, difficulty: 'Dá»…', matched: 'Trá»©ng, cÃ  chua, hÃ nh lÃ¡' },
-                { name: 'Trá»©ng chiÃªn hÃ nh lÃ¡', time: 10, cal: 150, difficulty: 'Dá»…', matched: 'Trá»©ng, hÃ nh lÃ¡' }
+                { name: 'Canh cà chua trứng', time: 15, cal: 120, difficulty: 'Dễ', matched: 'Trứng, cà chua, hành lá' },
+                { name: 'Trứng chiên hành lá', time: 10, cal: 150, difficulty: 'Dễ', matched: 'Trứng, hành lá' }
               ]
             }
           ]);
@@ -424,7 +424,7 @@ export default function HomePage() {
     } else {
       t1 = setTimeout(() => {
         setChatMessages([
-          { sender: 'user', text: 'AI láº­p thá»±c Ä‘Æ¡n 3 ngÃ y giáº£m má»¡ cho 2 ngÆ°á»i, Æ°u tiÃªn Äƒn sÃ¡ng nhiá»u Ä‘áº¡m.' }
+          { sender: 'user', text: 'AI lập thực đơn 3 ngày giảm mỡ cho 2 người, ưu tiên ăn sáng nhiều đạm.' }
         ]);
         setIsTyping(true);
 
@@ -433,11 +433,11 @@ export default function HomePage() {
             ...prev,
             {
               sender: 'ai',
-              text: 'DÆ°á»›i Ä‘Ã¢y lÃ  káº¿ hoáº¡ch bá»¯a Äƒn 3 ngÃ y (tá»‘i Ä‘a 1800 kcal/ngÃ y) Ä‘Æ°á»£c thiáº¿t káº¿ riÃªng cho báº¡n:',
+              text: 'Dưới đây là kế hoạch bữa ăn 3 ngày (tối đa 1800 kcal/ngày) được thiết kế riêng cho bạn:',
               planner: [
-                { day: 'NgÃ y 1', breakfast: 'Phá»Ÿ á»©c gÃ  (nhiá»u Ä‘áº¡m)', lunch: 'CÆ¡m gáº¡o lá»©t thá»‹t heo luá»™c + bÃ´ng cáº£i xanh', dinner: 'Canh chua cÃ¡ lÃ³c' },
-                { day: 'NgÃ y 2', breakfast: 'Omelet 3 lÃ²ng tráº¯ng trá»©ng + bÃ¡nh mÃ¬ Ä‘en', lunch: 'CÃ¡ há»“i Ã¡p cháº£o + mÄƒng tÃ¢y xÃ o', dinner: 'Thá»‹t bÃ² xÃ o giÃ¡ háº¹' },
-                { day: 'NgÃ y 3', breakfast: 'ChÃ¡o yáº¿n máº¡ch á»©c gÃ  xÃ©', lunch: 'BÃºn cháº£ nÆ°á»›ng cháº£o lÃ²ng heo náº¡c', dinner: 'Canh Ä‘áº­u hÅ© cÃ  chua trá»©ng' }
+                { day: 'Ngày 1', breakfast: 'Phở ức gà (nhiều đạm)', lunch: 'Cơm gạo lứt thịt heo luộc + bông cải xanh', dinner: 'Canh chua cá lóc' },
+                { day: 'Ngày 2', breakfast: 'Omelet 3 lòng trắng trứng + bánh mì đen', lunch: 'Cá hồi áp chảo + măng tây xào', dinner: 'Thịt bò xào giá hẹ' },
+                { day: 'Ngày 3', breakfast: 'Cháo yến mạch ức gà xé', lunch: 'Bún chả nướng chảo lòng heo nạc', dinner: 'Canh đậu hũ cà chua trứng' }
               ]
             }
           ]);
@@ -465,7 +465,7 @@ export default function HomePage() {
 
       if ((recRes as any).error) {
         console.error('[MealAI][recommendations] API error:', (recRes as any).error);
-        setRecommendationError('KhÃ´ng thá»ƒ táº£i gá»£i Ã½ mÃ³n Äƒn. Vui lÃ²ng thá»­ láº¡i sau.');
+        setRecommendationError('Không thể tải gợi ý món ăn. Vui lòng thử lại sau.');
         setRecommendations([]);
       } else {
         console.log('[MealAI][recommendations] raw response:', recRes.data);
@@ -514,7 +514,7 @@ export default function HomePage() {
 
     } catch (err) {
       console.error('[MealAI][dashboard] load failed:', err);
-      setRecommendationError('KhÃ´ng thá»ƒ táº£i gá»£i Ã½ mÃ³n Äƒn. Vui lÃ²ng thá»­ láº¡i sau.');
+      setRecommendationError('Không thể tải gợi ý món ăn. Vui lòng thử lại sau.');
       setRecommendations([]);
     } finally {
       setDashboardLoading(false);
@@ -556,10 +556,10 @@ export default function HomePage() {
 
   const getNextMealLabel = () => {
     const hour = new Date().getHours();
-    if (hour < 10) return 'Bá»¯a sÃ¡ng ðŸŒ…';
-    if (hour < 14) return 'Bá»¯a trÆ°a â˜€ï¸';
-    if (hour < 19) return 'Bá»¯a tá»‘i ðŸŒ™';
-    return 'Bá»¯a sÃ¡ng ngÃ y mai ðŸŒ…';
+    if (hour < 10) return 'Bữa sáng 🌅';
+    if (hour < 14) return 'Bữa trưa ☀️';
+    if (hour < 19) return 'Bữa tối 🌙';
+    return 'Bữa sáng ngày mai 🌅';
   };
 
   const getTodayMacroNutrients = () => {
@@ -583,10 +583,10 @@ export default function HomePage() {
 
   const getMealTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      breakfast: 'Bá»¯a sÃ¡ng',
-      lunch: 'Bá»¯a trÆ°a',
-      dinner: 'Bá»¯a tá»‘i',
-      snack: 'Bá»¯a phá»¥'
+      breakfast: 'Bữa sáng',
+      lunch: 'Bữa trưa',
+      dinner: 'Bữa tối',
+      snack: 'Bữa phụ'
     };
     return labels[type] || type;
   };
@@ -649,15 +649,15 @@ export default function HomePage() {
           {/* Left Hero Content */}
           <ScrollReveal className="lg:col-span-7 space-y-6 text-left">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-semibold tracking-wide uppercase shadow-sm">
-              <HiSparkles className="text-sm animate-pulse" /> Trá»£ lÃ½ dinh dÆ°á»¡ng AI tháº¿ há»‡ má»›i
+              <HiSparkles className="text-sm animate-pulse" /> Trợ lý dinh dưỡng AI thế hệ mới
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
-              Meal<span className="text-ai-gradient">AI</span> â€” Láº­p thá»±c Ä‘Æ¡n thÃ´ng minh cho gia Ä‘Ã¬nh Viá»‡t
+              Meal<span className="text-ai-gradient">AI</span> — Lập thực đơn thông minh cho gia đình Việt
             </h1>
 
             <p className="text-base sm:text-lg text-slate-650 max-w-2xl leading-relaxed">
-              Giáº£i phÃ³ng báº£n thÃ¢n khá»i cÃ¢u há»i "HÃ´m nay Äƒn gÃ¬?". TrÃ­ tuá»‡ nhÃ¢n táº¡o Gemini phÃ¢n tÃ­ch tá»§ láº¡nh, tá»‘i Æ°u hÃ³a calories, lÃªn thá»±c Ä‘Æ¡n tuáº§n tá»± Ä‘á»™ng vÃ  háº¡n cháº¿ tá»‘i Ä‘a lÃ£ng phÃ­ thá»±c pháº©m cho gia Ä‘Ã¬nh báº¡n.
+              Giải phóng bản thân khỏi câu hỏi "Hôm nay ăn gì?". Trí tuệ nhân tạo Gemini phân tích tủ lạnh, tối ưu hóa calories, lên thực đơn tuần tự động và hạn chế tối đa lãng phí thực phẩm cho gia đình bạn.
             </p>
 
             {/* CTA Buttons */}
@@ -666,29 +666,29 @@ export default function HomePage() {
                 href="/register"
                 className="btn-primary px-8 py-3.5 text-base select-none hover:-translate-y-0.5 shadow-md"
               >
-                Báº¯t Ä‘áº§u miá»…n phÃ­
+                Bắt đầu miễn phí
               </Link>
               <Link
                 href="/recipes"
                 className="btn-outline border-brand-primary bg-white text-brand-primary hover:bg-brand-primary/5 px-8 py-3.5 text-base select-none hover:-translate-y-0.5"
               >
-                KhÃ¡m phÃ¡ cÃ´ng thá»©c
+                Khám phá công thức
               </Link>
             </div>
 
             {/* Value Props */}
             <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-250">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                <HiCheck className="text-emerald-500 text-base" /> Gá»£i Ã½ mÃ³n Äƒn báº±ng AI
+                <HiCheck className="text-emerald-500 text-base" /> Gợi ý món ăn bằng AI
               </div>
               <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                <HiCheck className="text-emerald-500 text-base" /> Tá»± Ä‘á»™ng lÃªn thá»±c Ä‘Æ¡n tuáº§n
+                <HiCheck className="text-emerald-500 text-base" /> Tự động lên thực đơn tuần
               </div>
               <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                <HiCheck className="text-emerald-500 text-base" /> Quáº£n lÃ½ tá»§ láº¡nh thÃ´ng minh
+                <HiCheck className="text-emerald-500 text-base" /> Quản lý tủ lạnh thông minh
               </div>
               <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                <HiCheck className="text-emerald-500 text-base" /> Chá»‘ng lÃ£ng phÃ­ thá»±c pháº©m
+                <HiCheck className="text-emerald-500 text-base" /> Chống lãng phí thực phẩm
               </div>
             </div>
           </ScrollReveal>
@@ -714,25 +714,25 @@ export default function HomePage() {
               {/* Mockup Recipe Item */}
               <div className="mt-4 space-y-4">
                 <div className="h-40 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl relative overflow-hidden flex items-center justify-center border border-brand-primary/10">
-                  <span className="text-6xl animate-float-slow">ðŸ²</span>
+                  <span className="text-6xl animate-float-slow">🍲</span>
 
                   {/* Floating Micro-Badge */}
                   <div className="absolute top-3 left-3 bg-white/90 border border-brand-primary/15 px-2 py-1 rounded text-[10px] font-bold text-brand-primary backdrop-blur-sm shadow-sm">
-                    ðŸ”¥ 240 kcal
+                    🔥 240 kcal
                   </div>
                 </div>
 
                 <div className="space-y-1.5 text-left">
-                  <h4 className="font-bold text-slate-900 text-base">Phá»Ÿ bÃ² HÃ  Ná»™i chuáº©n vá»‹</h4>
+                  <h4 className="font-bold text-slate-900 text-base">Phở bò Hà Nội chuẩn vị</h4>
                   <p className="text-xs text-slate-505 line-clamp-2 leading-relaxed">
-                    Sá»­ dá»¥ng cÃ¡c nguyÃªn liá»‡u sáºµn cÃ³: thá»‹t bÃ² chÃ­n, bÃ¡nh phá»Ÿ, hÃ nh lÃ¡, ngÃ² gai.
+                    Sử dụng các nguyên liệu sẵn có: thịt bò chín, bánh phở, hành lá, ngò gai.
                   </p>
                 </div>
 
                 {/* Score Indicator */}
                 <div className="pt-2">
                   <div className="flex justify-between items-center text-xs font-semibold mb-1">
-                    <span className="text-slate-500">Äá»™ phÃ¹ há»£p tá»§ láº¡nh</span>
+                    <span className="text-slate-500">Độ phù hợp tủ lạnh</span>
                     <span className="text-brand-primary">92%</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-1.5">
@@ -746,11 +746,11 @@ export default function HomePage() {
             <div className="hidden sm:block absolute -top-6 -right-4 bg-white/95 border border-brand-primary/15 p-3.5 rounded-xl shadow-brand-md z-20 animate-float-slow max-w-[180px] text-left">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-                  âš ï¸
+                  ⚠️
                 </div>
                 <div>
-                  <h5 className="text-[11px] font-bold text-slate-900 leading-tight">Cáº£nh bÃ¡o lÃ£ng phÃ­</h5>
-                  <p className="text-[9px] text-slate-505 mt-0.5">Trá»©ng cÃ²n 2 ngÃ y háº¿t háº¡n</p>
+                  <h5 className="text-[11px] font-bold text-slate-900 leading-tight">Cảnh báo lãng phí</h5>
+                  <p className="text-[9px] text-slate-505 mt-0.5">Trứng còn 2 ngày hết hạn</p>
                 </div>
               </div>
             </div>
@@ -759,35 +759,35 @@ export default function HomePage() {
             <div className="hidden sm:block absolute -bottom-6 -left-4 bg-white/95 border border-brand-primary/15 p-3.5 rounded-xl shadow-brand-md z-20 animate-float max-w-[200px] text-left" style={{ animationDelay: '2s' }}>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
-                  ðŸ›’
+                  🛒
                 </div>
                 <div>
-                  <h5 className="text-[11px] font-bold text-slate-900 leading-tight">Danh sÃ¡ch mua sáº¯m</h5>
-                  <p className="text-[9px] text-slate-505 mt-0.5">ÄÃ£ gá»™p trÃ¹ng 5 nguyÃªn liá»‡u</p>
+                  <h5 className="text-[11px] font-bold text-slate-900 leading-tight">Danh sách mua sắm</h5>
+                  <p className="text-[9px] text-slate-505 mt-0.5">Đã gộp trùng 5 nguyên liệu</p>
                 </div>
               </div>
             </div>
           </ScrollReveal>
         </section>
 
-        {/* -------------------- SECTION TÃNH NÄ‚NG Ná»”I Báº¬T -------------------- */}
+        {/* -------------------- SECTION TÍNH NĂNG NỔI BẬT -------------------- */}
         <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-20 lg:py-28 border-t border-slate-200 text-center">
           <ScrollReveal className="max-w-3xl mx-auto space-y-3 mb-16">
-            <span className="text-brand-primary text-xs font-bold uppercase tracking-wider">Má»Ÿ khÃ³a sá»©c máº¡nh AI</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">Nhá»¯ng tÃ­nh nÄƒng vÆ°á»£t trá»™i tá»« MealAI</h2>
+            <span className="text-brand-primary text-xs font-bold uppercase tracking-wider">Mở khóa sức mạnh AI</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">Những tính năng vượt trội từ MealAI</h2>
             <p className="text-slate-655 text-sm sm:text-base leading-relaxed">
-              TÃ­ch há»£p cÃ´ng nghá»‡ AI tiÃªn tiáº¿n mang láº¡i tráº£i nghiá»‡m tiá»‡n nghi, tiáº¿t kiá»‡m thá»i gian náº¥u nÆ°á»›ng vÃ  tiá»n báº¡c cho gia Ä‘Ã¬nh báº¡n.
+              Tích hợp công nghệ AI tiên tiến mang lại trải nghiệm tiện nghi, tiết kiệm thời gian nấu nướng và tiền bạc cho gia đình bạn.
             </p>
           </ScrollReveal>
 
           <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: HiSparkles, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20', title: 'AI Gá»£i Ã½ mÃ³n Äƒn', desc: 'Äá» xuáº¥t cÃ¡c mÃ³n Äƒn tá»‘i Æ°u nháº¥t dá»±a trÃªn sá»Ÿ thÃ­ch, dá»‹ á»©ng, calories má»¥c tiÃªu vÃ  nguyÃªn liá»‡u sáºµn cÃ³ trong tá»§ láº¡nh cá»§a báº¡n.' },
-              { icon: HiCalendar, color: 'text-blue-500 bg-blue-500/10 border-blue-500/20', title: 'Láº­p thá»±c Ä‘Æ¡n tuáº§n', desc: 'Tá»± Ä‘á»™ng thiáº¿t káº¿ káº¿ hoáº¡ch Äƒn uá»‘ng 3 bá»¯a/ngÃ y cho cáº£ tuáº§n chá»‰ trong 1 cÃº click. TÃ¹y biáº¿n sá»‘ lÆ°á»£ng ngÆ°á»i Äƒn linh hoáº¡t.' },
-              { icon: HiCube, color: 'text-purple-500 bg-purple-500/10 border-purple-500/20', title: 'Tá»§ láº¡nh thÃ´ng minh', desc: 'Quáº£n lÃ½ sá»‘ lÆ°á»£ng vÃ  thá»i gian háº¿t háº¡n cá»§a nguyÃªn liá»‡u trong nhÃ . Nháº­n cáº£nh bÃ¡o thÃ´ng minh trÆ°á»›c khi thá»±c pháº©m bá»‹ há»ng.' },
-              { icon: HiShoppingCart, color: 'text-pink-500 bg-pink-500/10 border-pink-500/20', title: 'Danh sÃ¡ch mua sáº¯m', desc: 'Tá»± Ä‘á»™ng táº¡o danh sÃ¡ch Ä‘i chá»£, gá»™p cÃ¡c nguyÃªn liá»‡u trÃ¹ng nhau tá»« thá»±c Ä‘Æ¡n tuáº§n vÃ  trá»« Ä‘i pháº§n thá»±c pháº©m Ä‘Ã£ cÃ³ sáºµn.' },
-              { icon: HiLightningBolt, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20', title: 'AI Insights', desc: 'PhÃ¢n tÃ­ch thÃ³i quen Äƒn uá»‘ng, Ä‘Æ°a ra khuyáº¿n nghá»‹ dinh dÆ°á»¡ng cÃ¡ nhÃ¢n hÃ³a nháº±m cáº£i thiá»‡n sá»©c khá»e vÃ  lá»‘i sá»‘ng lÃ nh máº¡nh.' },
-              { icon: HiFire, color: 'text-rose-500 bg-rose-500/10 border-rose-500/20', title: 'TÃ­nh calo & dinh dÆ°á»¡ng', desc: 'CÃ´ng thá»©c Mifflin-St Jeor giÃºp tÃ­nh toÃ¡n TDEE vÃ  nhu cáº§u nÄƒng lÆ°á»£ng má»—i ngÃ y, há»— trá»£ kiá»ƒm soÃ¡t cÃ¢n náº·ng khoa há»c.' },
+              { icon: HiSparkles, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20', title: 'AI Gợi ý món ăn', desc: 'Đề xuất các món ăn tối ưu nhất dựa trên sở thích, dị ứng, calories mục tiêu và nguyên liệu sẵn có trong tủ lạnh của bạn.' },
+              { icon: HiCalendar, color: 'text-blue-500 bg-blue-500/10 border-blue-500/20', title: 'Lập thực đơn tuần', desc: 'Tự động thiết kế kế hoạch ăn uống 3 bữa/ngày cho cả tuần chỉ trong 1 cú click. Tùy biến số lượng người ăn linh hoạt.' },
+              { icon: HiCube, color: 'text-purple-500 bg-purple-500/10 border-purple-500/20', title: 'Tủ lạnh thông minh', desc: 'Quản lý số lượng và thời gian hết hạn của nguyên liệu trong nhà. Nhận cảnh báo thông minh trước khi thực phẩm bị hỏng.' },
+              { icon: HiShoppingCart, color: 'text-pink-500 bg-pink-500/10 border-pink-500/20', title: 'Danh sách mua sắm', desc: 'Tự động tạo danh sách đi chợ, gộp các nguyên liệu trùng nhau từ thực đơn tuần và trừ đi phần thực phẩm đã có sẵn.' },
+              { icon: HiLightningBolt, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20', title: 'AI Insights', desc: 'Phân tích thói quen ăn uống, đưa ra khuyến nghị dinh dưỡng cá nhân hóa nhằm cải thiện sức khỏe và lối sống lành mạnh.' },
+              { icon: HiFire, color: 'text-rose-500 bg-rose-500/10 border-rose-500/20', title: 'Tính calo & dinh dưỡng', desc: 'Công thức Mifflin-St Jeor giúp tính toán TDEE và nhu cầu năng lượng mỗi ngày, hỗ trợ kiểm soát cân nặng khoa học.' },
             ].map((feature, i) => (
               <FadeInUp key={i} className="glassmorphism rounded-2xl p-6 text-left transition duration-300 transform hover:-translate-y-1 hover:border-brand-primary/35 hover:shadow-brand-md group">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${feature.color} mb-4 group-hover:scale-105 transition`}>
@@ -806,10 +806,10 @@ export default function HomePage() {
 
             {/* Left explanation */}
             <ScrollReveal className="lg:col-span-5 space-y-5 text-left">
-              <span className="text-brand-primary text-xs font-bold uppercase tracking-wider">Tráº£i nghiá»‡m tÆ°Æ¡ng tÃ¡c trá»±c quan</span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight">TrÃ² chuyá»‡n vá»›i AI Dinh dÆ°á»¡ng cá»§a báº¡n</h2>
+              <span className="text-brand-primary text-xs font-bold uppercase tracking-wider">Trải nghiệm tương tác trực quan</span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight">Trò chuyện với AI Dinh dưỡng của bạn</h2>
               <p className="text-slate-655 text-sm sm:text-base leading-relaxed">
-                KhÃ¡m phÃ¡ nÄƒng lá»±c xá»­ lÃ½ ngÃ´n ngá»¯ tá»± nhiÃªn cá»§a MealAI. Chá»‰ cáº§n gÃµ nhá»¯ng nguyÃªn liá»‡u báº¡n cÃ³ hoáº·c yÃªu cáº§u thá»±c Ä‘Æ¡n cá»¥ thá»ƒ, chatbot sáº½ láº­p tá»©c thiáº¿t káº¿ phÆ°Æ¡ng Ã¡n tá»‘i Æ°u nháº¥t.
+                Khám phá năng lực xử lý ngôn ngữ tự nhiên của MealAI. Chỉ cần gõ những nguyên liệu bạn có hoặc yêu cầu thực đơn cụ thể, chatbot sẽ lập tức thiết kế phương án tối ưu nhất.
               </p>
 
               {/* Interactive buttons to switch tabs */}
@@ -823,8 +823,8 @@ export default function HomePage() {
                   }`}
                 >
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">1. Gá»£i Ã½ tá»« tá»§ láº¡nh</h4>
-                    <p className="text-xs text-slate-505 mt-0.5">Nháº­p cÃ¡c nguyÃªn liá»‡u báº¡n cÃ³ sáºµn á»Ÿ nhÃ </p>
+                    <h4 className="text-sm font-bold text-slate-900">1. Gợi ý từ tủ lạnh</h4>
+                    <p className="text-xs text-slate-505 mt-0.5">Nhập các nguyên liệu bạn có sẵn ở nhà</p>
                   </div>
                   <HiChevronRight className="text-lg" />
                 </button>
@@ -838,8 +838,8 @@ export default function HomePage() {
                   }`}
                 >
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">2. Láº­p thá»±c Ä‘Æ¡n theo yÃªu cáº§u</h4>
-                    <p className="text-xs text-slate-505 mt-0.5">YÃªu cáº§u thá»±c Ä‘Æ¡n theo cháº¿ Ä‘á»™ Äƒn riÃªng biá»‡t</p>
+                    <h4 className="text-sm font-bold text-slate-900">2. Lập thực đơn theo yêu cầu</h4>
+                    <p className="text-xs text-slate-505 mt-0.5">Yêu cầu thực đơn theo chế độ ăn riêng biệt</p>
                   </div>
                   <HiChevronRight className="text-lg" />
                 </button>
@@ -854,7 +854,7 @@ export default function HomePage() {
                 <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
-                      ðŸ¤–
+                      🤖
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-slate-900">MealAI Chatbot</h4>
@@ -880,7 +880,7 @@ export default function HomePage() {
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 shadow-sm ${
                         msg.sender === 'user' ? 'bg-emerald-600 text-white' : 'bg-slate-105 text-slate-600'
                       }`}>
-                        {msg.sender === 'user' ? <HiUser /> : 'ðŸ¤–'}
+                        {msg.sender === 'user' ? <HiUser /> : '🤖'}
                       </div>
 
                       <div className="space-y-3">
@@ -899,11 +899,11 @@ export default function HomePage() {
                               <div key={rIdx} className="bg-white border border-brand-primary/15 rounded-xl p-3.5 space-y-2 shadow-sm">
                                 <h5 className="font-bold text-brand-primary text-xs sm:text-sm">{rec.name}</h5>
                                 <div className="flex justify-between text-[10px] text-slate-505 font-bold">
-                                  <span>â±ï¸ {rec.time} phÃºt</span>
-                                  <span>ðŸ”¥ {rec.cal} kcal</span>
+                                  <span>⏱️ {rec.time} phút</span>
+                                  <span>🔥 {rec.cal} kcal</span>
                                 </div>
                                 <div className="text-[10px] text-slate-500 truncate font-semibold">
-                                  NguyÃªn liá»‡u: {rec.matched}
+                                  Nguyên liệu: {rec.matched}
                                 </div>
                               </div>
                             ))}
@@ -914,10 +914,10 @@ export default function HomePage() {
                         {msg.sender === 'ai' && msg.planner && (
                           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden text-xs shadow-sm">
                             <div className="grid grid-cols-4 bg-slate-50 p-2 font-bold border-b border-slate-200 text-slate-700">
-                              <div>NgÃ y</div>
-                              <div>SÃ¡ng</div>
-                              <div>TrÆ°a</div>
-                              <div>Tá»‘i</div>
+                              <div>Ngày</div>
+                              <div>Sáng</div>
+                              <div>Trưa</div>
+                              <div>Tối</div>
                             </div>
                             {msg.planner.map((dayPlan: any, dIdx: number) => (
                               <div key={dIdx} className="grid grid-cols-4 p-2 border-b border-slate-100 hover:bg-slate-50 text-slate-650 font-medium">
@@ -937,7 +937,7 @@ export default function HomePage() {
                   {isTyping && (
                     <div className="flex gap-3 max-w-[85%]">
                       <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-sm shrink-0">
-                        ðŸ¤–
+                        🤖
                       </div>
                       <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl rounded-tl-none flex items-center gap-1 shadow-sm">
                         <span className="w-1.5 h-1.5 bg-brand-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
@@ -953,7 +953,7 @@ export default function HomePage() {
                   <input
                      type="text"
                      disabled
-                     placeholder={activeChatTab === 'ingredients' ? 'Nháº­p nguyÃªn liá»‡u: trá»©ng, cÃ  chua...' : 'Láº­p thá»±c Ä‘Æ¡n giáº£m cÃ¢n...'}
+                     placeholder={activeChatTab === 'ingredients' ? 'Nhập nguyên liệu: trứng, cà chua...' : 'Lập thực đơn giảm cân...'}
                      className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none text-slate-400 cursor-not-allowed"
                   />
                   <button
@@ -961,7 +961,7 @@ export default function HomePage() {
                      disabled
                      className="px-4 py-2 bg-brand-primary/50 text-white rounded-xl text-xs font-semibold cursor-not-allowed"
                   >
-                     Gá»­i
+                     Gửi
                   </button>
                 </div>
               </div>
@@ -969,13 +969,13 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* -------------------- CÃCH HOáº T Äá»˜NG SECTION -------------------- */}
+        {/* -------------------- CÁCH HOẠT ĐỘNG SECTION -------------------- */}
         <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-20 lg:py-28 border-t border-slate-200 text-center">
           <ScrollReveal className="max-w-3xl mx-auto space-y-3 mb-16">
-            <span className="text-brand-primary text-xs font-bold uppercase tracking-wider">Quy trÃ¬nh Ä‘Æ¡n giáº£n</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">CÃ¡ch há»‡ thá»‘ng MealAI hoáº¡t Ä‘á»™ng</h2>
+            <span className="text-brand-primary text-xs font-bold uppercase tracking-wider">Quy trình đơn giản</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">Cách hệ thống MealAI hoạt động</h2>
             <p className="text-slate-655 text-sm sm:text-base leading-relaxed">
-              Chá»‰ vá»›i vÃ i thao tÃ¡c cÆ¡ báº£n, báº¡n Ä‘Ã£ cÃ³ má»™t káº¿ hoáº¡ch dinh dÆ°á»¡ng hoÃ n chá»‰nh chuáº©n khoa há»c.
+              Chỉ với vài thao tác cơ bản, bạn đã có một kế hoạch dinh dưỡng hoàn chỉnh chuẩn khoa học.
             </p>
           </ScrollReveal>
 
@@ -986,10 +986,10 @@ export default function HomePage() {
             <div className="hidden md:block absolute top-[44px] left-[12%] right-[12%] h-0.5 bg-gradient-to-r from-brand-primary/20 via-brand-primary/40 to-brand-secondary/20 z-0"></div>
 
             {[
-              { num: '1', title: 'Nháº­p nguyÃªn liá»‡u', desc: 'Khai bÃ¡o cÃ¡c thá»±c pháº©m hiá»‡n cÃ³ trong tá»§ láº¡nh nhÃ  báº¡n vÃ  sá»‘ ngÃ y cÃ²n láº¡i trÆ°á»›c khi háº¿t háº¡n.' },
-              { num: '2', title: 'AI phÃ¢n tÃ­ch', desc: 'TrÃ­ tuá»‡ nhÃ¢n táº¡o tÃ­nh toÃ¡n calories, so khá»›p thÃ³i quen, loáº¡i bá» cÃ¡c cháº¥t gÃ¢y dá»‹ á»©ng theo há»“ sÆ¡ cÃ¡ nhÃ¢n.' },
-              { num: '3', title: 'Táº¡o thá»±c Ä‘Æ¡n', desc: 'Nháº­n ngay thá»±c Ä‘Æ¡n tuáº§n tá»± Ä‘á»™ng Ä‘Æ°á»£c thiáº¿t káº¿ riÃªng, Ä‘áº£m báº£o cung cáº¥p Ä‘á»§ dinh dÆ°á»¡ng.' },
-              { num: '4', title: 'Táº¡o danh sÃ¡ch mua sáº¯m', desc: 'Há»‡ thá»‘ng tá»± Ä‘á»™ng gom cÃ¡c nguyÃªn liá»‡u cáº§n mua thÃªm Ä‘á»ƒ báº¡n mang Ä‘i siÃªu thá»‹ má»™t cÃ¡ch tiá»‡n lá»£i.' }
+              { num: '1', title: 'Nhập nguyên liệu', desc: 'Khai báo các thực phẩm hiện có trong tủ lạnh nhà bạn và số ngày còn lại trước khi hết hạn.' },
+              { num: '2', title: 'AI phân tích', desc: 'Trí tuệ nhân tạo tính toán calories, so khớp thói quen, loại bỏ các chất gây dị ứng theo hồ sơ cá nhân.' },
+              { num: '3', title: 'Tạo thực đơn', desc: 'Nhận ngay thực đơn tuần tự động được thiết kế riêng, đảm bảo cung cấp đủ dinh dưỡng.' },
+              { num: '4', title: 'Tạo danh sách mua sắm', desc: 'Hệ thống tự động gom các nguyên liệu cần mua thêm để bạn mang đi siêu thị một cách tiện lợi.' }
             ].map((step, i) => (
               <FadeInUp key={i} className="relative z-10 space-y-4 flex flex-col items-center group">
                 {/* Glowing Node */}
@@ -1005,7 +1005,7 @@ export default function HomePage() {
           </StaggerContainer>
         </section>
 
-        {/* -------------------- THá»NG KÃŠ Há»† THá»NG -------------------- */}
+        {/* -------------------- THỐNG KÊ HỆ THỐNG -------------------- */}
         <ScrollReveal className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-12 lg:py-20 border border-slate-100 bg-slate-50/50 rounded-3xl mb-12 shadow-brand-sm">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
 
@@ -1013,28 +1013,28 @@ export default function HomePage() {
               <p className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
                 <AnimatedCounter to={500} suffix="+" />
               </p>
-              <p className="text-xs sm:text-sm text-slate-505 font-bold">CÃ´ng thá»©c náº¥u Äƒn Viá»‡t</p>
+              <p className="text-xs sm:text-sm text-slate-505 font-bold">Công thức nấu ăn Việt</p>
             </div>
 
             <div className="space-y-2">
               <p className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
                 <AnimatedCounter to={1000} suffix="+" />
               </p>
-              <p className="text-xs sm:text-sm text-slate-550 font-bold">Thá»±c Ä‘Æ¡n Ä‘Æ°á»£c táº¡o</p>
+              <p className="text-xs sm:text-sm text-slate-550 font-bold">Thực đơn được tạo</p>
             </div>
 
             <div className="space-y-2">
               <p className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
                 <AnimatedCounter to={3000} suffix="+" />
               </p>
-              <p className="text-xs sm:text-sm text-slate-550 font-bold">LÆ°á»£t gá»£i Ã½ tá»« AI</p>
+              <p className="text-xs sm:text-sm text-slate-550 font-bold">Lượt gợi ý từ AI</p>
             </div>
 
             <div className="space-y-2">
               <p className="text-3xl sm:text-5xl font-extrabold text-brand-primary tracking-tight">
                 <AnimatedCounter to={95} suffix="%" className="text-brand-primary" />
               </p>
-              <p className="text-xs sm:text-sm text-slate-550 font-bold">NgÆ°á»i dÃ¹ng hÃ i lÃ²ng</p>
+              <p className="text-xs sm:text-sm text-slate-550 font-bold">Người dùng hài lòng</p>
             </div>
 
           </div>
@@ -1043,18 +1043,18 @@ export default function HomePage() {
         {/* -------------------- TESTIMONIALS SECTION -------------------- */}
         <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-20 lg:py-28 border-t border-slate-200 text-center">
           <ScrollReveal className="max-w-3xl mx-auto space-y-3 mb-16">
-            <span className="text-brand-primary text-xs font-bold uppercase tracking-wider">ÄÃ¡nh giÃ¡ thá»±c táº¿</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">NgÆ°á»i dÃ¹ng nÃ³i gÃ¬ vá» MealAI</h2>
+            <span className="text-brand-primary text-xs font-bold uppercase tracking-wider">Đánh giá thực tế</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">Người dùng nói gì về MealAI</h2>
             <p className="text-slate-655 text-sm sm:text-base leading-relaxed">
-              Láº¯ng nghe cÃ¢u chuyá»‡n tá»« cÃ¡c bÃ  ná»™i trá»£ vÃ  báº¡n tráº» báº­n rá»™n sau khi Ä‘á»“ng hÃ nh cÃ¹ng trá»£ lÃ½ bá»¯a Äƒn MealAI.
+              Lắng nghe câu chuyện từ các bà nội trợ và bạn trẻ bận rộn sau khi đồng hành cùng trợ lý bữa ăn MealAI.
             </p>
           </ScrollReveal>
 
           <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { name: 'Nguyá»…n Thá»‹ Hoa', role: 'Ná»™i trá»£ (HÃ  Ná»™i)', text: 'MealAI giÃºp tÃ´i tiáº¿t kiá»‡m ráº¥t nhiá»u thá»i gian suy nghÄ© náº¥u gÃ¬ má»—i ngÃ y. Viá»‡c gá»™p danh sÃ¡ch Ä‘i chá»£ ráº¥t há»¯u dá»¥ng, tá»§ láº¡nh nhÃ  tÃ´i khÃ´ng cÃ²n tÃ¬nh tráº¡ng rau hÃ©o lÃ£ng phÃ­ ná»¯a.', rating: 5, avatar: 'ðŸ‘©â€ðŸ³' },
-              { name: 'Tráº§n Minh Nam', role: 'Ká»¹ sÆ° pháº§n má»m (ÄÃ  Náºµng)', text: 'TÃ´i táº­p gym vÃ  cáº§n kiá»ƒm soÃ¡t calories cháº·t cháº½. AI gá»£i Ã½ cÃ´ng thá»©c vÃ  phÃ¢n chia calories bá»¯a sÃ¡ng/trÆ°a/tá»‘i ráº¥t chuáº©n xÃ¡c. TÃ­nh nÄƒng XAI giáº£i thÃ­ch lÃ½ do ráº¥t thÃ´ng minh.', rating: 5, avatar: 'ðŸ‘¨â€ðŸ’»' },
-              { name: 'LÃª PhÆ°Æ¡ng Tháº£o', role: 'NhÃ¢n viÃªn vÄƒn phÃ²ng (TP.HCM)', text: 'Thá»±c Ä‘Æ¡n tuáº§n tá»± Ä‘á»™ng ráº¥t ngon miá»‡ng vÃ  dá»… cháº¿ biáº¿n. TÃ´i ráº¥t thÃ­ch chatbot Gemini, pháº£n há»“i nhanh vÃ  gá»£i Ã½ cÃ´ng thá»©c cÃ³ tÃ¢m, phÃ¹ há»£p vá»›i kháº©u vá»‹ miá»n Nam cá»§a tÃ´i.', rating: 5, avatar: 'ðŸ‘©â€ðŸ’¼' }
+              { name: 'Nguyễn Thị Hoa', role: 'Nội trợ (Hà Nội)', text: 'MealAI giúp tôi tiết kiệm rất nhiều thời gian suy nghĩ nấu gì mỗi ngày. Việc gộp danh sách đi chợ rất hữu dụng, tủ lạnh nhà tôi không còn tình trạng rau héo lãng phí nữa.', rating: 5, avatar: '👩‍🍳' },
+              { name: 'Trần Minh Nam', role: 'Kỹ sư phần mềm (Đà Nẵng)', text: 'Tôi tập gym và cần kiểm soát calories chặt chẽ. AI gợi ý công thức và phân chia calories bữa sáng/trưa/tối rất chuẩn xác. Tính năng XAI giải thích lý do rất thông minh.', rating: 5, avatar: '👨‍💻' },
+              { name: 'Lê Phương Thảo', role: 'Nhân viên văn phòng (TP.HCM)', text: 'Thực đơn tuần tự động rất ngon miệng và dễ chế biến. Tôi rất thích chatbot Gemini, phản hồi nhanh và gợi ý công thức có tâm, phù hợp với khẩu vị miền Nam của tôi.', rating: 5, avatar: '👩‍💼' }
             ].map((testi, i) => (
               <FadeInUp key={i} className="bg-white border border-slate-150 rounded-2xl p-6 text-left flex flex-col justify-between space-y-4 shadow-brand-sm">
                 <p className="text-slate-655 text-sm italic leading-relaxed">"{testi.text}"</p>
@@ -1085,9 +1085,9 @@ export default function HomePage() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-brand-primary/5 rounded-full blur-[80px] z-0 pointer-events-none"></div>
 
             <div className="relative z-10 space-y-3">
-              <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900">Sáºµn sÃ ng Ä‘á»ƒ AI lÃªn thá»±c Ä‘Æ¡n cho gia Ä‘Ã¬nh báº¡n?</h2>
+              <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900">Sẵn sàng để AI lên thực đơn cho gia đình bạn?</h2>
               <p className="text-slate-655 text-sm sm:text-base max-w-xl mx-auto font-medium">
-                Báº¯t Ä‘áº§u hÃ nh trÃ¬nh Äƒn uá»‘ng khoa há»c, tiá»‡n lá»£i vÃ  tiáº¿t kiá»‡m cÃ¹ng MealAI ngay hÃ´m nay.
+                Bắt đầu hành trình ăn uống khoa học, tiện lợi và tiết kiệm cùng MealAI ngay hôm nay.
               </p>
             </div>
 
@@ -1096,13 +1096,13 @@ export default function HomePage() {
                 href="/register"
                 className="px-8 py-3 bg-gradient-to-r from-brand-primary to-brand-secondary text-white rounded-xl font-bold hover:scale-[1.02] active:scale-[0.98] transition transform shadow-brand-glow"
               >
-                ÄÄƒng kÃ½ ngay
+                Đăng ký ngay
               </Link>
               <Link
                 href="/login"
                 className="px-8 py-3 border border-slate-200 bg-white text-slate-800 rounded-xl font-bold hover:bg-slate-50 transition transform hover:-translate-y-0.5"
               >
-                ÄÄƒng nháº­p
+                Đăng nhập
               </Link>
             </div>
           </div>
@@ -1146,23 +1146,23 @@ export default function HomePage() {
         <div className="space-y-4 max-w-xl text-left relative z-10">
           <div>
             <span className="text-brand-primary text-xs font-extrabold uppercase tracking-wider bg-white/80 px-3 py-1 rounded-brand-sm border border-brand-primary/20 shadow-sm">
-              Trung tÃ¢m Ä‘iá»u khiá»ƒn AI
+              Trung tâm điều khiển AI
             </span>
-            <h1 className="text-3xl font-extrabold mt-3 tracking-tight text-slate-900">ChÃ o ngÃ y má»›i, {user.fullName}! ðŸ‘‹</h1>
+            <h1 className="text-3xl font-extrabold mt-3 tracking-tight text-slate-900">Chào ngày mới, {user.fullName}! 👋</h1>
             <p className="text-slate-650 text-sm mt-1.5 leading-relaxed font-medium">
-              HÃ´m nay lÃ  {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. AI Ä‘Ã£ chuáº©n bá»‹ sáºµn sÃ ng thá»±c Ä‘Æ¡n tá»‘i Æ°u cho sá»©c khá»e cá»§a báº¡n.
+              Hôm nay là {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. AI đã chuẩn bị sẵn sàng thực đơn tối ưu cho sức khỏe của bạn.
             </p>
           </div>
 
           {/* Mini Stats Grid */}
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="bg-white/60 border border-brand-primary/10 rounded-brand-sm p-3 shadow-sm">
-              <span className="text-[10px] text-brand-primary uppercase tracking-wider block font-bold">Bá»¯a Äƒn káº¿ tiáº¿p</span>
+              <span className="text-[10px] text-brand-primary uppercase tracking-wider block font-bold">Bữa ăn kế tiếp</span>
               <span className="text-sm font-extrabold block mt-0.5 text-slate-800">{getNextMealLabel()}</span>
             </div>
             <div className="bg-white/60 border border-brand-primary/10 rounded-brand-sm p-3 shadow-sm">
-              <span className="text-[10px] text-brand-primary uppercase tracking-wider block font-bold">Cáº§n giáº£i cá»©u</span>
-              <span className="text-sm font-extrabold block mt-0.5 text-slate-800">{inventoryStats.expiring} nguyÃªn liá»‡u sáº¯p háº¿t háº¡n</span>
+              <span className="text-[10px] text-brand-primary uppercase tracking-wider block font-bold">Cần giải cứu</span>
+              <span className="text-sm font-extrabold block mt-0.5 text-slate-800">{inventoryStats.expiring} nguyên liệu sắp hết hạn</span>
             </div>
           </div>
         </div>
@@ -1194,26 +1194,26 @@ export default function HomePage() {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
               <span className="text-lg font-black leading-none text-slate-900">{calorieProgress}%</span>
-              <span className="text-[8px] uppercase tracking-wider text-slate-500 font-bold mt-0.5">Náº¡p vÃ o</span>
+              <span className="text-[8px] uppercase tracking-wider text-slate-500 font-bold mt-0.5">Nạp vào</span>
             </div>
           </div>
 
           <div className="text-center sm:text-left space-y-1">
-            <p className="text-xs text-slate-500 font-bold">Calories ngÃ y hÃ´m nay</p>
+            <p className="text-xs text-slate-500 font-bold">Calories ngày hôm nay</p>
             <p className="text-2xl font-black text-slate-900">
               {caloriesConsumed}{' '}
               <span className="text-xs font-normal text-slate-500">
-                {calorieTarget > 0 ? `/ ${calorieTarget} kcal` : 'kcal Â· chÆ°a cÃ³ TDEE'}
+                {calorieTarget > 0 ? `/ ${calorieTarget} kcal` : 'kcal · chưa có TDEE'}
               </span>
             </p>
             <p className="text-[10px] text-brand-secondary italic font-semibold">
               {caloriesConsumed === 0
-                ? 'ChÆ°a cÃ³ bá»¯a nÃ o Ä‘Æ°á»£c tÃ­nh hÃ´m nay'
+                ? 'Chưa có bữa nào được tính hôm nay'
                 : calorieTarget <= 0
-                  ? 'Cáº­p nháº­t há»“ sÆ¡ cÆ¡ thá»ƒ Ä‘á»ƒ tÃ­nh má»¥c tiÃªu calories'
+                  ? 'Cập nhật hồ sơ cơ thể để tính mục tiêu calories'
                 : caloriesConsumed > calorieTarget
-                  ? 'Calories hÃ´m nay Ä‘ang vÆ°á»£t má»¥c tiÃªu'
-                  : `ÄÃ£ tÃ­nh calories tá»« ${pastMealCount} mÃ³n thuá»™c bá»¯a Ä‘Ã£ qua`}
+                  ? 'Calories hôm nay đang vượt mục tiêu'
+                  : `Đã tính calories từ ${pastMealCount} món thuộc bữa đã qua`}
             </p>
           </div>
         </div>
@@ -1229,25 +1229,25 @@ export default function HomePage() {
           <div className="card-dashboard space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-brand-light-border">
               <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                <HiCalendar className="text-brand-primary text-xl" /> Thá»±c Ä‘Æ¡n hÃ´m nay
+                <HiCalendar className="text-brand-primary text-xl" /> Thực đơn hôm nay
               </h2>
               <span className="text-xs font-bold text-slate-500">
-                Thá»© tá»± cÃ¡c bá»¯a Äƒn khoa há»c
+                Thứ tự các bữa ăn khoa học
               </span>
             </div>
 
             {todayMeals.length === 0 ? (
               <div className="text-center py-8 bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-4">
-                <p className="text-3xl mb-2">ðŸ“…</p>
-                <h4 className="font-bold text-gray-900 text-sm">ChÆ°a cÃ³ thá»±c Ä‘Æ¡n cho hÃ´m nay</h4>
+                <p className="text-3xl mb-2">📅</p>
+                <h4 className="font-bold text-gray-900 text-sm">Chưa có thực đơn cho hôm nay</h4>
                 <p className="text-xs text-gray-500 mt-1 mb-4 max-w-xs mx-auto">
-                  HÃ£y lÃªn thá»±c Ä‘Æ¡n tuáº§n má»›i tá»± Ä‘á»™ng báº±ng AI Ä‘á»ƒ theo dÃµi calo vÃ  Äƒn uá»‘ng khoa há»c hÆ¡n.
+                  Hãy lên thực đơn tuần mới tự động bằng AI để theo dõi calo và ăn uống khoa học hơn.
                 </p>
                 <Link
                   href="/meal-planner"
                   className="btn-primary-sm inline-flex"
                 >
-                  Láº­p thá»±c Ä‘Æ¡n ngay
+                  Lập thực đơn ngay
                 </Link>
               </div>
             ) : (
@@ -1262,7 +1262,7 @@ export default function HomePage() {
                     className="btn-outline-sm inline-flex items-center gap-1.5 text-xs"
                   >
                     <HiCalendar className="text-sm" />
-                    Quáº£n lÃ½ thá»±c Ä‘Æ¡n chi tiáº¿t
+                    Quản lý thực đơn chi tiết
                   </Link>
                 </div>
               </>
@@ -1273,10 +1273,10 @@ export default function HomePage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                <span className="badge-ai">ðŸ¤– AI</span> AI Ä‘á» xuáº¥t nÃ¢ng cao
+                <span className="badge-ai">🤖 AI</span> AI đề xuất nâng cao
               </h2>
               <Link href="/recipes" className="text-xs font-bold text-brand-primary hover:underline flex items-center gap-0.5">
-                Xem thÃªm <HiArrowRight />
+                Xem thêm <HiArrowRight />
               </Link>
             </div>
 
@@ -1288,12 +1288,12 @@ export default function HomePage() {
               </div>
             ) : recommendationError ? (
               <div className="text-center py-12 bg-white border border-red-100 rounded-3xl p-6">
-                <p className="text-4xl mb-2">âš ï¸</p>
+                <p className="text-4xl mb-2">⚠️</p>
                 <h4 className="font-bold text-gray-900 text-sm">{recommendationError}</h4>
               </div>
             ) : recommendations.length === 0 ? (
               <div className="text-center py-12 bg-white border border-gray-200 rounded-3xl p-6">
-                <p className="text-4xl mb-2">ðŸ½ï¸</p>
+                <p className="text-4xl mb-2">🍽️</p>
                 <h4 className="font-bold text-gray-900 text-sm">{EMPTY_RECOMMENDATION_MESSAGE}</h4>
               </div>
             ) : (
@@ -1310,12 +1310,12 @@ export default function HomePage() {
                             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                           />
                         ) : (
-                          <span className="text-6xl group-hover:scale-105 transition duration-300">ðŸ²</span>
+                          <span className="text-6xl group-hover:scale-105 transition duration-300">🍲</span>
                         )}
 
                         {/* Floating Similarity Match score */}
                         <div className="absolute top-3 left-3 bg-slate-900/95 border border-slate-800 text-brand-primary px-2.5 py-0.5 rounded-brand-sm text-xs font-extrabold shadow-md">
-                          Äá»™ phÃ¹ há»£p: {getRecommendationScorePercent(rec)}%
+                          Độ phù hợp: {getRecommendationScorePercent(rec)}%
                         </div>
                       </div>
 
@@ -1326,9 +1326,9 @@ export default function HomePage() {
                               <Link href={`/recipes/${recipe.id}`}>{recipe.name}</Link>
                             </h3>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 font-medium">
-                              <span>ðŸ”¥ {recipe.calories} kcal</span>
-                              {recipe.cookingTime ? <span>â±ï¸ {recipe.cookingTime} phÃºt</span> : null}
-                              {recipe.estimatedCost ? <span>ðŸ’° ~{Math.round((recipe.estimatedCost || 0) / 1000)}k VNÄ</span> : null}
+                              <span>🔥 {recipe.calories} kcal</span>
+                              {recipe.cookingTime ? <span>⏱️ {recipe.cookingTime} phút</span> : null}
+                              {recipe.estimatedCost ? <span>💰 ~{Math.round((recipe.estimatedCost || 0) / 1000)}k VNĐ</span> : null}
                             </div>
                           </div>
 
@@ -1349,7 +1349,7 @@ export default function HomePage() {
                           {/* AI Reason for recommendation */}
                           {(rec.reasons?.length ?? 0) > 0 && (
                             <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-brand-sm p-3 text-xs text-slate-700 flex items-start gap-2 text-left">
-                              <span className="text-brand-primary">ðŸ’¡</span>
+                              <span className="text-brand-primary">💡</span>
                               <p className="font-medium italic leading-relaxed">"{rec.reasons?.[0]}"</p>
                             </div>
                           )}
@@ -1361,13 +1361,13 @@ export default function HomePage() {
                             onClick={() => setSelectedRecForExplanation(rec)}
                             className="text-xs font-bold text-brand-primary hover:text-brand-primary-hover flex items-center gap-0.5 hover:underline cursor-pointer outline-none"
                           >
-                            <HiSparkles className="text-brand-primary animate-pulse" /> Giáº£i thÃ­ch AI
+                            <HiSparkles className="text-brand-primary animate-pulse" /> Giải thích AI
                           </button>
                           <Link
                             href={`/recipes/${recipe.id}`}
                             className="btn-primary-sm"
                           >
-                            Náº¥u mÃ³n nÃ y
+                            Nấu món này
                           </Link>
                         </div>
                       </div>
@@ -1386,13 +1386,13 @@ export default function HomePage() {
           {/* -------------------- SECTION 2 - AI INSIGHTS -------------------- */}
           <div className="card-ai-insight space-y-4 text-left">
             <h3 className="font-extrabold text-white text-base flex items-center gap-2 pb-3 border-b border-white/10">
-              <HiSparkles className="text-white animate-pulse text-lg" /> AI Insights hÃ´m nay
+              <HiSparkles className="text-white animate-pulse text-lg" /> AI Insights hôm nay
             </h3>
 
             <div className="space-y-3.5">
               {dashboardInsights.length === 0 ? (
                 <div className="rounded-brand-sm border border-white/10 bg-white/5 p-3 text-xs text-white/90">
-                  ChÆ°a cÃ³ Ä‘á»§ dá»¯ liá»‡u Ä‘á»ƒ phÃ¢n tÃ­ch AI Insights hÃ´m nay. HÃ£y táº¡o thá»±c Ä‘Æ¡n hoáº·c Ä‘Ã¡nh dáº¥u mÃ³n Ä‘Ã£ Äƒn.
+                  Chưa có đủ dữ liệu để phân tích AI Insights hôm nay. Hãy tạo thực đơn hoặc đánh dấu món đã ăn.
                 </div>
               ) : (
                 dashboardInsights.map((insight, index) => {
@@ -1423,27 +1423,27 @@ export default function HomePage() {
           {/* -------------------- SECTION 5 - SMART INVENTORY -------------------- */}
           <div className="card-dashboard space-y-4 text-left">
             <h3 className="font-extrabold text-slate-900 text-base flex items-center justify-between">
-              <span>Kho nguyÃªn liá»‡u</span>
+              <span>Kho nguyên liệu</span>
               <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-brand-sm">
-                Tá»•ng: {inventoryStats.total}
+                Tổng: {inventoryStats.total}
               </span>
             </h3>
 
             <div className="p-4 bg-brand-warning/5 border border-brand-warning/20 rounded-brand-md flex items-center justify-between gap-4 shadow-sm">
               <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-brand-warning block">Sáº¯p háº¿t háº¡n</span>
-                <p className="text-sm font-extrabold text-slate-800">{inventoryStats.expiring} thá»±c pháº©m cáº§n giáº£i cá»©u</p>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-brand-warning block">Sắp hết hạn</span>
+                <p className="text-sm font-extrabold text-slate-800">{inventoryStats.expiring} thực phẩm cần giải cứu</p>
                 <p className="text-[11px] font-semibold text-slate-500">
                   {inventoryStats.expired > 0
-                    ? `${inventoryStats.expired} thá»±c pháº©m Ä‘Ã£ háº¿t háº¡n`
-                    : 'KhÃ´ng cÃ³ nguyÃªn liá»‡u háº¿t háº¡n'}
+                    ? `${inventoryStats.expired} thực phẩm đã hết hạn`
+                    : 'Không có nguyên liệu hết hạn'}
                 </p>
               </div>
               <Link
                 href="/inventory"
                 className="px-3 py-2 bg-brand-warning hover:bg-amber-600 text-white rounded-brand-sm text-xs font-bold transition-all shadow-brand-sm hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap outline-none"
               >
-                Giáº£i cá»©u
+                Giải cứu
               </Link>
             </div>
           </div>
@@ -1461,16 +1461,16 @@ export default function HomePage() {
               <div>
                 <h3 className="flex items-center gap-2 text-lg font-bold">
                   <HiSparkles />
-                  TrÃ­ Tuá»‡ NhÃ¢n Táº¡o Giáº£i ThÃ­ch (XAI)
+                  Trí Tuệ Nhân Tạo Giải Thích (XAI)
                 </h3>
                 <p className="text-xs text-emerald-100 mt-0.5 text-left">
-                  Táº¡i sao mÃ³n <span className="font-semibold">{selectedRecForExplanation.recipe.name}</span> phÃ¹ há»£p vá»›i báº¡n?
+                  Tại sao món <span className="font-semibold">{selectedRecForExplanation.recipe.name}</span> phù hợp với bạn?
                 </p>
               </div>
               <button
                 onClick={() => setSelectedRecForExplanation(null)}
                 className="p-1 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition"
-                aria-label="ÄÃ³ng"
+                aria-label="Đóng"
               >
                 <HiX className="text-xl" />
               </button>
@@ -1480,7 +1480,7 @@ export default function HomePage() {
             <div className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto">
               {/* Overall Score */}
               <div className="text-center p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                <span className="text-sm text-gray-500 block font-semibold">Äá»™ phÃ¹ há»£p tá»•ng thá»ƒ</span>
+                <span className="text-sm text-gray-500 block font-semibold">Độ phù hợp tổng thể</span>
                 <span className="text-3xl font-extrabold text-emerald-700">
                   {Math.round(selectedRecForExplanation.score.total * 100)}%
                 </span>
@@ -1488,13 +1488,13 @@ export default function HomePage() {
 
               {/* 5 Scoring Dimensions */}
               <div className="space-y-3">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 text-left">CÃ¡c yáº¿u tá»‘ Ä‘Ã¡nh giÃ¡</h4>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 text-left">Các yếu tố đánh giá</h4>
                 {[
-                  { label: 'NguyÃªn liá»‡u sáºµn cÃ³', value: selectedRecForExplanation.score.ingredientMatch, weight: '35%' },
-                  { label: 'Háº¡n cháº¿ lÃ£ng phÃ­ (NguyÃªn liá»‡u sáº¯p háº¿t háº¡n)', value: selectedRecForExplanation.score.wasteReduction, weight: '25%' },
-                  { label: 'Kháº©u vá»‹ & Sá»Ÿ thÃ­ch cÃ¡ nhÃ¢n', value: selectedRecForExplanation.score.preferenceMatch, weight: '20%' },
-                  { label: 'Thá»i gian náº¥u nÆ°á»›ng', value: selectedRecForExplanation.score.cookTimeScore, weight: '10%' },
-                  { label: 'ÄÃ¡p á»©ng Calo má»¥c tiÃªu', value: selectedRecForExplanation.score.nutritionScore, weight: '10%' },
+                  { label: 'Nguyên liệu sẵn có', value: selectedRecForExplanation.score.ingredientMatch, weight: '35%' },
+                  { label: 'Hạn chế lãng phí (Nguyên liệu sắp hết hạn)', value: selectedRecForExplanation.score.wasteReduction, weight: '25%' },
+                  { label: 'Khẩu vị & Sở thích cá nhân', value: selectedRecForExplanation.score.preferenceMatch, weight: '20%' },
+                  { label: 'Thời gian nấu nướng', value: selectedRecForExplanation.score.cookTimeScore, weight: '10%' },
+                  { label: 'Đáp ứng Calo mục tiêu', value: selectedRecForExplanation.score.nutritionScore, weight: '10%' },
                 ].map((item, idx) => (
                   <div key={idx} className="space-y-1">
                     <div className="flex justify-between text-xs font-semibold">
@@ -1514,7 +1514,7 @@ export default function HomePage() {
               {/* Detail list of reasons */}
               {selectedRecForExplanation.reasons?.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 text-left">Chi tiáº¿t cÃ¡c tiÃªu chÃ­ Ä‘áº¡t</h4>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 text-left">Chi tiết các tiêu chí đạt</h4>
                   <ul className="space-y-2 bg-gray-50 border border-gray-100 p-4 rounded-2xl text-left">
                     {selectedRecForExplanation.reasons.map((reason: string, idx: number) => (
                       <li key={idx} className="flex gap-2 items-start text-sm text-gray-700">
@@ -1531,7 +1531,7 @@ export default function HomePage() {
                 {/* Matched */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1">
-                    ðŸŸ¢ ÄÃ£ cÃ³ sáºµn ({selectedRecForExplanation.matchedInventory?.length || 0})
+                    🟢 Đã có sẵn ({selectedRecForExplanation.matchedInventory?.length || 0})
                   </h4>
                   <div className="max-h-28 overflow-y-auto space-y-1 text-xs">
                     {selectedRecForExplanation.matchedInventory?.length > 0 ? (
@@ -1540,13 +1540,13 @@ export default function HomePage() {
                           <span className="font-medium text-green-800">{item.name}</span>
                           {item.urgency && (
                             <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 font-bold uppercase animate-pulse">
-                              Háº¿t háº¡n gáº¥p
+                              Hết hạn gấp
                             </span>
                           )}
                         </div>
                       ))
                     ) : (
-                      <p className="text-gray-400 italic">KhÃ´ng cÃ³ nguyÃªn liá»‡u sáºµn cÃ³.</p>
+                      <p className="text-gray-400 italic">Không có nguyên liệu sẵn có.</p>
                     )}
                   </div>
                 </div>
@@ -1554,7 +1554,7 @@ export default function HomePage() {
                 {/* Missing */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1">
-                    ðŸ”´ Cáº§n mua thÃªm ({selectedRecForExplanation.missingIngredients?.length || 0})
+                    🔴 Cần mua thêm ({selectedRecForExplanation.missingIngredients?.length || 0})
                   </h4>
                   <div className="max-h-28 overflow-y-auto space-y-1 text-xs">
                     {selectedRecForExplanation.missingIngredients?.length > 0 ? (
@@ -1567,7 +1567,7 @@ export default function HomePage() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-gray-400 italic">Äáº§y Ä‘á»§ nguyÃªn liá»‡u!</p>
+                      <p className="text-gray-400 italic">Đầy đủ nguyên liệu!</p>
                     )}
                   </div>
                 </div>
@@ -1580,7 +1580,7 @@ export default function HomePage() {
                 onClick={() => setSelectedRecForExplanation(null)}
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition shadow-sm"
               >
-                ÄÃ£ hiá»ƒu
+                Đã hiểu
               </button>
             </div>
           </div>

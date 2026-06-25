@@ -91,7 +91,7 @@ export default function InventoryPage() {
     }
 
     if (!newItem.ingredientId || !newItem.quantity) {
-      toast.error('Vui lÃ²ng chá»n nguyÃªn liá»‡u vÃ  sá»‘ lÆ°á»£ng');
+      toast.error('Vui lòng chọn nguyên liệu và số lượng');
       return;
     }
 
@@ -103,7 +103,7 @@ export default function InventoryPage() {
         purchaseDate: newItem.purchaseDate || undefined,
         expirationDate: newItem.expirationDate || undefined,
       });
-      toast.success('ÄÃ£ thÃªm vÃ o tá»§ láº¡nh');
+      toast.success('Đã thêm vào tủ lạnh');
       setNewItem({
         ingredientId: '',
         ingredientName: '',
@@ -117,31 +117,31 @@ export default function InventoryPage() {
       setShowAdd(false);
       loadInventory();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'ThÃªm tháº¥t báº¡i');
+      toast.error(err.response?.data?.message || 'Thêm thất bại');
     }
   };
 
   const removeItem = async (id: string) => {
-    if (!confirm('XÃ³a nguyÃªn liá»‡u nÃ y?')) return;
+    if (!confirm('Xóa nguyên liệu này?')) return;
     try {
       await inventoryAPI.remove(id);
-      toast.success('ÄÃ£ xÃ³a');
+      toast.success('Đã xóa');
       setSelectedIds((prev) => prev.filter((x) => x !== id));
       loadInventory();
     } catch {
-      toast.error('CÃ³ lá»—i xáº£y ra');
+      toast.error('Có lỗi xảy ra');
     }
   };
 
   const removeSelectedItems = async () => {
-    if (!confirm(`XÃ³a ${selectedIds.length} nguyÃªn liá»‡u Ä‘Ã£ chá»n?`)) return;
+    if (!confirm(`Xóa ${selectedIds.length} nguyên liệu đã chọn?`)) return;
     try {
       await Promise.all(selectedIds.map((id) => inventoryAPI.remove(id)));
-      toast.success('ÄÃ£ xÃ³a cÃ¡c má»¥c Ä‘Ã£ chá»n');
+      toast.success('Đã xóa các mục đã chọn');
       setSelectedIds([]);
       loadInventory();
     } catch {
-      toast.error('CÃ³ lá»—i xáº£y ra khi xÃ³a');
+      toast.error('Có lỗi xảy ra khi xóa');
     }
   };
 
@@ -188,29 +188,29 @@ export default function InventoryPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'expired':
-        return 'ÄÃ£ háº¿t háº¡n';
+        return 'Đã hết hạn';
       case 'near_expiry':
-        return 'Sáº¯p háº¿t háº¡n';
+        return 'Sắp hết hạn';
       case 'used_up':
-        return 'ÄÃ£ dÃ¹ng háº¿t';
+        return 'Đã dùng hết';
       case 'no_expiry':
-        return 'ChÆ°a cÃ³ háº¡n dÃ¹ng';
+        return 'Chưa có hạn dùng';
       default:
-        return 'CÃ²n háº¡n';
+        return 'Còn hạn';
     }
   };
 
   if (!user) {
     return (
       <div className="text-center py-20 bg-brand-light-bg min-h-screen flex flex-col justify-center items-center">
-        <p className="text-5xl mb-4 animate-brand-float">ðŸ§Š</p>
+        <p className="text-5xl mb-4 animate-brand-float">🧊</p>
         <p className="text-slate-500">
-          Vui lÃ²ng{' '}
+          Vui lòng{' '}
           <Link
             href="/login"
             className="text-brand-primary font-bold underline hover:text-brand-primary-hover"
           >
-            Ä‘Äƒng nháº­p
+            đăng nhập
           </Link>
         </p>
       </div>
@@ -221,52 +221,52 @@ export default function InventoryPage() {
     <div className="space-y-6 max-w-4xl mx-auto px-4 py-6 bg-brand-light-bg min-h-screen">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Tá»§ láº¡nh cá»§a tÃ´i</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Tủ lạnh của tôi</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Theo dÃµi tá»“n kho, háº¡n dÃ¹ng vÃ  lá»‹ch sá»­ Ä‘Ã£ dÃ¹ng cho tá»«ng nguyÃªn liá»‡u
+            Theo dõi tồn kho, hạn dùng và lịch sử đã dùng cho từng nguyên liệu
           </p>
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
           className="btn-primary w-full sm:w-auto justify-center"
         >
-          <HiPlus /> ThÃªm nguyÃªn liá»‡u
+          <HiPlus /> Thêm nguyên liệu
         </button>
       </div>
 
       {(summary.expired > 0 || summary.nearExpiry > 0) && (
         <div className="card-ai-warning p-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="badge-ai">AI cáº£nh bÃ¡o</div>
+            <div className="badge-ai">AI cảnh báo</div>
             <HiExclamation className="text-xl text-brand-warning animate-pulse" />
             <div className="flex flex-wrap gap-2">
               {summary.expired > 0 && (
                 <span className="px-2.5 py-1 bg-brand-danger/10 text-brand-danger border border-brand-danger/20 rounded-brand-sm text-xs font-semibold">
-                  {summary.expired} nguyÃªn liá»‡u Ä‘Ã£ háº¿t háº¡n
+                  {summary.expired} nguyên liệu đã hết hạn
                 </span>
               )}
               {summary.nearExpiry > 0 && (
                 <span className="px-2.5 py-1 bg-brand-warning/10 text-brand-warning border border-brand-warning/20 rounded-brand-sm text-xs font-semibold">
-                  {summary.nearExpiry} nguyÃªn liá»‡u sáº¯p háº¿t háº¡n
+                  {summary.nearExpiry} nguyên liệu sắp hết hạn
                 </span>
               )}
             </div>
           </div>
           <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-            Æ¯u tiÃªn dÃ¹ng cÃ¡c lÃ´ gáº§n háº¿t háº¡n trÆ°á»›c
+            Ưu tiên dùng các lô gần hết hạn trước
           </span>
         </div>
       )}
 
       {showAdd && (
         <div className="card-dashboard space-y-4">
-          <h3 className="font-bold text-slate-900 text-base">ThÃªm nguyÃªn liá»‡u má»›i</h3>
+          <h3 className="font-bold text-slate-900 text-base">Thêm nguyên liệu mới</h3>
 
           <div className="relative">
             <HiSearch className="absolute left-3 top-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="TÃ¬m nguyÃªn liá»‡u"
+              placeholder="Tìm nguyên liệu"
               value={searchQuery}
               onChange={(e) => searchIngredients(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 border border-brand-light-border rounded-brand-sm bg-white focus:ring-2 focus:ring-brand-primary/10 focus:border-brand-primary outline-none transition text-sm shadow-brand-sm"
@@ -289,32 +289,32 @@ export default function InventoryPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-slate-500">Sá»‘ lÆ°á»£ng</span>
+              <span className="text-xs font-bold text-slate-500">Số lượng</span>
               <input
                 type="number"
                 min="0.01"
                 step="0.01"
-                placeholder="Sá»‘ lÆ°á»£ng"
+                placeholder="Số lượng"
                 value={newItem.quantity}
                 onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
                 className="px-3 py-2 border border-brand-light-border rounded-brand-sm text-sm focus:ring-2 focus:ring-brand-primary/10 focus:border-brand-primary outline-none"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-slate-500">ÄÆ¡n vá»‹</span>
+              <span className="text-xs font-bold text-slate-500">Đơn vị</span>
               <input
                 type="text"
-                placeholder="g, kg, quáº£..."
+                placeholder="g, kg, quả..."
                 value={newItem.unit}
                 onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
                 className="px-3 py-2 border border-brand-light-border rounded-brand-sm text-sm focus:ring-2 focus:ring-brand-primary/10 focus:border-brand-primary outline-none"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-slate-500">NgÃ y mua</span>
+              <span className="text-xs font-bold text-slate-500">Ngày mua</span>
               <input
                 type="date"
-                placeholder="Chá»n ngÃ y mua"
+                placeholder="Chọn ngày mua"
                 value={newItem.purchaseDate}
                 max={getTodayInputValue()}
                 onChange={(e) => updatePurchaseDate(e.target.value)}
@@ -322,10 +322,10 @@ export default function InventoryPage() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-slate-500">Háº¡n sá»­ dá»¥ng</span>
+              <span className="text-xs font-bold text-slate-500">Hạn sử dụng</span>
               <input
                 type="date"
-                placeholder="Chá»n háº¡n sá»­ dá»¥ng"
+                placeholder="Chọn hạn sử dụng"
                 value={newItem.expirationDate}
                 min={newItem.purchaseDate || getTodayInputValue()}
                 onChange={(e) => setNewItem({ ...newItem, expirationDate: e.target.value })}
@@ -333,18 +333,18 @@ export default function InventoryPage() {
               />
               <span className="text-[11px] text-slate-400">
                 {newItem.expirationDate
-                  ? `Gá»£i Ã½/Ä‘Ã£ chá»n: ${formatDateVN(newItem.expirationDate)}`
-                  : 'ChÆ°a thiáº¿t láº­p háº¡n sá»­ dá»¥ng'}
+                  ? `Gợi ý/đã chọn: ${formatDateVN(newItem.expirationDate)}`
+                  : 'Chưa thiết lập hạn sử dụng'}
               </span>
             </div>
           </div>
 
           <p className="text-xs text-slate-500">
-            NÃªn nháº­p háº¡n sá»­ dá»¥ng Ä‘á»ƒ MealAI Æ°u tiÃªn dÃ¹ng nguyÃªn liá»‡u gáº§n háº¿t háº¡n vÃ  giáº£m lÃ£ng phÃ­.
+            Nên nhập hạn sử dụng để MealAI ưu tiên dùng nguyên liệu gần hết hạn và giảm lãng phí.
           </p>
 
           <button onClick={addItem} className="btn-primary">
-            ThÃªm vÃ o tá»§ láº¡nh
+            Thêm vào tủ lạnh
           </button>
         </div>
       )}
@@ -360,9 +360,9 @@ export default function InventoryPage() {
         </div>
       ) : inventory.length === 0 ? (
         <div className="card-dashboard p-16 text-center">
-          <p className="text-5xl mb-4 animate-brand-float">ðŸ§Š</p>
+          <p className="text-5xl mb-4 animate-brand-float">🧊</p>
           <p className="text-slate-500 font-medium">
-            Tá»§ láº¡nh trá»‘ng. ThÃªm nguyÃªn liá»‡u Ä‘á»ƒ báº¯t Ä‘áº§u nhÃ©.
+            Tủ lạnh trống. Thêm nguyên liệu để bắt đầu nhé.
           </p>
         </div>
       ) : (
@@ -382,7 +382,7 @@ export default function InventoryPage() {
                 }}
                 className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500 cursor-pointer"
               />
-              <span className="text-sm font-semibold text-slate-700 select-none">Chá»n táº¥t cáº£</span>
+              <span className="text-sm font-semibold text-slate-700 select-none">Chọn tất cả</span>
             </div>
             {selectedIds.length > 0 && (
               <button
@@ -390,7 +390,7 @@ export default function InventoryPage() {
                 className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white rounded-brand-md text-xs font-bold hover:bg-red-700 shadow-brand-sm transition cursor-pointer"
               >
                 <HiTrash className="text-base" />
-                <span>XÃ³a má»¥c Ä‘Ã£ chá»n ({selectedIds.length})</span>
+                <span>Xóa mục đã chọn ({selectedIds.length})</span>
               </button>
             )}
           </div>
@@ -417,47 +417,47 @@ export default function InventoryPage() {
                     </div>
 
                     <div className="w-10 h-10 bg-brand-primary/10 rounded-brand-sm flex items-center justify-center text-lg select-none shrink-0">
-                      ðŸ¥¬
+                      🥬
                     </div>
                     <div className="space-y-1">
                       <p className="font-semibold text-slate-800 text-sm">{item.ingredient.name}</p>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium text-slate-500">
                         <span>
-                          Tá»“n kho ban Ä‘áº§u:{' '}
+                          Tồn kho ban đầu:{' '}
                           <strong className="text-slate-700">
                             {item.initialQuantity} {item.unit}
                           </strong>
                         </span>
-                        <span>â€¢</span>
+                        <span>•</span>
                         <span>
-                          ÄÃ£ dÃ¹ng:{' '}
+                          Đã dùng:{' '}
                           <strong className="text-amber-600">
                             {item.usedQuantity} {item.unit}
                           </strong>
                         </span>
-                        <span>â€¢</span>
+                        <span>•</span>
                         <span>
-                          CÃ²n láº¡i:{' '}
+                          Còn lại:{' '}
                           <strong className="text-brand-success">
                             {item.remainingQuantity} {item.unit}
                           </strong>
                         </span>
-                        <span>â€¢</span>
-                        <span>Tráº¡ng thÃ¡i: {getStatusLabel(item.status)}</span>
+                        <span>•</span>
+                        <span>Trạng thái: {getStatusLabel(item.status)}</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
                         <span>
-                          NgÃ y mua:{' '}
+                          Ngày mua:{' '}
                           {item.purchaseDate
                             ? formatDateVN(item.purchaseDate)
                             : '--'}
                         </span>
-                        <span>â€¢</span>
+                        <span>•</span>
                         <span>
-                          Háº¡n dÃ¹ng:{' '}
+                          Hạn dùng:{' '}
                           {item.expirationDate
                             ? formatDateVN(item.expirationDate)
-                            : 'ChÆ°a thiáº¿t láº­p háº¡n sá»­ dá»¥ng'}
+                            : 'Chưa thiết lập hạn sử dụng'}
                         </span>
                       </div>
                     </div>
@@ -469,7 +469,7 @@ export default function InventoryPage() {
                         onClick={() => toggleUsage(item.id)}
                         className="px-2.5 py-1 rounded-brand-sm text-[11px] font-bold border border-brand-secondary/20 bg-brand-secondary/5 text-brand-secondary hover:bg-brand-secondary/15 transition-all cursor-pointer"
                       >
-                        {expandedUsage[item.id] ? 'Thu gá»n' : 'Chi tiáº¿t dÃ¹ng'}
+                        {expandedUsage[item.id] ? 'Thu gọn' : 'Chi tiết dùng'}
                       </button>
                     )}
                     <span className="px-2.5 py-1 rounded-brand-sm text-[11px] font-semibold border border-slate-200 text-slate-600 bg-slate-50">
@@ -480,7 +480,7 @@ export default function InventoryPage() {
                         className={`px-2.5 py-1 rounded-brand-sm text-[11px] font-semibold border flex items-center gap-1 ${getUrgencyStyle(item.urgency)}`}
                       >
                         <HiClock />
-                        {item.daysLeft} ngÃ y
+                        {item.daysLeft} ngày
                       </span>
                     )}
                     <button
@@ -494,7 +494,7 @@ export default function InventoryPage() {
 
                 {item.usageHistory?.length > 0 && expandedUsage[item.id] && (
                   <div className="px-5 pb-4 pt-3 bg-slate-50/50 animate-fade-in space-y-2 text-xs">
-                    <div className="text-[11px] font-bold text-slate-700">Lá»‹ch sá»­ sá»­ dá»¥ng</div>
+                    <div className="text-[11px] font-bold text-slate-700">Lịch sử sử dụng</div>
                     <div className="space-y-2 bg-white p-3 rounded border border-brand-light-border shadow-brand-sm">
                       {item.usageHistory.map((usage: any) => (
                         <div
@@ -502,33 +502,33 @@ export default function InventoryPage() {
                           className="rounded-brand-sm border border-slate-100 p-2.5 bg-slate-50/60"
                         >
                           <p className="text-slate-700 font-semibold">
-                            DÃ¹ng {usage.quantityAllocated ?? usage.usedQuantity} {usage.unit}
+                            Dùng {usage.quantityAllocated ?? usage.usedQuantity} {usage.unit}
                           </p>
                           <p className="text-slate-500 mt-1">
-                            {usage.reason || 'ÄÃ£ tá»± Ä‘á»™ng trá»« tá»« tá»§ láº¡nh'}
+                            {usage.reason || 'Đã tự động trừ từ tủ lạnh'}
                           </p>
                           <div className="mt-2 grid gap-1 text-slate-500 sm:grid-cols-2">
                             <p>
-                              <span className="font-semibold text-slate-600">MÃ³n:</span>{' '}
-                              {usage.recipeName || 'ChÆ°a xÃ¡c Ä‘á»‹nh mÃ³n'}
+                              <span className="font-semibold text-slate-600">Món:</span>{' '}
+                              {usage.recipeName || 'Chưa xác định món'}
                             </p>
                             <p>
-                              <span className="font-semibold text-slate-600">Bá»¯a:</span>{' '}
+                              <span className="font-semibold text-slate-600">Bữa:</span>{' '}
                               {getShortMealLabel(usage.mealType, usage.mealTypeLabel)}
                             </p>
                             <p>
-                              <span className="font-semibold text-slate-600">NgÃ y dÃ¹ng:</span>{' '}
+                              <span className="font-semibold text-slate-600">Ngày dùng:</span>{' '}
                               {formatUsageDate(usage.mealDate || usage.createdAt)}
                             </p>
                             <p>
-                              <span className="font-semibold text-slate-600">Danh sÃ¡ch:</span>{' '}
-                              {usage.shoppingListName || 'ChÆ°a xÃ¡c Ä‘á»‹nh danh sÃ¡ch'}
+                              <span className="font-semibold text-slate-600">Danh sách:</span>{' '}
+                              {usage.shoppingListName || 'Chưa xác định danh sách'}
                             </p>
                           </div>
                         </div>
                       ))}
                       <p className="text-slate-500 pt-1.5 border-t border-dashed border-slate-200 mt-1.5">
-                        CÃ²n láº¡i kháº£ dá»¥ng:{' '}
+                        Còn lại khả dụng:{' '}
                         <strong className="text-brand-success">
                           {item.remainingQuantity} {item.unit}
                         </strong>
@@ -564,25 +564,25 @@ function formatDateVN(value: string | Date) {
 }
 
 function formatUsageDate(value?: string | Date | null) {
-  if (!value) return 'ChÆ°a xÃ¡c Ä‘á»‹nh ngÃ y';
+  if (!value) return 'Chưa xác định ngày';
   const raw = String(value);
   if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
     return formatDateVN(raw.slice(0, 10));
   }
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return 'ChÆ°a xÃ¡c Ä‘á»‹nh ngÃ y';
+  if (Number.isNaN(date.getTime())) return 'Chưa xác định ngày';
   return date.toLocaleDateString('vi-VN');
 }
 
 function getShortMealLabel(mealType?: string | null, mealTypeLabel?: string | null) {
   const labels: Record<string, string> = {
-    breakfast: 'SÃ¡ng',
-    lunch: 'TrÆ°a',
-    dinner: 'Tá»‘i',
+    breakfast: 'Sáng',
+    lunch: 'Trưa',
+    dinner: 'Tối',
   };
   if (mealType && labels[mealType]) return labels[mealType];
-  if (mealTypeLabel) return mealTypeLabel.replace(/^Bá»¯a\s+/i, '');
-  return 'ChÆ°a xÃ¡c Ä‘á»‹nh bá»¯a';
+  if (mealTypeLabel) return mealTypeLabel.replace(/^Bữa\s+/i, '');
+  return 'Chưa xác định bữa';
 }
 
 function addDaysToInputDate(dateString: string, days: number) {
@@ -600,14 +600,14 @@ function suggestExpirationDate(name: string, category: string, purchaseDate: str
 function getSuggestedShelfLifeDays(name: string, category: string) {
   const text = `${name} ${category}`.toLowerCase();
 
-  if (/(cÃ¡|ca |tÃ´m|tom|má»±c|muc|háº£i sáº£n|hai san|seafood)/.test(text)) return 2;
-  if (/(thá»‹t|thit|bÃ²|bo |heo|gÃ |ga |chicken|beef|pork)/.test(text)) return 3;
-  if (/(rau|xÃ  lÃ¡ch|xa lach|cáº£i|cai|hÃ nh|hanh|ngÃ²|ngo)/.test(text)) return 4;
-  if (/(cá»§|cu |quáº£|qua |khoai|cÃ  rá»‘t|ca rot|bÃ­|bi |báº§u|bau)/.test(text)) return 7;
-  if (/(trá»©ng|trung|egg)/.test(text)) return 21;
-  if (/(sá»¯a|sua|milk|yogurt|sá»¯a chua|sua chua)/.test(text)) return 7;
-  if (/(gia vá»‹|gia vi|muá»‘i|muoi|Ä‘Æ°á»ng|duong|tiÃªu|tieu|bá»™t|bot|nÆ°á»›c máº¯m|nuoc mam|xÃ¬ dáº§u|xi dau)/.test(text)) return 90;
-  if (/(gáº¡o|gao|bÃºn khÃ´|bun kho|mÃ¬ khÃ´|mi kho|má»³ khÃ´|my kho|pasta|noodle)/.test(text)) return 90;
+  if (/(cá|ca |tôm|tom|mực|muc|hải sản|hai san|seafood)/.test(text)) return 2;
+  if (/(thịt|thit|bò|bo |heo|gà|ga |chicken|beef|pork)/.test(text)) return 3;
+  if (/(rau|xà lách|xa lach|cải|cai|hành|hanh|ngò|ngo)/.test(text)) return 4;
+  if (/(củ|cu |quả|qua |khoai|cà rốt|ca rot|bí|bi |bầu|bau)/.test(text)) return 7;
+  if (/(trứng|trung|egg)/.test(text)) return 21;
+  if (/(sữa|sua|milk|yogurt|sữa chua|sua chua)/.test(text)) return 7;
+  if (/(gia vị|gia vi|muối|muoi|đường|duong|tiêu|tieu|bột|bot|nước mắm|nuoc mam|xì dầu|xi dau)/.test(text)) return 90;
+  if (/(gạo|gao|bún khô|bun kho|mì khô|mi kho|mỳ khô|my kho|pasta|noodle)/.test(text)) return 90;
 
   return 7;
 }
@@ -619,17 +619,17 @@ function validateInventoryForm(item: {
   purchaseDate: string;
   expirationDate: string;
 }) {
-  if (!item.ingredientId) return 'TÃªn nguyÃªn liá»‡u khÃ´ng Ä‘Æ°á»£c trá»‘ng.';
+  if (!item.ingredientId) return 'Tên nguyên liệu không được trống.';
   if (!Number.isFinite(Number(item.quantity)) || Number(item.quantity) <= 0) {
-    return 'Sá»‘ lÆ°á»£ng pháº£i lá»›n hÆ¡n 0.';
+    return 'Số lượng phải lớn hơn 0.';
   }
-  if (!item.unit.trim()) return 'ÄÆ¡n vá»‹ khÃ´ng Ä‘Æ°á»£c trá»‘ng.';
+  if (!item.unit.trim()) return 'Đơn vị không được trống.';
 
   const today = getTodayInputValue();
   const purchaseDate = item.purchaseDate || today;
-  if (purchaseDate > today) return 'NgÃ y mua khÃ´ng Ä‘Æ°á»£c lá»›n hÆ¡n ngÃ y hiá»‡n táº¡i.';
+  if (purchaseDate > today) return 'Ngày mua không được lớn hơn ngày hiện tại.';
   if (item.expirationDate && item.expirationDate < purchaseDate) {
-    return 'Háº¡n sá»­ dá»¥ng khÃ´ng Ä‘Æ°á»£c nhá» hÆ¡n ngÃ y mua.';
+    return 'Hạn sử dụng không được nhỏ hơn ngày mua.';
   }
 
   return '';

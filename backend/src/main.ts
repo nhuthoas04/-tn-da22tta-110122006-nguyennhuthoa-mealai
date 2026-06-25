@@ -15,6 +15,12 @@ async function bootstrap() {
   // Global prefix for all routes
   app.setGlobalPrefix('api/v1');
 
+  // Default API responses to UTF-8 JSON. PDF/static responses can still override this later.
+  app.use((req, res, next) => {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    next();
+  });
+
   const allowedOrigins = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',

@@ -23,7 +23,7 @@ function ResetPasswordForm() {
     if (qToken) {
       setToken(qToken);
     } else {
-      setErrorMsg('LiÃªn káº¿t Ä‘áº·t láº¡i máº­t kháº©u khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.');
+      setErrorMsg('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
     }
   }, [searchParams]);
 
@@ -32,22 +32,22 @@ function ResetPasswordForm() {
     setErrorMsg('');
 
     if (!token) {
-      setErrorMsg('LiÃªn káº¿t Ä‘áº·t láº¡i máº­t kháº©u khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.');
+      setErrorMsg('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
       return;
     }
 
     if (!newPassword || !confirmPassword) {
-      toast.error('Vui lÃ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ máº­t kháº©u');
+      toast.error('Vui lòng điền đầy đủ mật khẩu');
       return;
     }
 
     if (newPassword.length < 6) {
-      toast.error('Máº­t kháº©u pháº£i cÃ³ tá»‘i thiá»ƒu 6 kÃ½ tá»±');
+      toast.error('Mật khẩu phải có tối thiểu 6 ký tự');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error('Máº­t kháº©u xÃ¡c nháº­n khÃ´ng khá»›p');
+      toast.error('Mật khẩu xác nhận không khớp');
       return;
     }
 
@@ -60,15 +60,15 @@ function ResetPasswordForm() {
         confirmPassword,
       });
       setSuccess(true);
-      toast.success(res.data.message || 'Äáº·t láº¡i máº­t kháº©u thÃ nh cÃ´ng!');
+      toast.success(res.data.message || 'Đặt lại mật khẩu thành công!');
 
       setTimeout(() => {
         router.push('/login');
       }, 2000);
     } catch (err: any) {
       console.error(err);
-      const apiMsg = err.response?.data?.message || 'LiÃªn káº¿t Ä‘áº·t láº¡i máº­t kháº©u khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.';
-      setErrorMsg('LiÃªn káº¿t Ä‘áº·t láº¡i máº­t kháº©u khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.');
+      const apiMsg = err.response?.data?.message || 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.';
+      setErrorMsg('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
       toast.error(apiMsg);
     } finally {
       setLoading(false);
@@ -81,7 +81,7 @@ function ResetPasswordForm() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 text-red-500 mb-2">
           <HiExclamationCircle className="text-4xl" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">KhÃ´ng thá»ƒ thá»±c hiá»‡n</h2>
+        <h2 className="text-xl font-bold text-gray-900">Không thể thực hiện</h2>
         <p className="text-sm text-gray-600 leading-relaxed px-4">
           {errorMsg}
         </p>
@@ -90,13 +90,13 @@ function ResetPasswordForm() {
             href="/forgot-password"
             className="inline-flex justify-center w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition duration-200"
           >
-            YÃªu cáº§u liÃªn káº¿t má»›i
+            Yêu cầu liên kết mới
           </Link>
           <Link
             href="/login"
             className="inline-flex justify-center w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition duration-200"
           >
-            Quay láº¡i Ä‘Äƒng nháº­p
+            Quay lại đăng nhập
           </Link>
         </div>
       </div>
@@ -109,12 +109,12 @@ function ResetPasswordForm() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 mb-2">
           <HiCheckCircle className="text-4xl" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">Äáº·t láº¡i máº­t kháº©u thÃ nh cÃ´ng</h2>
+        <h2 className="text-xl font-bold text-gray-900">Đặt lại mật khẩu thành công</h2>
         <p className="text-sm text-gray-600 leading-relaxed">
-          Máº­t kháº©u cá»§a báº¡n Ä‘Ã£ Ä‘Æ°á»£c thay Ä‘á»•i thÃ nh cÃ´ng. Há»‡ thá»‘ng Ä‘ang chuyá»ƒn hÆ°á»›ng báº¡n vá» trang Ä‘Äƒng nháº­p...
+          Mật khẩu của bạn đã được thay đổi thành công. Hệ thống đang chuyển hướng bạn về trang đăng nhập...
         </p>
         <div className="pt-4 animate-pulse text-sm text-emerald-600 font-medium">
-          Äang chuyá»ƒn hÆ°á»›ng...
+          Đang chuyển hướng...
         </div>
       </div>
     );
@@ -123,26 +123,26 @@ function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 space-y-6">
       <div className="space-y-2">
-        <label className="block text-sm font-semibold text-gray-700">Máº­t kháº©u má»›i</label>
+        <label className="block text-sm font-semibold text-gray-700">Mật khẩu mới</label>
         <input
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           required
           className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-          placeholder="Nháº­p máº­t kháº©u má»›i (tá»‘i thiá»ƒu 6 kÃ½ tá»±)"
+          placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
         />
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-semibold text-gray-700">XÃ¡c nháº­n máº­t kháº©u má»›i</label>
+        <label className="block text-sm font-semibold text-gray-700">Xác nhận mật khẩu mới</label>
         <input
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
           className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
-          placeholder="XÃ¡c nháº­n láº¡i máº­t kháº©u má»›i"
+          placeholder="Xác nhận lại mật khẩu mới"
         />
       </div>
 
@@ -157,10 +157,10 @@ function ResetPasswordForm() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
-            Äang lÆ°u máº­t kháº©u má»›i...
+            Đang lưu mật khẩu mới...
           </span>
         ) : (
-          'Äáº·t láº¡i máº­t kháº©u'
+          'Đặt lại mật khẩu'
         )}
       </button>
 
@@ -169,7 +169,7 @@ function ResetPasswordForm() {
           href="/login"
           className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition"
         >
-          Quay láº¡i Ä‘Äƒng nháº­p
+          Quay lại đăng nhập
         </Link>
       </div>
     </form>
@@ -188,13 +188,13 @@ export default function ResetPasswordPage() {
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
             Meal<span className="text-emerald-600">AI</span>
           </h1>
-          <p className="text-gray-500 mt-2">Thiáº¿t láº­p láº¡i máº­t kháº©u má»›i cho tÃ i khoáº£n cá»§a báº¡n</p>
+          <p className="text-gray-500 mt-2">Thiết lập lại mật khẩu mới cho tài khoản của bạn</p>
         </div>
 
         <Suspense fallback={
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center space-y-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
-            <p className="text-sm text-gray-500">Äang táº£i biá»ƒu máº«u Ä‘áº·t láº¡i máº­t kháº©u...</p>
+            <p className="text-sm text-gray-500">Đang tải biểu mẫu đặt lại mật khẩu...</p>
           </div>
         }>
           <ResetPasswordForm />

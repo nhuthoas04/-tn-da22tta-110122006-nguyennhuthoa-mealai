@@ -14,11 +14,11 @@ export default function ForgotPasswordPage() {
 
   const validateEmail = (val: string) => {
     if (!val) {
-      return 'Email khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng';
+      return 'Email không được để trống';
     }
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!regex.test(val)) {
-      return 'Email khÃ´ng Ä‘Ãºng Ä‘á»‹nh dáº¡ng';
+      return 'Email không đúng định dạng';
     }
     return '';
   };
@@ -39,13 +39,13 @@ export default function ForgotPasswordPage() {
     try {
       const res = await authAPI.forgotPassword(email);
       setSuccess(true);
-      toast.success(res.data.message || 'YÃªu cáº§u Ä‘áº·t láº¡i máº­t kháº©u Ä‘Ã£ Ä‘Æ°á»£c ghi nháº­n!');
+      toast.success(res.data.message || 'Yêu cầu đặt lại mật khẩu đã được ghi nhận!');
     } catch (err: any) {
       console.error(err);
       // Under all circumstances, we show a success status, but if it is a physical network/connection error we toast it
       if (err.code === 'ERR_NETWORK' || !err.response) {
-        toast.error('Lá»—i káº¿t ná»‘i máº¡ng. Vui lÃ²ng thá»­ láº¡i sau.');
-        setErrorMsg('Lá»—i káº¿t ná»‘i mÃ¡y chá»§. Vui lÃ²ng thá»­ láº¡i sau.');
+        toast.error('Lỗi kết nối mạng. Vui lòng thử lại sau.');
+        setErrorMsg('Lỗi kết nối máy chủ. Vui lòng thử lại sau.');
       } else {
         // Safe backend will return success even if email does not exist.
         // We set success true here to be consistent.
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
             Meal<span className="text-emerald-600">AI</span>
           </h1>
-          <p className="text-gray-500 mt-2">Nháº­p email cá»§a báº¡n Ä‘á»ƒ láº¥y láº¡i máº­t kháº©u</p>
+          <p className="text-gray-500 mt-2">Nhập email của bạn để lấy lại mật khẩu</p>
         </div>
 
         {/* Content Card */}
@@ -77,16 +77,16 @@ export default function ForgotPasswordPage() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 mb-2">
                 <HiCheckCircle className="text-4xl" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Kiá»ƒm tra há»™p thÆ° cá»§a báº¡n</h2>
+              <h2 className="text-xl font-bold text-gray-900">Kiểm tra hộp thư của bạn</h2>
               <p className="text-sm text-gray-600 leading-relaxed px-2">
-                Náº¿u email <strong>{email}</strong> tá»“n táº¡i trong há»‡ thá»‘ng, liÃªn káº¿t Ä‘áº·t láº¡i máº­t kháº©u Ä‘Ã£ Ä‘Æ°á»£c gá»­i. Vui lÃ²ng kiá»ƒm tra vÃ  nháº¥p vÃ o liÃªn káº¿t Ä‘á»ƒ táº¡o máº­t kháº©u má»›i.
+                Nếu email <strong>{email}</strong> tồn tại trong hệ thống, liên kết đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra và nhấp vào liên kết để tạo mật khẩu mới.
               </p>
               <div className="pt-4">
                 <Link
                   href="/login"
                   className="inline-flex justify-center w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition duration-200"
                 >
-                  Quay láº¡i Ä‘Äƒng nháº­p
+                  Quay lại đăng nhập
                 </Link>
               </div>
             </div>
@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Äá»‹a chá»‰ Email
+                  Địa chỉ Email
                 </label>
                 <input
                   type="email"
@@ -125,10 +125,10 @@ export default function ForgotPasswordPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Äang gá»­i yÃªu cáº§u...
+                    Đang gửi yêu cầu...
                   </span>
                 ) : (
-                  'Gá»­i yÃªu cáº§u Ä‘áº·t láº¡i máº­t kháº©u'
+                  'Gửi yêu cầu đặt lại mật khẩu'
                 )}
               </button>
 
@@ -137,7 +137,7 @@ export default function ForgotPasswordPage() {
                   href="/login"
                   className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition"
                 >
-                  Quay láº¡i Ä‘Äƒng nháº­p
+                  Quay lại đăng nhập
                 </Link>
               </div>
             </form>

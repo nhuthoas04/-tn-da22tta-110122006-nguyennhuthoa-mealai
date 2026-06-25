@@ -27,13 +27,13 @@ export class MealPlanService {
   // Day labels in Vietnamese
   private readonly DAY_LABELS = [
     '',
-    'Thá»© Hai',
-    'Thá»© Ba',
-    'Thá»© TÆ°',
-    'Thá»© NÄƒm',
-    'Thá»© SÃ¡u',
-    'Thá»© Báº£y',
-    'Chá»§ Nháº­t',
+    'Thứ Hai',
+    'Thứ Ba',
+    'Thứ Tư',
+    'Thứ Năm',
+    'Thứ Sáu',
+    'Thứ Bảy',
+    'Chủ Nhật',
   ];
 
   private readonly MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
@@ -196,7 +196,7 @@ export class MealPlanService {
     let databaseWarning: string | undefined = undefined;
     if (totalRecipesCount < 15) {
       databaseWarning =
-        'Kho cÃ´ng thá»©c hiá»‡n táº¡i quÃ¡ Ã­t Ä‘á»ƒ táº¡o thá»±c Ä‘Æ¡n Ä‘a dáº¡ng hoÃ n toÃ n.';
+        'Kho công thức hiện tại quá ít để tạo thực đơn đa dạng hoàn toàn.';
     }
 
     // Delete existing plan items for this week (if any) and reuse the plan record to avoid foreign key violations with shopping lists
@@ -503,7 +503,7 @@ export class MealPlanService {
       );
       const dailyCalTarget = user?.dailyCalorieTarget || 2000;
 
-      // If calories are insufficient, prioritize scaling portions first (TÄƒng kháº©u pháº§n)
+      // If calories are insufficient, prioritize scaling portions first (Tăng khẩu phần)
       if (dayCalories < dailyCalTarget && dayCalories > 0) {
         const ratio = dailyCalTarget / dayCalories;
         // Scale up existing dishes by up to 1.3x to balance nutrition
@@ -511,7 +511,7 @@ export class MealPlanService {
         if (scale > 1.0) {
           for (const item of dayItemsList) {
             item.calories = Math.round(item.calories * scale);
-            item.notes = 'TÄƒng kháº©u pháº§n';
+            item.notes = 'Tăng khẩu phần';
           }
           dayCalories = dayItemsList.reduce(
             (sum, item) => sum + (item.calories || 0),
@@ -520,7 +520,7 @@ export class MealPlanService {
         }
       }
 
-      // If calories are STILL insufficient, prioritize adding extra side dishes (ThÃªm mÃ³n phá»¥)
+      // If calories are STILL insufficient, prioritize adding extra side dishes (Thêm món phụ)
       // up to the maximum recommended dishes for this serving count.
       if (dayCalories < dailyCalTarget) {
         // Loop to add side dishes until target met or max reached
@@ -594,7 +594,7 @@ export class MealPlanService {
             mealType,
             calories: recipe.calories,
             isLocked: false,
-            notes: 'MÃ³n phá»¥',
+            notes: 'Món phụ',
           });
 
           dayItemsList.push(item);
@@ -661,7 +661,7 @@ export class MealPlanService {
       databaseWarning
         ? databaseWarning
         : fallbackState.hasUsedDuplicates
-          ? 'KhÃ´ng Ä‘á»§ mÃ³n Ä‘á»ƒ trÃ¡nh láº·p hoÃ n toÃ n. Má»™t sá»‘ mÃ³n Ä‘Æ°á»£c tÃ¡i sá»­ dá»¥ng.'
+          ? 'Không đủ món để tránh lặp hoàn toàn. Một số món được tái sử dụng.'
           : undefined,
     );
   }
@@ -696,7 +696,7 @@ export class MealPlanService {
 
     if (hasDuplicate) {
       throw new BadRequestException(
-        'MÃ³n Äƒn nÃ y Ä‘Ã£ cÃ³ trong thá»±c Ä‘Æ¡n cá»§a ngÃ y hÃ´m Ä‘Ã³.',
+        'Món ăn này đã có trong thực đơn của ngày hôm đó.',
       );
     }
 
@@ -810,7 +810,7 @@ export class MealPlanService {
   ) {
     const uniqueRecipeIds = Array.from(new Set(recipeIds.filter(Boolean)));
     if (uniqueRecipeIds.length === 0) {
-      throw new BadRequestException('Vui lÃ²ng chá»n Ã­t nháº¥t má»™t mÃ³n Äƒn');
+      throw new BadRequestException('Vui lòng chọn ít nhất một món ăn');
     }
 
     let result = null;
@@ -858,14 +858,14 @@ export class MealPlanService {
 
     if (!mealDates || mealDates.length === 0) {
       throw new BadRequestException(
-        'Vui lÃ²ng chá»n Ã­t nháº¥t má»™t ngÃ y Ä‘á»ƒ táº¡o thá»±c Ä‘Æ¡n.',
+        'Vui lòng chọn ít nhất một ngày để tạo thực đơn.',
       );
     }
 
     const parsedDates = mealDates.map((d) => this.parseDateInput(d));
     if (parsedDates.some((date) => this.isDateInPast(date))) {
       throw new BadRequestException(
-        'KhÃ´ng thá»ƒ cáº­p nháº­t thá»±c Ä‘Æ¡n cá»§a bá»¯a Ä‘Ã£ qua.',
+        'Không thể cập nhật thực đơn của bữa đã qua.',
       );
     }
     parsedDates.forEach((date) => this.ensureDateIsCreatable(date));
@@ -879,7 +879,7 @@ export class MealPlanService {
 
     if (requestedMealTypes.length === 0) {
       throw new BadRequestException(
-        'KhÃ´ng thá»ƒ cáº­p nháº­t thá»±c Ä‘Æ¡n cá»§a bá»¯a Ä‘Ã£ qua.',
+        'Không thể cập nhật thực đơn của bữa đã qua.',
       );
     }
     const hasAvailableMealSlot = parsedDates.some((date) =>
@@ -889,7 +889,7 @@ export class MealPlanService {
     );
     if (!hasAvailableMealSlot) {
       throw new BadRequestException(
-        'KhÃ´ng thá»ƒ cáº­p nháº­t thá»±c Ä‘Æ¡n cá»§a bá»¯a Ä‘Ã£ qua.',
+        'Không thể cập nhật thực đơn của bữa đã qua.',
       );
     }
 
@@ -902,7 +902,7 @@ export class MealPlanService {
     let databaseWarning: string | undefined = undefined;
     if (totalRecipesCount < 15) {
       databaseWarning =
-        'Kho cÃ´ng thá»©c hiá»‡n táº¡i quÃ¡ Ã­t Ä‘á»ƒ táº¡o thá»±c Ä‘Æ¡n Ä‘a dáº¡ng hoÃ n toÃ n.';
+        'Kho công thức hiện tại quá ít để tạo thực đơn đa dạng hoàn toàn.';
     }
 
     // 1. Get or create the meal plan for this week
@@ -931,7 +931,7 @@ export class MealPlanService {
       );
       if (optimizableMealTypes.length === 0) {
         throw new BadRequestException(
-          'KhÃ´ng thá»ƒ cáº­p nháº­t thá»±c Ä‘Æ¡n cá»§a bá»¯a Ä‘Ã£ qua.',
+          'Không thể cập nhật thực đơn của bữa đã qua.',
         );
       }
 
@@ -1301,14 +1301,14 @@ export class MealPlanService {
       );
       const dailyCalTarget = user?.dailyCalorieTarget || 2000;
 
-      // If calories are insufficient, prioritize scaling portions first (TÄƒng kháº©u pháº§n)
+      // If calories are insufficient, prioritize scaling portions first (Tăng khẩu phần)
       if (dayCalories < dailyCalTarget && dayCalories > 0) {
         const ratio = dailyCalTarget / dayCalories;
         const scale = Math.min(ratio, 1.3);
         if (scale > 1.0) {
           for (const item of dayItemsList) {
             item.calories = Math.round(item.calories * scale);
-            item.notes = 'TÄƒng kháº©u pháº§n';
+            item.notes = 'Tăng khẩu phần';
           }
           dayCalories = dayItemsList.reduce(
             (sum, item) => sum + (item.calories || 0),
@@ -1389,7 +1389,7 @@ export class MealPlanService {
             mealType,
             calories: recipe.calories,
             isLocked: false,
-            notes: 'MÃ³n phá»¥',
+            notes: 'Món phụ',
           });
 
           dayItemsList.push(item);
@@ -1444,7 +1444,7 @@ export class MealPlanService {
       databaseWarning
         ? databaseWarning
         : fallbackState.hasUsedDuplicates
-          ? 'KhÃ´ng Ä‘á»§ mÃ³n Ä‘á»ƒ trÃ¡nh láº·p hoÃ n toÃ n. Má»™t sá»‘ mÃ³n Ä‘Æ°á»£c tÃ¡i sá»­ dá»¥ng.'
+          ? 'Không đủ món để tránh lặp hoàn toàn. Một số món được tái sử dụng.'
           : undefined,
     );
   }
@@ -1466,7 +1466,7 @@ export class MealPlanService {
     });
     if (!item) throw new NotFoundException('Meal plan item not found');
     if (this.isDateInPast(new Date(item.mealDate))) {
-      throw new BadRequestException('KhÃ´ng thá»ƒ cáº­p nháº­t mÃ³n Äƒn cá»§a ngÃ y Ä‘Ã£ qua.');
+      throw new BadRequestException('Không thể cập nhật món ăn của ngày đã qua.');
     }
 
     item.isLocked = isLocked;
@@ -1658,7 +1658,7 @@ export class MealPlanService {
       const parsed = new Date(value);
       if (Number.isNaN(parsed.getTime())) {
         throw new BadRequestException(
-          'NgÃ y khÃ´ng há»£p lá»‡. Vui lÃ²ng dÃ¹ng Ä‘á»‹nh dáº¡ng YYYY-MM-DD.',
+          'Ngày không hợp lệ. Vui lòng dùng định dạng YYYY-MM-DD.',
         );
       }
       return this.dateOnly(parsed);
@@ -1691,7 +1691,7 @@ export class MealPlanService {
   private ensureDateIsCreatable(date: Date) {
     if (this.isDateInPast(date)) {
       throw new BadRequestException(
-        'KhÃ´ng thá»ƒ táº¡o hoáº·c chá»‰nh sá»­a thá»±c Ä‘Æ¡n cho ngÃ y Ä‘Ã£ qua.',
+        'Không thể tạo hoặc chỉnh sửa thực đơn cho ngày đã qua.',
       );
     }
   }
@@ -1722,7 +1722,7 @@ export class MealPlanService {
   private ensureMealSlotIsCreatable(date: Date, mealType: string) {
     if (this.isMealSlotInPast(date, mealType)) {
       throw new BadRequestException(
-        'KhÃ´ng thá»ƒ cáº­p nháº­t thá»±c Ä‘Æ¡n cá»§a bá»¯a Ä‘Ã£ qua.',
+        'Không thể cập nhật thực đơn của bữa đã qua.',
       );
     }
   }
@@ -1731,7 +1731,7 @@ export class MealPlanService {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
     if (weekEnd < this.dateOnly(new Date())) {
-      throw new BadRequestException('KhÃ´ng thá»ƒ táº¡o thá»±c Ä‘Æ¡n cho tuáº§n Ä‘Ã£ qua.');
+      throw new BadRequestException('Không thể tạo thực đơn cho tuần đã qua.');
     }
   }
 
@@ -1823,17 +1823,17 @@ export class MealPlanService {
 
     let score = 0;
 
-    // 1. MÃ³n chÃ­nh vs MÃ³n phá»¥
+    // 1. Món chính vs Món phụ
     const tags = recipe.tags || [];
     const isMain = !tags.includes('canh') && !tags.includes('rau');
     if (isMain) {
       score += 50;
     }
-    if (item.notes === 'MÃ³n phá»¥') {
+    if (item.notes === 'Món phụ') {
       score -= 20;
     }
 
-    // 2. MÃ³n cÃ³ calories/protein tá»‘t hÆ¡n
+    // 2. Món có calories/protein tốt hơn
     const protein = Number(recipe.protein) || 0;
     const calories = Number(recipe.calories || item.calories) || 0;
     score += protein * 2;
@@ -1841,7 +1841,7 @@ export class MealPlanService {
       score += 15;
     }
 
-    // 3. MÃ³n Ã­t bá»‹ trÃ¹ng vs MÃ³n bá»‹ láº·p
+    // 3. Món ít bị trùng vs Món bị lặp
     const recipeOccurrences = dayItems.filter(
       (i) => i.recipeId === recipe.id,
     ).length;
@@ -1849,7 +1849,7 @@ export class MealPlanService {
       score -= 100; // Deduct heavily for duplicate recipes
     }
 
-    // 4. MÃ³n phÃ¹ há»£p bá»¯a Äƒn hÆ¡n
+    // 4. Món phù hợp bữa ăn hơn
     if (recipe.mealType && recipe.mealType.includes(item.mealType)) {
       score += 30;
     }
@@ -1874,7 +1874,7 @@ export class MealPlanService {
           return scoreB - scoreA;
         }
 
-        // Keep older item first (MÃ³n thÃªm sau cÃ¹ng bá»‹ loáº¡i)
+        // Keep older item first (Món thêm sau cùng bị loại)
         const timeA = new Date(a.createdAt || 0).getTime();
         const timeB = new Date(b.createdAt || 0).getTime();
         return timeA - timeB;
@@ -1993,7 +1993,7 @@ export class MealPlanService {
       for (const item of dayToRemove) {
         idsToRemove.push(item.id);
         removedItemsDetails.push({
-          recipeName: item.recipe?.name || 'MÃ³n Äƒn khÃ´ng tÃªn',
+          recipeName: item.recipe?.name || 'Món ăn không tên',
           mealType: item.mealType,
           dayOfWeek: this.getDayOfWeekIndex(item.mealDate),
         });
@@ -2062,7 +2062,7 @@ export class MealPlanService {
     const servings = Number(user?.preferences?.servings);
     if (!Number.isInteger(servings) || servings < 1 || servings > 20) {
       throw new BadRequestException(
-        'Vui lÃ²ng nháº­p sá»‘ ngÆ°á»i Äƒn trong há»“ sÆ¡ cÃ¡ nhÃ¢n trÆ°á»›c khi táº¡o thá»±c Ä‘Æ¡n.',
+        'Vui lòng nhập số người ăn trong hồ sơ cá nhân trước khi tạo thực đơn.',
       );
     }
     return servings;
@@ -2139,7 +2139,7 @@ export class MealPlanService {
     // Step 2: Select from Weekly-only Candidates
     if (selected.length < targetCount && weeklyOnlyCandidates.length > 0) {
       const needed = targetCount - selected.length;
-      reuseReason = `KhÃ´ng Ä‘á»§ mÃ³n má»›i trong tuáº§n. TÃ¡i sá»­ dá»¥ng ${needed} mÃ³n tá»« nhá»¯ng ngÃ y trÆ°á»›c trong tuáº§n.`;
+      reuseReason = `Không đủ món mới trong tuần. Tái sử dụng ${needed} món từ những ngày trước trong tuần.`;
       while (selected.length < targetCount && weeklyOnlyCandidates.length > 0) {
         const nextRecipe = weeklyOnlyCandidates.shift();
         selected.push(nextRecipe);
@@ -2151,7 +2151,7 @@ export class MealPlanService {
     // Step 3: Select from Yesterday Candidates (consecutive day fallback)
     if (selected.length < targetCount && yesterdayCandidates.length > 0) {
       const needed = targetCount - selected.length;
-      reuseReason = `KhÃ´ng Ä‘á»§ mÃ³n trÃ¡nh láº·p liÃªn tiáº¿p. TÃ¡i sá»­ dá»¥ng ${needed} mÃ³n tá»« ngÃ y hÃ´m trÆ°á»›c.`;
+      reuseReason = `Không đủ món tránh lặp liên tiếp. Tái sử dụng ${needed} món từ ngày hôm trước.`;
       while (selected.length < targetCount && yesterdayCandidates.length > 0) {
         const nextRecipe = yesterdayCandidates.shift();
         selected.push(nextRecipe);
@@ -2161,7 +2161,7 @@ export class MealPlanService {
     }
 
     if (selected.length < targetCount) {
-      reuseReason = `KhÃ´ng Ä‘á»§ mÃ³n chÆ°a dÃ¹ng trong ngÃ y cho bá»¯a ${mealType} (Cáº§n ${targetCount} mÃ³n, chá»‰ tÃ¬m Ä‘Æ°á»£c ${selected.length} mÃ³n má»›i).`;
+      reuseReason = `Không đủ món chưa dùng trong ngày cho bữa ${mealType} (Cần ${targetCount} món, chỉ tìm được ${selected.length} món mới).`;
       state.hasUsedDuplicates = true;
 
       const getOccurrenceCount = (recipeId: string): number => {
@@ -2200,11 +2200,11 @@ export class MealPlanService {
     }
 
     this.logger.log(
-      `[AI Meal Planner Log] NgÃ y ${dateStr} - Bá»¯a ${mealType}:
-      - Tá»•ng sá»‘ mÃ³n kháº£ dá»¥ng: ${candidateRecipes.length}
-      - Tá»•ng sá»‘ mÃ³n Ä‘Ã£ dÃ¹ng trong ngÃ y: ${usedRecipeIdsForDay.size}
-      - Danh sÃ¡ch mÃ³n bá»‹ loáº¡i vÃ¬ trÃ¹ng: [${duplicateRecipeNames.join(', ')}]
-      - LÃ½ do tÃ¡i sá»­ dá»¥ng: ${reuseReason || 'KhÃ´ng cáº§n tÃ¡i sá»­ dá»¥ng (Ä‘á»§ mÃ³n má»›i)'}`,
+      `[AI Meal Planner Log] Ngày ${dateStr} - Bữa ${mealType}:
+      - Tổng số món khả dụng: ${candidateRecipes.length}
+      - Tổng số món đã dùng trong ngày: ${usedRecipeIdsForDay.size}
+      - Danh sách món bị loại vì trùng: [${duplicateRecipeNames.join(', ')}]
+      - Lý do tái sử dụng: ${reuseReason || 'Không cần tái sử dụng (đủ món mới)'}`,
     );
 
     return selected;
@@ -2320,15 +2320,15 @@ export class MealPlanService {
       ],
     });
     if (!item) {
-      throw new NotFoundException('KhÃ´ng tÃ¬m tháº¥y bá»¯a Äƒn trong thá»±c Ä‘Æ¡n');
+      throw new NotFoundException('Không tìm thấy bữa ăn trong thực đơn');
     }
     if (this.isDateInPast(new Date(item.mealDate))) {
-      throw new BadRequestException('KhÃ´ng thá»ƒ cáº­p nháº­t mÃ³n Äƒn cá»§a ngÃ y Ä‘Ã£ qua.');
+      throw new BadRequestException('Không thể cập nhật món ăn của ngày đã qua.');
     }
 
     if (item.isConsumed === isConsumed) {
       return {
-        message: 'Tráº¡ng thÃ¡i khÃ´ng thay Ä‘á»•i',
+        message: 'Trạng thái không thay đổi',
         isConsumed: item.isConsumed,
       };
     }
@@ -2338,7 +2338,7 @@ export class MealPlanService {
       relations: ['preferences'],
     });
     if (!user) {
-      throw new NotFoundException('KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin ngÆ°á»i dÃ¹ng');
+      throw new NotFoundException('Không tìm thấy thông tin người dùng');
     }
 
     const servings = this.getUserServingsOrThrow(user);
@@ -2392,8 +2392,8 @@ export class MealPlanService {
 
     return {
       message: isConsumed
-        ? 'ÄÃ£ Ä‘Ã¡nh dáº¥u Ä‘Ã£ Äƒn vÃ  tá»± Ä‘á»™ng kháº¥u trá»« tá»§ láº¡nh'
-        : 'ÄÃ£ há»§y Ä‘Ã¡nh dáº¥u Ä‘Ã£ Äƒn vÃ  khÃ´i phá»¥c nguyÃªn liá»‡u tá»§ láº¡nh',
+        ? 'Đã đánh dấu đã ăn và tự động khấu trừ tủ lạnh'
+        : 'Đã hủy đánh dấu đã ăn và khôi phục nguyên liệu tủ lạnh',
       isConsumed: item.isConsumed,
     };
   }

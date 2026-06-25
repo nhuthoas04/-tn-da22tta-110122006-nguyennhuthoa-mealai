@@ -18,6 +18,7 @@ type RecommendationOptions = {
   currentDayRecipeNames?: string[];
   currentDayTags?: string[];
   recentSuggestedNames?: string[];
+  recentSuggestedRecipeIds?: string[];
   preferNewRecipes?: boolean;
   avoidRepeatLast7Days?: boolean;
   prioritizeNew?: boolean;
@@ -126,11 +127,7 @@ export class RecommendationService {
       relations: ['recipeIngredients', 'recipeIngredients.ingredient'],
     });
 
-    // Filter out excluded recipe IDs and Names
-    const excludeIds = options?.excludeIds;
-    if (excludeIds && excludeIds.length > 0) {
-      recipes = recipes.filter((r) => !excludeIds.includes(r.id));
-    }
+    const excludeIds = new Set(options?.excludeIds || []);
     const excludeNames = options?.excludeNames;
     if (excludeNames && excludeNames.length > 0) {
       recipes = recipes.filter((r) => !excludeNames.includes(r.name));
@@ -140,6 +137,19 @@ export class RecommendationService {
     recipes = recipes.filter(
       (r) => r.mealType && r.mealType.includes(mealType),
     );
+
+    // Filter out excluded recipe IDs only when enough alternatives remain for this meal type.
+    if (excludeIds.size > 0) {
+      const nonExcludedRecipes = recipes.filter((r) => !excludeIds.has(r.id));
+      const minimumFallbackPoolSize = Math.min(5, recipes.length);
+      if (nonExcludedRecipes.length >= minimumFallbackPoolSize) {
+        recipes = nonExcludedRecipes;
+      } else {
+        console.log(
+          '[MealAI][recommendation] Not enough recipes to fully exclude current/recent suggestions; using penalty fallback.',
+        );
+      }
+    }
 
     // Filter by dietary restrictions
     if (preferences?.dietType === 'vegetarian') {
@@ -300,10 +310,13 @@ export class RecommendationService {
       let diversityScore = 0;
 
       // 1. Món chưa dùng gần đây / Món vừa xuất hiện
-      const isRecent = options?.recentSuggestedNames?.includes(recipe.name);
+      const isRecent =
+        options?.recentSuggestedNames?.includes(recipe.name) ||
+        options?.recentSuggestedRecipeIds?.includes(recipe.id) ||
+        excludeIds.has(recipe.id);
       if (isRecent) {
         // Giảm điểm cho món vừa xuất hiện
-        diversityScore -= 0.4;
+        diversityScore -= 0.3;
       } else {
         // Tăng điểm cho món chưa dùng gần đây
         if (aiOptions.preferNewRecipes) {

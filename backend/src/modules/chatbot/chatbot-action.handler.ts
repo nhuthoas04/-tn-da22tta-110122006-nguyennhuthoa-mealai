@@ -382,8 +382,14 @@ export class ChatbotActionHandler {
                     .includes(String(args.recipeName).toLowerCase())),
             );
             if (!targetItem) {
+              const mealLabel =
+                args.mealType === 'breakfast'
+                  ? 'Sáng'
+                  : args.mealType === 'lunch'
+                    ? 'Trưa'
+                    : 'Tối';
               return {
-                message: `Không tìm thấy món ăn yêu cầu trong bữa này.`,
+                message: `Không tìm thấy món cần xóa trong bữa ${mealLabel} hôm nay.`,
               };
             }
             await this.mealPlanService.removeItem(
@@ -397,10 +403,18 @@ export class ChatbotActionHandler {
             );
             return {
               ...updatedPlan,
-              message: `Đã xóa thành công món ăn "${targetItem.recipe?.name || 'món ăn'}" khỏi bữa ${args.mealType === 'breakfast' ? 'Sáng' : args.mealType === 'lunch' ? 'Trưa' : 'Tối'}!`,
+              removedCount: 1,
+              removedRecipeName: targetItem.recipe?.name,
+              message: `Đã xóa món ${targetItem.recipe?.name || 'đã chọn'} khỏi bữa ${args.mealType === 'breakfast' ? 'Sáng' : args.mealType === 'lunch' ? 'Trưa' : 'Tối'} hôm nay.`,
             };
           } else {
-            for (const item of itemsToRemove) {
+            const requestedRemoveCount = Number(args.removeCount);
+            const targetsToRemove =
+              Number.isFinite(requestedRemoveCount) && requestedRemoveCount > 0
+                ? itemsToRemove.slice(0, requestedRemoveCount)
+                : itemsToRemove;
+
+            for (const item of targetsToRemove) {
               await this.mealPlanService.removeItem(
                 userId,
                 planToRemoveFrom.id,
@@ -413,7 +427,11 @@ export class ChatbotActionHandler {
             );
             return {
               ...updatedPlan,
-              message: `Đã xóa thành công tất cả các món ăn khỏi bữa ${args.mealType === 'breakfast' ? 'Sáng' : args.mealType === 'lunch' ? 'Trưa' : 'Tối'}!`,
+              removedCount: targetsToRemove.length,
+              message:
+                targetsToRemove.length === 1
+                  ? `Đã xóa món ${targetsToRemove[0].recipe?.name || 'đã chọn'} khỏi bữa ${args.mealType === 'breakfast' ? 'Sáng' : args.mealType === 'lunch' ? 'Trưa' : 'Tối'} hôm nay.`
+                  : `Đã xóa ${targetsToRemove.length} món khỏi bữa ${args.mealType === 'breakfast' ? 'Sáng' : args.mealType === 'lunch' ? 'Trưa' : 'Tối'} hôm nay.`,
             };
           }
 

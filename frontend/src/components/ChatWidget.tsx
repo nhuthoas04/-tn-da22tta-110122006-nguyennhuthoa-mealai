@@ -5,6 +5,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/context/AuthContext';
 import { chatbotAPI } from '@/lib/api';
+import { notifyMealPlanChanged } from '@/lib/mealPlanEvents';
 
 interface Message {
   id?: string;
@@ -89,6 +90,51 @@ function normalizeActionMetadata(metadata: any) {
     ...metadata,
     name: metadata.name || metadata.action,
   };
+}
+
+const MEAL_PLAN_MUTATION_ACTIONS = new Set([
+  'generate_meal_plan',
+  'generate_meal_plan_for_days',
+  'add_to_meal_plan',
+  'replace_meal_item',
+  'remove_from_meal_plan',
+  'remove_meal_day',
+  'delete_meal_plan',
+]);
+
+const SHOPPING_LIST_MUTATION_ACTIONS = new Set([
+  'generate_shopping_list',
+  'create_shopping_list',
+  'add_recipe_to_shopping_list',
+  'update_shopping_list',
+  'delete_shopping_list',
+]);
+
+function getActionEntries(action: any): any[] {
+  const normalized = normalizeActionMetadata(action);
+  if (!normalized) return [];
+
+  const steps = Array.isArray(normalized.steps)
+    ? normalized.steps.map(normalizeActionMetadata).filter((step: any) => step?.name)
+    : [];
+
+  return [normalized, ...steps].filter((entry: any) => entry?.name);
+}
+
+function isSuccessfulAction(action: any) {
+  return !action?.result?.error && !action?.error;
+}
+
+function inferWeekStartFromAction(action: any) {
+  const result = action?.result || {};
+  const args = action?.args || {};
+  return normalizeWeekStart(result.weekStart || result.mealPlan?.weekStart || args.weekStart);
+}
+
+function inferPlanIdFromAction(action: any) {
+  const result = action?.result || {};
+  const args = action?.args || {};
+  return result.id || result.planId || result.mealPlanId || args.planId || args.mealPlanId;
 }
 
 function normalizeWeekStart(value: any) {
@@ -211,14 +257,42 @@ export default function ChatWidget() {
       ]);
 
       if (actionTaken?.name) {
+        const actionEntries = getActionEntries(actionTaken).filter(isSuccessfulAction);
+        const mealPlanEntry = actionEntries.find((entry) => MEAL_PLAN_MUTATION_ACTIONS.has(entry.name));
+        const shoppingListEntry = actionEntries.find((entry) => SHOPPING_LIST_MUTATION_ACTIONS.has(entry.name));
+
+        if (mealPlanEntry) {
+          notifyMealPlanChanged({
+            source: 'chatbot',
+            mutation: mealPlanEntry.name,
+            weekStart: inferWeekStartFromAction(mealPlanEntry),
+            planId: inferPlanIdFromAction(mealPlanEntry),
+          });
+        }
+
+        if (shoppingListEntry && typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('shopping-list-updated', {
+              detail: {
+                source: 'chatbot',
+                mutation: shoppingListEntry.name,
+                updatedAt: Date.now(),
+              },
+            }),
+          );
+          toast.success('AI đã cập nhật danh sách mua sắm.', { icon: 'AI', duration: 2000 });
+        }
+
         const mealPlanActions = [
           'generate_meal_plan',
           'add_to_meal_plan',
           'delete_meal_plan',
           'generate_meal_plan_for_days',
           'remove_from_meal_plan',
+          'replace_meal_item',
+          'remove_meal_day',
         ];
-        const otherMutativeActions = ['add_to_inventory', 'update_inventory', 'generate_shopping_list'];
+        const otherMutativeActions = ['add_to_inventory', 'update_inventory'];
 
         if (mealPlanActions.includes(actionTaken.name)) {
           toast.success('AI đã thực hiện thành công! Đang cập nhật thực đơn...', {
@@ -229,7 +303,7 @@ export default function ChatWidget() {
             if (typeof window !== 'undefined') {
               const onMealPlannerPage = window.location.pathname.startsWith('/meal-planner');
               if (onMealPlannerPage) {
-                window.dispatchEvent(new CustomEvent('mealplan-updated', { detail: actionTaken }));
+                return;
               } else {
                 window.location.href = getMealPlannerUrlForAction(actionTaken) || '/meal-planner';
               }
@@ -499,7 +573,7 @@ export default function ChatWidget() {
   if (!user) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 flex flex-col items-end bottom-safe pointer-events-none">
+    <div className="fixed left-4 right-4 bottom-5 sm:left-auto sm:right-5 z-50 flex flex-col items-end bottom-safe pointer-events-none">
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -522,8 +596,11 @@ export default function ChatWidget() {
       )}
 
       {isOpen && (
-        <div className="w-full sm:w-[420px] h-[80vh] sm:h-[600px] bg-slate-950 rounded-2xl shadow-2xl border border-slate-700 flex flex-col overflow-hidden transition-all duration-300 ease-out transform scale-100 animate-slide-in relative pointer-events-auto">
-          <div className="p-3 sm:p-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex items-center justify-between shadow-md">
+        <div
+          className="min-h-[360px] bg-slate-950 rounded-2xl shadow-2xl border border-slate-700 flex flex-col overflow-hidden transition-all duration-300 ease-out transform scale-100 animate-slide-in relative pointer-events-auto"
+          style={{ width: 'min(380px, calc(100vw - 32px))', maxHeight: '70vh' }}
+        >
+          <div className="shrink-0 p-3 sm:p-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex items-center justify-between shadow-md">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl font-bold border border-white/30">
                 AI
@@ -540,6 +617,7 @@ export default function ChatWidget() {
               <button
                 onClick={clearHistory}
                 className="w-11 h-11 flex items-center justify-center hover:bg-white/15 rounded-lg text-white transition cursor-pointer"
+                aria-label="Clear chat"
                 title="Xóa cuộc trò chuyện"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -554,16 +632,17 @@ export default function ChatWidget() {
               <button
                 onClick={() => setIsOpen(false)}
                 className="w-11 h-11 flex items-center justify-center hover:bg-white/15 rounded-lg text-white transition cursor-pointer"
-                title="Đóng chat"
+                aria-label="Minimize chat"
+                title="Thu gọn chat"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 12h12" />
                 </svg>
               </button>
             </div>
           </div>
 
-          <div className="flex-1 p-4 overflow-y-auto bg-slate-950 flex flex-col gap-3">
+          <div className="min-h-0 flex-1 p-4 overflow-y-auto bg-slate-950 flex flex-col gap-3">
             {messages.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-300">
                 <span className="text-5xl mb-3">👋</span>
@@ -632,7 +711,7 @@ export default function ChatWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="px-4 py-2 bg-slate-950 border-t border-slate-800 flex gap-2 overflow-x-auto scrollbar-none">
+          <div className="shrink-0 px-4 py-2 bg-slate-950 border-t border-slate-800 flex gap-2 overflow-x-auto scrollbar-none">
             {suggestions.map((s, i) => (
               <button
                 key={i}
@@ -645,7 +724,7 @@ export default function ChatWidget() {
             ))}
           </div>
 
-          <div className="p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2">
+          <div className="shrink-0 p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2">
             <input
               type="text"
               value={input}

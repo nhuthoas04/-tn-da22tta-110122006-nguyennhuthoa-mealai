@@ -88,18 +88,18 @@ export default function MealAIShareSheetModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 dark:border-gray-800 overflow-hidden flex flex-col transform transition-all duration-300 scale-100 animate-slide-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/35 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white rounded-brand-lg w-full max-w-md shadow-brand-lg border border-brand-light-border overflow-hidden flex flex-col transform transition-all duration-300 scale-100 animate-slide-in">
         
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex items-center justify-between shadow-md">
+        <div className="px-6 py-4 bg-gradient-to-r from-brand-primary to-brand-secondary text-white flex items-center justify-between shadow-brand-sm">
           <div className="flex items-center gap-2">
             <span className="text-xl">📢</span>
             <h3 className="font-bold text-base tracking-wide">Chia sẻ danh sách mua sắm</h3>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 text-white/80 hover:text-white transition cursor-pointer"
+            className="w-8 h-8 rounded-brand-sm flex items-center justify-center hover:bg-white/10 text-white/80 hover:text-white transition cursor-pointer"
             aria-label="Đóng"
           >
             ✕
@@ -107,62 +107,62 @@ export default function MealAIShareSheetModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5 overflow-y-auto max-h-[70vh]">
+        <div className="p-6 space-y-5 overflow-y-auto max-h-[70vh] bg-white">
           
           {/* PDF & Document Options */}
           <div>
-            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
               Tài liệu & Tải về
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={onExportPDF}
-                className="flex items-center gap-2 p-3 border border-slate-200 dark:border-gray-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 hover:border-emerald-200 dark:hover:border-emerald-800 rounded-xl text-left transition cursor-pointer"
+                className="flex items-center gap-2 p-3 border border-brand-light-border bg-white hover:bg-emerald-50 hover:border-emerald-200 rounded-brand-md text-left transition cursor-pointer shadow-brand-sm"
               >
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-brand-sm bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                   <HiOutlineDownload className="text-lg" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Tải PDF</p>
+                  <p className="text-xs font-bold text-slate-800">Tải PDF</p>
                   <p className="text-[10px] text-slate-400">Lưu về máy</p>
                 </div>
               </button>
 
               <button
                 onClick={handleSharePDF}
-                className="flex items-center gap-2 p-3 border border-slate-200 dark:border-gray-700 hover:bg-teal-50 dark:hover:bg-teal-950/20 hover:border-teal-200 dark:hover:border-teal-800 rounded-xl text-left transition cursor-pointer"
+                className="flex items-center gap-2 p-3 border border-brand-light-border bg-white hover:bg-teal-50 hover:border-teal-200 rounded-brand-md text-left transition cursor-pointer shadow-brand-sm"
               >
-                <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-brand-sm bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
                   <HiOutlineShare className="text-lg" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Chia sẻ PDF</p>
+                  <p className="text-xs font-bold text-slate-800">Chia sẻ PDF</p>
                   <p className="text-[10px] text-slate-400">Share qua app</p>
                 </div>
               </button>
 
               <button
                 onClick={handleCopyNote}
-                className="flex items-center gap-2 p-3 border border-slate-200 dark:border-gray-700 hover:bg-amber-50 dark:hover:bg-amber-950/20 hover:border-amber-200 dark:hover:border-amber-800 rounded-xl text-left transition cursor-pointer"
+                className="flex items-center gap-2 p-3 border border-brand-light-border bg-white hover:bg-amber-50 hover:border-amber-200 rounded-brand-md text-left transition cursor-pointer shadow-brand-sm"
               >
-                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-brand-sm bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                   <HiClipboardCopy className="text-lg" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Copy ghi chú</p>
+                  <p className="text-xs font-bold text-slate-800">Copy ghi chú</p>
                   <p className="text-[10px] text-slate-400">Sao chép nhanh</p>
                 </div>
               </button>
 
               <button
                 onClick={handleDownloadTxt}
-                className="flex items-center gap-2 p-3 border border-slate-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-200 dark:hover:border-blue-800 rounded-xl text-left transition cursor-pointer"
+                className="flex items-center gap-2 p-3 border border-brand-light-border bg-white hover:bg-blue-50 hover:border-blue-200 rounded-brand-md text-left transition cursor-pointer shadow-brand-sm"
               >
-                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-brand-sm bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                   <HiOutlineDocumentText className="text-lg" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Tải file .txt</p>
+                  <p className="text-xs font-bold text-slate-800">Tải file .txt</p>
                   <p className="text-[10px] text-slate-400">Lưu note ghi chú</p>
                 </div>
               </button>
@@ -171,7 +171,7 @@ export default function MealAIShareSheetModal({
 
           {/* Social Media Sharing */}
           <div>
-            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
               Gửi qua mạng xã hội
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -179,40 +179,40 @@ export default function MealAIShareSheetModal({
                 onClick={() =>
                   handleSocialShare('Messenger', 'https://m.me')
                 }
-                className="flex items-center gap-2.5 p-2.5 border border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-xl text-left transition cursor-pointer"
+                className="flex items-center gap-2.5 p-2.5 border border-brand-light-border bg-white hover:bg-slate-50 rounded-brand-md text-left transition cursor-pointer shadow-brand-sm"
               >
                 <span className="text-xl">💬</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Messenger</span>
+                <span className="text-xs font-bold text-slate-700">Messenger</span>
               </button>
 
               <button
                 onClick={() =>
                   handleSocialShare('Facebook', 'https://facebook.com')
                 }
-                className="flex items-center gap-2.5 p-2.5 border border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-xl text-left transition cursor-pointer"
+                className="flex items-center gap-2.5 p-2.5 border border-brand-light-border bg-white hover:bg-slate-50 rounded-brand-md text-left transition cursor-pointer shadow-brand-sm"
               >
                 <span className="text-xl">👥</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Facebook</span>
+                <span className="text-xs font-bold text-slate-700">Facebook</span>
               </button>
 
               <button
                 onClick={() =>
                   handleSocialShare('Zalo', 'https://zalo.me')
                 }
-                className="flex items-center gap-2.5 p-2.5 border border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-xl text-left transition cursor-pointer"
+                className="flex items-center gap-2.5 p-2.5 border border-brand-light-border bg-white hover:bg-slate-50 rounded-brand-md text-left transition cursor-pointer shadow-brand-sm"
               >
                 <span className="text-xl">🌀</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Zalo</span>
+                <span className="text-xs font-bold text-slate-700">Zalo</span>
               </button>
 
               <button
                 onClick={() =>
                   handleSocialShare('Instagram', 'https://instagram.com')
                 }
-                className="flex items-center gap-2.5 p-2.5 border border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-xl text-left transition cursor-pointer"
+                className="flex items-center gap-2.5 p-2.5 border border-brand-light-border bg-white hover:bg-slate-50 rounded-brand-md text-left transition cursor-pointer shadow-brand-sm"
               >
                 <span className="text-xl">📸</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Instagram</span>
+                <span className="text-xs font-bold text-slate-700">Instagram</span>
               </button>
             </div>
           </div>
@@ -220,10 +220,10 @@ export default function MealAIShareSheetModal({
         </div>
 
         {/* Footer */}
-        <div className="bg-slate-50 dark:bg-gray-850 p-4 border-t border-slate-100 dark:border-gray-800 flex justify-end">
+        <div className="bg-slate-50 p-4 border-t border-brand-light-border flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-lg transition cursor-pointer"
+            className="btn-ghost-sm"
           >
             Đóng
           </button>

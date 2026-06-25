@@ -39,6 +39,7 @@ export default function MealPlannerPage() {
   const [searchingRecipes, setSearchingRecipes] = useState(false);
   const [aiSuggestingDay, setAiSuggestingDay] = useState<number | null>(null);
   const [aiSuggestionError, setAiSuggestionError] = useState<string | null>(null);
+  const [recentSuggestedRecipeIds, setRecentSuggestedRecipeIds] = useState<string[]>([]);
   const [portionWarning, setPortionWarning] = useState<PortionWarningState | null>(null);
   const [optimizingPortions, setOptimizingPortions] = useState(false);
   const [aiOptions, setAiOptions] = useState({
@@ -252,6 +253,11 @@ export default function MealPlannerPage() {
     try {
       showAiOptionsToast();
       const oldDayItems = plan?.items?.filter((item: any) => item.mealDate === dateStr && item.recipe) || [];
+      const oldDayRecipeIds = new Set(oldDayItems.map((item: any) => item.recipeId || item.recipe?.id).filter(Boolean));
+      const excludeRecipeIds = Array.from(new Set([
+        ...oldDayItems.map((item: any) => item.recipeId || item.recipe?.id).filter(Boolean),
+        ...recentSuggestedRecipeIds,
+      ]));
       const beforeCount = oldDayItems.length;
 
       const res = await mealPlanAPI.generateForDays({
@@ -262,16 +268,37 @@ export default function MealPlannerPage() {
         useAntiWaste: true,
         overwrite,
         options: aiOptions,
+        excludeRecipeIds,
+        recentSuggestedRecipeIds,
+        forceRefresh: true,
       });
       console.log('[MealAI][meal-planner][AI suggest] raw response:', res.data);
 
       if (res.data?.items) {
         applyPlanUpdateKeepingScroll(res.data);
         if (res.data.warning) {
-          toast.error(res.data.warning, { duration: 6000 });
+          toast(res.data.warning, {
+            id: 'meal-planner-low-recipe-pool-warning',
+            duration: 6000,
+          });
         }
         const dayItems = res.data.items.filter((item: any) => item.mealDate === dateStr && item.recipe);
         console.log('[MealAI][meal-planner][AI suggest] rendered day items:', dayItems);
+        const generatedRecipeIds = dayItems
+          .filter((item: any) => editableMealTypes.includes(item.mealType))
+          .map((item: any) => item.recipeId || item.recipe?.id)
+          .filter((recipeId: string | undefined) => recipeId && (overwrite || !oldDayRecipeIds.has(recipeId))) as string[];
+        const nextRecentIds = generatedRecipeIds.length > 0
+          ? generatedRecipeIds
+          : dayItems
+            .filter((item: any) => editableMealTypes.includes(item.mealType))
+            .map((item: any) => item.recipeId || item.recipe?.id)
+            .filter(Boolean);
+        if (nextRecentIds.length > 0) {
+          setRecentSuggestedRecipeIds((prev) =>
+            Array.from(new Set([...nextRecentIds, ...prev])).slice(0, 30),
+          );
+        }
 
         const afterCount = dayItems.length;
         const addedCount = afterCount - beforeCount;

@@ -193,6 +193,9 @@ export class MealPlanService {
       prioritizeNew?: boolean;
       noRepeatIn7Days?: boolean;
       avoidRepeatMeals?: boolean;
+      excludeRecipeIds?: string[];
+      recentSuggestedRecipeIds?: string[];
+      forceRefresh?: boolean;
     },
   ) {
     const weekStart = this.parseDateInput(
@@ -264,6 +267,12 @@ export class MealPlanService {
     const servings = this.getUserServingsOrThrow(user);
     const recentSuggestedRecipes =
       user?.preferences?.recentSuggestedRecipes || [];
+    const requestExcludeRecipeIds = Array.isArray(dto.excludeRecipeIds)
+      ? dto.excludeRecipeIds.filter(Boolean)
+      : [];
+    const requestRecentSuggestedRecipeIds = Array.isArray(dto.recentSuggestedRecipeIds)
+      ? dto.recentSuggestedRecipeIds.filter(Boolean)
+      : [];
     const aiOptions = this.normalizeAiOptions(dto);
     const avoidRepeatMeals = aiOptions.avoidRepeatLast7Days;
     this.logger.log(
@@ -871,6 +880,9 @@ export class MealPlanService {
       prioritizeNew?: boolean;
       noRepeatIn7Days?: boolean;
       avoidRepeatMeals?: boolean;
+      excludeRecipeIds?: string[];
+      recentSuggestedRecipeIds?: string[];
+      forceRefresh?: boolean;
     },
   ) {
     let mealDates = dto.mealDates;
@@ -1017,6 +1029,12 @@ export class MealPlanService {
     const servings = this.getUserServingsOrThrow(user);
     const recentSuggestedRecipes =
       user?.preferences?.recentSuggestedRecipes || [];
+    const requestExcludeRecipeIds = Array.isArray(dto.excludeRecipeIds)
+      ? dto.excludeRecipeIds.filter(Boolean)
+      : [];
+    const requestRecentSuggestedRecipeIds = Array.isArray(dto.recentSuggestedRecipeIds)
+      ? dto.recentSuggestedRecipeIds.filter(Boolean)
+      : [];
     const aiOptions = this.normalizeAiOptions(dto);
     const avoidRepeatMeals = aiOptions.avoidRepeatLast7Days;
     this.logger.log(
@@ -1163,6 +1181,11 @@ export class MealPlanService {
                       currentDayRecipeNames: Array.from(currentDayRecipeNames),
                       currentDayTags,
                       recentSuggestedNames: recentSuggestedRecipes,
+                      recentSuggestedRecipeIds: requestRecentSuggestedRecipeIds,
+                      excludeIds: [
+                        ...requestExcludeRecipeIds,
+                        ...requestRecentSuggestedRecipeIds,
+                      ],
                       weeklyUsedRecipeIds: Array.from(usedRecipeIds),
                       previousDayRecipeIds,
                     },
@@ -1261,6 +1284,11 @@ export class MealPlanService {
             currentDayRecipeNames: Array.from(currentDayRecipeNames),
             currentDayTags,
             recentSuggestedNames: recentSuggestedRecipes,
+            recentSuggestedRecipeIds: requestRecentSuggestedRecipeIds,
+            excludeIds: [
+              ...requestExcludeRecipeIds,
+              ...requestRecentSuggestedRecipeIds,
+            ],
             weeklyUsedRecipeIds: Array.from(usedRecipeIds),
             previousDayRecipeIds,
           },
@@ -1392,6 +1420,11 @@ export class MealPlanService {
               currentDayRecipeNames: Array.from(currentDayRecipeNames),
               currentDayTags,
               recentSuggestedNames: recentSuggestedRecipes,
+              recentSuggestedRecipeIds: requestRecentSuggestedRecipeIds,
+              excludeIds: [
+                ...requestExcludeRecipeIds,
+                ...requestRecentSuggestedRecipeIds,
+              ],
               weeklyUsedRecipeIds: Array.from(usedRecipeIds),
               previousDayRecipeIds,
             },
@@ -2180,6 +2213,11 @@ export class MealPlanService {
     const freshCandidates: Recipe[] = [];
     const weeklyOnlyCandidates: Recipe[] = [];
     const yesterdayCandidates: Recipe[] = [];
+    const pickNextCandidate = (candidates: Recipe[]) => {
+      const windowSize = Math.min(5, candidates.length);
+      const index = Math.floor(Math.random() * windowSize);
+      return candidates.splice(index, 1)[0];
+    };
 
     for (const r of nonDuplicateCandidates) {
       if (currentMealRecipeIds.has(r.id)) {
@@ -2196,7 +2234,7 @@ export class MealPlanService {
 
     // Step 1: Select from Fresh Candidates
     while (selected.length < targetCount && freshCandidates.length > 0) {
-      const nextRecipe = freshCandidates.shift();
+      const nextRecipe = pickNextCandidate(freshCandidates);
       selected.push(nextRecipe);
       usedRecipeIdsForDay.add(nextRecipe.id);
       context.currentDayRecipeNames.add(nextRecipe.name);
@@ -2207,7 +2245,7 @@ export class MealPlanService {
       const needed = targetCount - selected.length;
       reuseReason = `Không đủ món mới trong tuần. Tái sử dụng ${needed} món từ những ngày trước trong tuần.`;
       while (selected.length < targetCount && weeklyOnlyCandidates.length > 0) {
-        const nextRecipe = weeklyOnlyCandidates.shift();
+        const nextRecipe = pickNextCandidate(weeklyOnlyCandidates);
         selected.push(nextRecipe);
         usedRecipeIdsForDay.add(nextRecipe.id);
         context.currentDayRecipeNames.add(nextRecipe.name);
@@ -2219,7 +2257,7 @@ export class MealPlanService {
       const needed = targetCount - selected.length;
       reuseReason = `Không đủ món tránh lặp liên tiếp. Tái sử dụng ${needed} món từ ngày hôm trước.`;
       while (selected.length < targetCount && yesterdayCandidates.length > 0) {
-        const nextRecipe = yesterdayCandidates.shift();
+        const nextRecipe = pickNextCandidate(yesterdayCandidates);
         selected.push(nextRecipe);
         usedRecipeIdsForDay.add(nextRecipe.id);
         context.currentDayRecipeNames.add(nextRecipe.name);
@@ -2261,7 +2299,7 @@ export class MealPlanService {
       });
 
       while (selected.length < targetCount && reuseCandidates.length > 0) {
-        const nextRecipe = reuseCandidates.shift();
+        const nextRecipe = pickNextCandidate(reuseCandidates);
         selected.push(nextRecipe);
         usedRecipeIdsForDay.add(nextRecipe.id);
         currentMealRecipeIds.add(nextRecipe.id);

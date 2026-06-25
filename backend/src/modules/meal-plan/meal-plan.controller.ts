@@ -135,6 +135,9 @@ export class MealPlanController {
       prioritizeNew?: boolean;
       noRepeatIn7Days?: boolean;
       avoidRepeatMeals?: boolean;
+      excludeRecipeIds?: string[];
+      recentSuggestedRecipeIds?: string[];
+      forceRefresh?: boolean;
     },
   ) {
     return this.mealPlanService.generate(req.user.id, dto);
@@ -160,6 +163,9 @@ export class MealPlanController {
       prioritizeNew?: boolean;
       noRepeatIn7Days?: boolean;
       avoidRepeatMeals?: boolean;
+      excludeRecipeIds?: string[];
+      recentSuggestedRecipeIds?: string[];
+      forceRefresh?: boolean;
     },
   ) {
     return this.mealPlanService.generateForDays(req.user.id, dto);

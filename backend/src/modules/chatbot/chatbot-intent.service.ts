@@ -236,7 +236,14 @@ export class ChatbotIntentService {
       if (query && !/^(ít calo|dễ nấu|ăn sáng)$/iu.test(query)) entities.recipeName = query;
     }
 
-    if (this.hasAny(text, ['toan bo bua', 'ca bua'])) entities.scope = 'meal';
+    const removeCountMatch = text.match(/^(?:xoa|bo)\s+(\d+)\s+mon\b/);
+    if (removeCountMatch) {
+      entities.removeCount = Number(removeCountMatch[1]);
+      delete entities.recipeName;
+    }
+
+    if (entities.removeCount) entities.scope = 'meal';
+    else if (this.hasAny(text, ['toan bo bua', 'ca bua'])) entities.scope = 'meal';
     else if (this.hasAny(text, ['lam trong thuc don ngay', 'toan bo thuc don', 'xoa ngay'])) entities.scope = 'day';
     else entities.scope = 'item';
 

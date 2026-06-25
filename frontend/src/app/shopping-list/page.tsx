@@ -23,6 +23,19 @@ export default function ShoppingListPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    const handler = () => {
+      loadLists();
+      if (selectedList?.id) {
+        loadListDetail(selectedList.id);
+      }
+    };
+
+    window.addEventListener('shopping-list-updated', handler);
+    return () => window.removeEventListener('shopping-list-updated', handler);
+  }, [user, selectedList?.id]);
+
   const loadLists = async () => {
     try {
       const res = await shoppingListAPI.getAll();

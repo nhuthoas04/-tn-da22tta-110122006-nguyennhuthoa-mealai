@@ -364,14 +364,15 @@ export class ChatbotCommandService {
         };
       }
       case 'REMOVE_MEAL_ITEM': {
-        const actionName = entities.scope === 'item'
-          ? 'remove_from_meal_plan'
-          : 'remove_meal_day';
+        const actionName = entities.scope === 'day'
+          ? 'remove_meal_day'
+          : 'remove_from_meal_plan';
         const args = {
           mealDate: entities.date,
           mealType: entities.scope === 'day' ? undefined : entities.mealType,
           recipeId: entities.recipeId,
           recipeName: entities.recipeName,
+          removeCount: entities.removeCount,
         };
         return {
           result: await this.actionHandler.handleAction(actionName, args, userId),

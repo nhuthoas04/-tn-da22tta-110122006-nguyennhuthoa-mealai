@@ -186,6 +186,11 @@ export class ChatbotActionHandler {
           if (!mealDate) {
             mealDate = this.formatDateInput(new Date());
           }
+          if (args.mealType && this.isMealSlotInPastForDate(mealDate, args.mealType)) {
+            return {
+              message: `Bữa ${this.formatMealTypeLabel(args.mealType)} ${this.formatChatDateLabel(mealDate)} đã qua nên không thể thêm món.`,
+            };
+          }
 
           let recipeId = args.recipeId;
 
@@ -258,6 +263,14 @@ export class ChatbotActionHandler {
               sameDate(item.mealDate) &&
               (!args.mealType || item.mealType === args.mealType),
           );
+          if (args.mealType && this.isMealSlotInPastForDate(targetDate, args.mealType)) {
+            const names = this.formatRecipeNames(slotItems);
+            return {
+              message: names
+                ? `Bữa ${this.formatMealTypeLabel(args.mealType)} ${this.formatChatDateLabel(targetDate)} đã qua nên không thể đổi món. Các món hiện có: ${names}.`
+                : `Bữa ${this.formatMealTypeLabel(args.mealType)} ${this.formatChatDateLabel(targetDate)} đã qua và hiện không có món nào.`,
+            };
+          }
           const targetItem = args.itemId
             ? slotItems.find((item: any) => item.id === args.itemId)
             : args.oldRecipeName
@@ -269,6 +282,11 @@ export class ChatbotActionHandler {
               : slotItems[0];
           if (!targetItem) {
             return { error: 'Không tìm thấy món phù hợp trong bữa ăn để đổi.' };
+          }
+          if (!args.mealType && this.isMealSlotInPastForDate(targetDate, targetItem.mealType)) {
+            return {
+              message: `Bữa ${this.formatMealTypeLabel(targetItem.mealType)} ${this.formatChatDateLabel(targetDate)} đã qua nên không thể đổi món. Các món hiện có: ${this.formatRecipeNames(slotItems) || targetItem.recipe?.name || 'món đã chọn'}.`,
+            };
           }
 
           let replacementId = args.recipeId;
@@ -360,17 +378,22 @@ export class ChatbotActionHandler {
           if (!planToRemoveFrom) {
             return { message: 'Không tìm thấy thực đơn tuần này để xóa.' };
           }
-          if (args.mealType && this.isMealSlotInPastForDate(removeMealDate, args.mealType)) {
-            return {
-              message: 'Bữa này đã qua, hệ thống chỉ cho xem lại và không thể xóa món.',
-            };
-          }
           const itemsToRemove = planToRemoveFrom.items.filter(
             (i: any) =>
               this.formatDateInput(this.parseDateInput(String(i.mealDate))) ===
                 removeMealDate &&
               (!args.mealType || i.mealType === args.mealType),
           );
+          if (args.mealType && this.isMealSlotInPastForDate(removeMealDate, args.mealType)) {
+            const mealLabel = this.formatMealTypeLabel(args.mealType);
+            const dateLabel = this.formatChatDateLabel(removeMealDate);
+            const names = this.formatRecipeNames(itemsToRemove);
+            return {
+              message: names
+                ? `Bữa ${mealLabel} ${dateLabel} đã qua nên không thể xóa món. Các món hiện có: ${names}.`
+                : `Bữa ${mealLabel} ${dateLabel} đã qua và hiện không có món nào.`,
+            };
+          }
           if (itemsToRemove.length === 0) {
             const mealLabel = this.formatMealTypeLabel(args.mealType);
             const dateLabel = this.formatChatDateLabel(removeMealDate);
@@ -476,6 +499,14 @@ export class ChatbotActionHandler {
               (!args.mealType || item.mealType === args.mealType)
             );
           });
+          if (this.isPastDateValue(targetDate)) {
+            const names = this.formatRecipeNames(targets);
+            return {
+              message: names
+                ? `Ngày ${this.formatChatDateLabel(targetDate)} đã qua nên không thể xóa thực đơn. Các món hiện có: ${names}.`
+                : `Ngày ${this.formatChatDateLabel(targetDate)} đã qua và hiện không có món nào.`,
+            };
+          }
           for (const item of targets) {
             await this.mealPlanService.removeItem(userId, targetPlan.id, item.id);
           }
@@ -798,6 +829,10 @@ export class ChatbotActionHandler {
     return false;
   }
 
+  private isPastDateValue(dateValue: string): boolean {
+    return this.dateOnly(this.parseDateInput(dateValue)) < this.dateOnly(new Date());
+  }
+
   private formatMealTypeLabel(mealType?: string): string {
     if (mealType === 'breakfast') return 'Sáng';
     if (mealType === 'lunch') return 'Trưa';
@@ -806,13 +841,23 @@ export class ChatbotActionHandler {
     return 'đã chọn';
   }
 
+  private formatRecipeNames(items: any[]): string {
+    return items
+      .map((item: any) => item.recipe?.name)
+      .filter(Boolean)
+      .join(', ');
+  }
+
   private formatChatDateLabel(dateValue: string): string {
     const date = this.dateOnly(this.parseDateInput(dateValue));
     const today = this.dateOnly(new Date());
+    const yesterday = this.dateOnly(new Date());
+    yesterday.setDate(yesterday.getDate() - 1);
     const tomorrow = this.dateOnly(new Date());
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     if (date.getTime() === today.getTime()) return 'hôm nay';
+    if (date.getTime() === yesterday.getTime()) return 'hôm qua';
     if (date.getTime() === tomorrow.getTime()) return 'ngày mai';
 
     const labels = [

@@ -294,7 +294,16 @@ export class ChatbotIntentService {
   private parseMealType(text: string): ChatbotEntities['mealType'] {
     if (text.includes('bua sang') || text.includes('buoi sang') || text.includes('an sang')) return 'breakfast';
     if (text.includes('bua trua') || text.includes('buoi trua') || text.includes('an trua')) return 'lunch';
-    if (text.includes('bua toi') || text.includes('buoi toi') || text.includes('an toi') || text.includes('toi nay')) return 'dinner';
+    if (
+      text.includes('bua toi') ||
+      text.includes('buoi toi') ||
+      text.includes('an toi') ||
+      text.includes('toi nay') ||
+      text.includes('toi hom nay') ||
+      text.includes('toi hom qua') ||
+      text.includes('toi ngay mai') ||
+      text.includes('mon toi')
+    ) return 'dinner';
     if (text.includes('bua phu')) return 'snack';
     return undefined;
   }
@@ -319,6 +328,7 @@ export class ChatbotIntentService {
     const today = new Date();
     if (text.includes('ngay kia')) return this.formatDate(this.addDays(today, 2));
     if (text.includes('ngay mai')) return this.formatDate(this.addDays(today, 1));
+    if (text.includes('hom qua') || text.includes('toi qua')) return this.formatDate(this.addDays(today, -1));
     if (text.includes('hom nay') || text.includes('toi nay') || text.includes('trua nay')) {
       return this.formatDate(today);
     }

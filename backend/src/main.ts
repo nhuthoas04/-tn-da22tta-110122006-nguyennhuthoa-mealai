@@ -12,9 +12,6 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  // Global prefix for all routes
-  app.setGlobalPrefix('api/v1');
-
   // Default API responses to UTF-8 JSON. PDF/static responses can still override this later.
   app.use((req, res, next) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -23,23 +20,48 @@ async function bootstrap() {
 
   const allowedOrigins = [
     'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://tn-da22tta-nguyennhuthoa-meal-ai.vercel.app',
-    'https://tn-da22tta-nguyennhuthoa-meal-ai-frontend.onrender.com',
+    'https://mealai-two.vercel.app',
     process.env.FRONTEND_URL,
-    ...(process.env.CORS_ORIGIN || '')
-      .split(',')
-      .map((origin) => origin.trim())
-      .filter(Boolean),
-  ].filter(Boolean);
+    process.env.CORS_ORIGIN,
+  ]
+    .filter(Boolean)
+    .flatMap((v) =>
+      // allow CORS_ORIGIN like "a,b" or single string
+      String(v)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    )
+    .map((origin) => origin.replace(/\/+$/, ''))
+    .filter(Boolean);
 
-  // Enable CORS for frontend
   app.enableCors({
-    origin: allowedOrigins,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.warn(`CORS blocked origin: ${origin}`);
+      return callback(new Error(`CORS blocked origin: ${origin}`), false);
+    },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Cache-Control',
+      'Pragma',
+      'Expires',
+    ],
   });
+
+  // Global prefix for all routes
+  app.setGlobalPrefix('api/v1');
+
 
   // Global validation pipe — auto-validates DTOs
   app.useGlobalPipes(

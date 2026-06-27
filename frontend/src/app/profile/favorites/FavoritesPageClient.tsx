@@ -20,7 +20,7 @@ import MealLimitWarningModal from '@/components/MealLimitWarningModal';
 import AllergyWarningModal from '@/components/AllergyWarningModal';
 import { useAuth } from '@/context/AuthContext';
 import { favoritesAPI, mealPlanAPI, shoppingListAPI } from '@/lib/api';
-import { getMaxRecommendedDishes, getMealSlotLimit } from '@/lib/mealPortion';
+import { getMaxRecommendedDishes, getMealSlotLimit, checkMealPlanWarnings } from '@/lib/mealPortion';
 import {
   formatDateInput,
   getFirstAvailableMeal,
@@ -122,6 +122,7 @@ export default function FavoritesPage() {
     recipeName: string;
     weekStart: string;
     dayOfWeek: number;
+    warnings?: any;
   } | null>(null);
 
   const [allergyWarningModal, setAllergyWarningModal] = useState<{
@@ -343,31 +344,43 @@ export default function FavoritesPage() {
       });
 
       if (!validation.ok) {
+        setSubmittingMealPlan(false);
         toast.error(validation.message);
         return;
       }
 
       if (validation.duplicateInDay) {
         const confirmed = confirm('Món này đã có trong ngày hôm nay. Bạn có muốn thêm lại không?');
-        if (!confirmed) return;
+        if (!confirmed) {
+          setSubmittingMealPlan(false);
+          return;
+        }
       }
 
-      if (validation.warning) {
-        const currentMealItemsCount = dayItems.filter(
-          (item: any) => item.mealType === selectedMeal && item.recipe,
-        ).length;
-        const mealSlotLimit = getMealSlotLimit(servings, selectedMeal);
-        const isMealSlotLimitWarning = currentMealItemsCount + 1 > mealSlotLimit;
+      const favItem = favorites.find((x) => x.id === plannerModal.recipeId);
+      const addedRecipe = favItem
+        ? { id: favItem.id, name: favItem.name, calories: favItem.calories }
+        : { id: plannerModal.recipeId, name: plannerModal.recipeName, calories: 0 };
 
+      const warnings = checkMealPlanWarnings({
+        peopleCount: servings,
+        tdee: Number(user?.dailyCalorieTarget || (user as any)?.preferences?.dailyCalorieTarget || 2000),
+        mealType: selectedMeal,
+        currentDayItems: dayItems,
+        currentMealItems: dayItems.filter((item: any) => item.mealType === selectedMeal),
+        newRecipes: [addedRecipe],
+      });
+
+      if (warnings.exceedDishLimit || warnings.exceedDayCalories || warnings.exceedMealCalories) {
+        setSubmittingMealPlan(false);
         setPortionWarning({
           servings,
-          currentDayItemsCount: isMealSlotLimitWarning ? currentMealItemsCount : dayItems.length,
-          maxRecommendedItems: isMealSlotLimitWarning
-            ? mealSlotLimit
-            : getMaxRecommendedDishes(servings),
+          currentDayItemsCount: warnings.currentDishCount,
+          maxRecommendedItems: warnings.maxDishCount,
           recipeName: plannerModal.recipeName,
           weekStart,
           dayOfWeek,
+          warnings,
         });
         return;
       }
@@ -756,6 +769,7 @@ export default function FavoritesPage() {
           currentDayItemsCount={portionWarning.currentDayItemsCount}
           maxRecommendedItems={portionWarning.maxRecommendedItems}
           recipeName={portionWarning.recipeName}
+          warnings={portionWarning.warnings}
           onCancel={() => setPortionWarning(null)}
           onConfirm={confirmPortionWarning}
           isSubmitting={submittingMealPlan}

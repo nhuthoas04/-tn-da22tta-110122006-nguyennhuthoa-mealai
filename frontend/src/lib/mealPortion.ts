@@ -69,3 +69,76 @@ export function calculateMealPortionWarning(input: MealPortionWarningInput, isAi
     message,
   };
 }
+
+export function getDishCountLimit(peopleCount: number) {
+  if (peopleCount <= 1) return 2;
+  if (peopleCount === 2) return 4;
+  if (peopleCount <= 4) return 6;
+  return 8;
+}
+
+export function getMealTargetCalories(tdee: number, mealType: string) {
+  if (!tdee || tdee <= 0) return null;
+
+  if (mealType === 'breakfast') return Math.round(tdee * 0.3);
+  if (mealType === 'lunch') return Math.round(tdee * 0.4);
+  if (mealType === 'dinner') return Math.round(tdee * 0.3);
+
+  return null;
+}
+
+export function getItemsCalories(items: any[]) {
+  return items.reduce((total, item) => {
+    return total + Number(item.recipe?.calories || item.calories || 0);
+  }, 0);
+}
+
+export interface CheckMealPlanWarningsInput {
+  peopleCount: number;
+  tdee: number;
+  mealType: string;
+  currentDayItems: any[];
+  currentMealItems: any[];
+  newRecipes: any[];
+}
+
+export function checkMealPlanWarnings({
+  peopleCount,
+  tdee,
+  mealType,
+  currentDayItems,
+  currentMealItems,
+  newRecipes,
+}: CheckMealPlanWarningsInput) {
+  const currentDishCount = currentDayItems.length;
+  const newDishCount = newRecipes.length;
+  const maxDishCount = getDishCountLimit(peopleCount);
+
+  const currentDayCalories = getItemsCalories(currentDayItems);
+  const currentMealCalories = getItemsCalories(currentMealItems);
+  const newCalories = newRecipes.reduce((total, recipe) => {
+    return total + Number(recipe.calories || 0);
+  }, 0);
+
+  const afterAddDayCalories = currentDayCalories + newCalories;
+  const mealTargetCalories = getMealTargetCalories(tdee, mealType);
+  const afterAddMealCalories = currentMealCalories + newCalories;
+
+  return {
+    exceedDishLimit: currentDishCount + newDishCount > maxDishCount,
+    exceedDayCalories: tdee ? afterAddDayCalories > tdee * 1.1 : false,
+    exceedMealCalories: mealTargetCalories && mealType
+      ? afterAddMealCalories > mealTargetCalories * 1.15
+      : false,
+    currentDishCount,
+    newDishCount,
+    maxDishCount,
+    currentDayCalories,
+    currentMealCalories,
+    newCalories,
+    afterAddDayCalories,
+    afterAddMealCalories,
+    dayTargetCalories: tdee,
+    mealTargetCalories,
+  };
+}

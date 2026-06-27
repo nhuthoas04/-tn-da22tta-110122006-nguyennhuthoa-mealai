@@ -1,5 +1,7 @@
 import { HiExclamation } from 'react-icons/hi';
 
+const formatNumber = (val: number) => Math.round(val).toLocaleString('vi-VN');
+
 type MealLimitWarningModalProps = {
   servings: number;
   currentDayItemsCount: number;
@@ -8,6 +10,21 @@ type MealLimitWarningModalProps = {
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
   isSubmitting?: boolean;
+  warnings?: {
+    exceedDishLimit: boolean;
+    exceedDayCalories: boolean;
+    exceedMealCalories: boolean;
+    currentDishCount: number;
+    newDishCount: number;
+    maxDishCount: number;
+    currentDayCalories: number;
+    currentMealCalories: number;
+    newCalories: number;
+    afterAddDayCalories: number;
+    afterAddMealCalories: number;
+    dayTargetCalories: number;
+    mealTargetCalories: number | null;
+  };
 };
 
 export default function MealLimitWarningModal({
@@ -18,7 +35,31 @@ export default function MealLimitWarningModal({
   onCancel,
   onConfirm,
   isSubmitting = false,
+  warnings,
 }: MealLimitWarningModalProps) {
+  let subTitle = `Thực đơn hiện tại đã đạt giới hạn khẩu phần cho ${servings} người ăn.`;
+  let desc = 'Việc thêm quá nhiều món ăn trong một ngày có thể gây thừa thãi dinh dưỡng hoặc tốn kém chi phí chuẩn bị. Bạn có chắc chắn muốn tiếp tục thêm?';
+
+  if (warnings) {
+    const hasDishWarn = warnings.exceedDishLimit;
+    const hasCalWarn = warnings.exceedDayCalories || warnings.exceedMealCalories;
+
+    if (hasDishWarn && hasCalWarn) {
+      subTitle = `Thực đơn đã đạt giới hạn khẩu phần và vượt mục tiêu calories khuyến nghị.`;
+      desc = `Việc thêm các món này có thể làm thực đơn vượt số món khuyến nghị và vượt mục tiêu calories trong ngày.`;
+    } else if (hasCalWarn) {
+      subTitle = `Calories trong thực đơn vượt quá mục tiêu khuyến nghị.`;
+      desc = `Việc thêm món này có thể làm bữa ăn hoặc tổng calories trong ngày vượt mức khuyến nghị.`;
+    } else if (hasDishWarn) {
+      subTitle = `Thực đơn hiện tại đã đạt giới hạn khẩu phần cho ${servings} người ăn.`;
+      desc = `Việc thêm quá nhiều món trong một ngày có thể gây thừa thức ăn, thừa dinh dưỡng hoặc tốn kém chi phí chuẩn bị.`;
+    }
+  }
+
+  // Determine if we show portion box and calorie box
+  const showPortionBox = !warnings || warnings.exceedDishLimit;
+  const showCalorieBox = warnings && (warnings.exceedDayCalories || warnings.exceedMealCalories);
+
   return (
     <div
       className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
@@ -42,20 +83,52 @@ export default function MealLimitWarningModal({
           </h2>
         </div>
 
-        <div className="space-y-4 p-5 text-sm text-slate-600">
+        <div className="space-y-4 p-5 text-sm text-slate-600 max-h-[75vh] overflow-y-auto">
           <p className="text-base font-semibold leading-6 text-slate-800">
-            Thực đơn hiện tại đã đạt giới hạn khẩu phần cho {servings} người ăn.
+            {subTitle}
           </p>
 
-          <div className="space-y-3 rounded-brand-md border border-slate-200 bg-slate-50 p-4">
-            <DetailRow label="Số người ăn" value={`${servings} người`} />
-            <DetailRow label="Số món hiện tại trong ngày" value={`${currentDayItemsCount} món`} />
-            <DetailRow label="Ngưỡng tối đa khuyến nghị" value={`${maxRecommendedItems} món`} />
-            <DetailRow label="Món đang muốn thêm" value={recipeName} />
-          </div>
+          {showPortionBox && (
+            <div className="space-y-3 rounded-brand-md border border-slate-200 bg-slate-50 p-4">
+              <h4 className="font-bold text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-1">
+                Thông tin khẩu phần
+              </h4>
+              <DetailRow label="Số người ăn" value={`${servings} người`} />
+              <DetailRow label="Số món hiện tại trong ngày" value={`${currentDayItemsCount} món`} />
+              <DetailRow label="Ngưỡng tối đa khuyến nghị" value={`${maxRecommendedItems} món`} />
+              <DetailRow label="Món đang muốn thêm" value={recipeName} />
+            </div>
+          )}
+
+          {showCalorieBox && warnings && (
+            <div className="space-y-3 rounded-brand-md border border-slate-200 bg-slate-50 p-4">
+              <h4 className="font-bold text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-1">
+                Thông tin calories
+              </h4>
+              {warnings.exceedDayCalories && (
+                <div className="space-y-2">
+                  <DetailRow label="Calories hiện tại trong ngày" value={`${formatNumber(warnings.currentDayCalories)} kcal`} />
+                  <DetailRow label="Calories món muốn thêm" value={`${formatNumber(warnings.newCalories)} kcal`} />
+                  <DetailRow label="Sau khi thêm" value={`${formatNumber(warnings.afterAddDayCalories)} kcal`} />
+                  <DetailRow label="Mục tiêu ngày" value={`${formatNumber(warnings.dayTargetCalories)} kcal`} />
+                  <DetailRow label="Trạng thái" value="Vượt mục tiêu kcal" valueClass="text-red-500" />
+                </div>
+              )}
+              {warnings.exceedMealCalories && warnings.mealTargetCalories && (
+                <div className="space-y-2">
+                  {warnings.exceedDayCalories && <div className="border-t border-dashed border-slate-200 my-2" />}
+                  <DetailRow label="Calories bữa hiện tại" value={`${formatNumber(warnings.currentMealCalories)} kcal`} />
+                  <DetailRow label="Calories món muốn thêm" value={`${formatNumber(warnings.newCalories)} kcal`} />
+                  <DetailRow label="Sau khi thêm vào bữa" value={`${formatNumber(warnings.afterAddMealCalories)} kcal`} />
+                  <DetailRow label="Mục tiêu bữa" value={`${formatNumber(warnings.mealTargetCalories)} kcal`} />
+                  <DetailRow label="Trạng thái" value="Vượt kcal bữa" valueClass="text-red-500" />
+                </div>
+              )}
+            </div>
+          )}
 
           <p className="text-xs leading-5 text-slate-500">
-            Việc thêm quá nhiều món ăn trong một ngày có thể gây thừa thãi dinh dưỡng hoặc tốn kém chi phí chuẩn bị. Bạn có chắc chắn muốn tiếp tục thêm?
+            {desc} Bạn có chắc chắn muốn tiếp tục thêm?
           </p>
         </div>
 
@@ -82,11 +155,19 @@ export default function MealLimitWarningModal({
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({
+  label,
+  value,
+  valueClass,
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+}) {
   return (
     <div className="flex items-start justify-between gap-4 text-xs font-medium">
       <span className="text-slate-500">{label}:</span>
-      <strong className="max-w-[210px] text-right font-bold text-slate-900" title={value}>
+      <strong className={`max-w-[210px] text-right font-bold ${valueClass || 'text-slate-900'}`} title={value}>
         {value}
       </strong>
     </div>

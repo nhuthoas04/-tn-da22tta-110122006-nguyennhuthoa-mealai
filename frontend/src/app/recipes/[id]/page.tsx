@@ -9,6 +9,8 @@ import { HiClock, HiFire, HiHeart, HiOutlineHeart, HiUsers, HiArrowLeft, HiCalen
 import Link from 'next/link';
 import RecipeImage from '@/components/RecipeImage';
 import AllergyWarningModal from '@/components/AllergyWarningModal';
+import MealLimitWarningModal from '@/components/MealLimitWarningModal';
+import { checkMealPlanWarnings } from '@/lib/mealPortion';
 
 const MEAL_OPTIONS = [
   {
@@ -60,6 +62,14 @@ export default function RecipeDetailPage() {
     onConfirm: () => void | Promise<void>;
   } | null>(null);
   const [isAddingWithAllergy, setIsAddingWithAllergy] = useState(false);
+  const [manualAddWarningModal, setManualAddWarningModal] = useState<{
+    servings: number;
+    currentCount: number;
+    maxCount: number;
+    recipeName: string;
+    warnings: any;
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
 
   useEffect(() => {
     if (planSelectorOpen && selectedDate) {
@@ -319,7 +329,7 @@ export default function RecipeDetailPage() {
     setPlanSelectorOpen(true);
   };
 
-  const handleAddToPlan = async (forceAdd = false) => {
+  const handleAddToPlan = async (forceAdd = false, bypassWarnings = false) => {
     if (!user) {
       toast.error('Vui lòng đăng nhập để thực hiện');
       return;
@@ -343,6 +353,42 @@ export default function RecipeDetailPage() {
       setSubmitting(true);
     }
     try {
+      if (!bypassWarnings) {
+        // Fetch current plan to check warnings
+        const planRes = await mealPlanAPI.get(targetWeekStart);
+        const plan = planRes.data;
+        const dayItems = plan?.items?.filter((item: any) => item.mealDate === selectedDate && item.recipe) || [];
+        const mealItems = dayItems.filter((item: any) => item.mealType === selectedMeal);
+
+        const peopleCount = Number((user as any)?.servings || (user as any)?.preferences?.servings || 1);
+        const tdee = Number((user as any)?.dailyCalorieTarget || (user as any)?.preferences?.dailyCalorieTarget || 2000);
+
+        const warnings = checkMealPlanWarnings({
+          peopleCount,
+          tdee,
+          mealType: selectedMeal,
+          currentDayItems: dayItems,
+          currentMealItems: mealItems,
+          newRecipes: [recipe],
+        });
+
+        if (warnings.exceedDishLimit || warnings.exceedDayCalories || warnings.exceedMealCalories) {
+          setSubmitting(false);
+          setManualAddWarningModal({
+            servings: peopleCount,
+            currentCount: warnings.currentDishCount,
+            maxCount: warnings.maxDishCount,
+            recipeName: recipe.name || 'Món ăn',
+            warnings,
+            onConfirm: async () => {
+              setManualAddWarningModal(null);
+              await handleAddToPlan(forceAdd, true);
+            }
+          });
+          return;
+        }
+      }
+
       await mealPlanAPI.setMealSlot({
         weekStart: targetWeekStart,
         dayOfWeek: targetDayOfWeek,
@@ -368,7 +414,7 @@ export default function RecipeDetailPage() {
           recipeName,
           matchedAllergens,
           onConfirm: async () => {
-            await handleAddToPlan(true);
+            await handleAddToPlan(true, true);
           }
         });
       } else {
@@ -955,6 +1001,18 @@ export default function RecipeDetailPage() {
           onCancel={() => setAllergyWarningModal(null)}
           onConfirm={allergyWarningModal.onConfirm}
           isSubmitting={isAddingWithAllergy}
+        />
+      )}
+
+      {manualAddWarningModal && (
+        <MealLimitWarningModal
+          servings={manualAddWarningModal.servings}
+          currentDayItemsCount={manualAddWarningModal.currentCount}
+          maxRecommendedItems={manualAddWarningModal.maxCount}
+          recipeName={manualAddWarningModal.recipeName}
+          warnings={manualAddWarningModal.warnings}
+          onCancel={() => setManualAddWarningModal(null)}
+          onConfirm={manualAddWarningModal.onConfirm}
         />
       )}
     </div>

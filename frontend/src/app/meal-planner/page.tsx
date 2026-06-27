@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import MealLimitWarningModal from '@/components/MealLimitWarningModal';
 import AllergyWarningModal from '@/components/AllergyWarningModal';
 import api, { mealPlanAPI, recipesAPI, shoppingListAPI, recommendationAPI } from '@/lib/api';
-import { calculateMealPortionWarning, getMaxRecommendedDishes, getMaxDishesByServings, getMealSlotLimit, MealPortionWarningResult } from '@/lib/mealPortion';
+import { calculateMealPortionWarning, getMaxRecommendedDishes, getMaxDishesByServings, getMealSlotLimit, MealPortionWarningResult, checkMealPlanWarnings } from '@/lib/mealPortion';
 
 const DAYS = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
 const MEALS = [
@@ -84,6 +84,7 @@ export default function MealPlannerPage() {
     dateStr: string;
     mealType: string;
     itemId?: string | null;
+    warnings?: any;
   } | null>(null);
 
   const [allergyWarningModal, setAllergyWarningModal] = useState<{
@@ -591,21 +592,29 @@ export default function MealPlannerPage() {
     }
 
     const dayItems = plan?.items?.filter((item: any) => item.mealDate === dateStr && item.recipe) || [];
-    const slotCapacity = getMealSlotCapacity(dayItems, selectedSlot.mealType);
-    const currentCount = slotCapacity.currentCount;
-    const maxCount = slotCapacity.maxCount;
+    const mealItems = dayItems.filter((item: any) => item.mealType === selectedSlot.mealType);
 
-    if (currentCount + 1 > maxCount) {
+    const warnings = checkMealPlanWarnings({
+      peopleCount: getUserServings(),
+      tdee: getUserDailyCalories(),
+      mealType: selectedSlot.mealType,
+      currentDayItems: dayItems,
+      currentMealItems: mealItems,
+      newRecipes: selectedRecipe ? [selectedRecipe] : [],
+    });
+
+    if (warnings.exceedDishLimit || warnings.exceedDayCalories || warnings.exceedMealCalories) {
       setManualAddWarningModal({
         servings: getUserServings(),
-        currentCount,
-        maxCount,
+        currentCount: warnings.currentDishCount,
+        maxCount: warnings.maxDishCount,
         recipeName: selectedRecipe ? selectedRecipe.name : 'Món ăn',
         recipeId,
         day: selectedSlot.day,
         dateStr,
         mealType: selectedSlot.mealType,
         itemId: selectedSlot.itemId,
+        warnings,
       });
       return;
     }
@@ -665,24 +674,32 @@ export default function MealPlannerPage() {
 
     const dateStr = getSlotDateInput(weekStart, selectedSlot.day - 1);
     const dayItems = plan?.items?.filter((item: any) => item.mealDate === dateStr && item.recipe) || [];
-    const slotCapacity = getMealSlotCapacity(dayItems, selectedSlot.mealType);
-    const currentCount = slotCapacity.currentCount;
-    const maxCount = slotCapacity.maxCount;
+    const mealItems = dayItems.filter((item: any) => item.mealType === selectedSlot.mealType);
+    const selectedRecipes = selectedRecipeIds.map(id => {
+      return searchResults.find((x: any) => x.id === id);
+    }).filter(Boolean);
 
-    if (currentCount + selectedRecipeIds.length > maxCount) {
-      const selectedNames = selectedRecipeIds.map(id => {
-        const r = searchResults.find((x: any) => x.id === id);
-        return r ? r.name : 'Món ăn';
-      });
+    const warnings = checkMealPlanWarnings({
+      peopleCount: getUserServings(),
+      tdee: getUserDailyCalories(),
+      mealType: selectedSlot.mealType,
+      currentDayItems: dayItems,
+      currentMealItems: mealItems,
+      newRecipes: selectedRecipes,
+    });
+
+    if (warnings.exceedDishLimit || warnings.exceedDayCalories || warnings.exceedMealCalories) {
+      const selectedNames = selectedRecipes.map(r => r.name || 'Món ăn');
       setManualAddWarningModal({
         servings: getUserServings(),
-        currentCount,
-        maxCount,
+        currentCount: warnings.currentDishCount,
+        maxCount: warnings.maxDishCount,
         recipeIds: [...selectedRecipeIds],
         recipeName: selectedNames.join(', '),
         day: selectedSlot.day,
         dateStr,
         mealType: selectedSlot.mealType,
+        warnings,
       });
       return;
     }
@@ -1313,6 +1330,7 @@ export default function MealPlannerPage() {
             currentDayItemsCount={manualAddWarningModal.currentCount}
             maxRecommendedItems={manualAddWarningModal.maxCount}
             recipeName={manualAddWarningModal.recipeName || 'Món ăn'}
+            warnings={manualAddWarningModal.warnings}
             onCancel={() => setManualAddWarningModal(null)}
             onConfirm={async () => {
               const info = manualAddWarningModal;

@@ -29,6 +29,8 @@ type RecommendationOptions = {
   mealTargetCalories?: number;
   currentMealCalories?: number;
   remainingMealCalories?: number;
+  currentDayCalories?: number;
+  dayTargetCalories?: number;
   options?: {
     preferNewRecipes?: boolean;
     avoidRepeatLast7Days?: boolean;
@@ -37,22 +39,18 @@ type RecommendationOptions = {
 
 /**
  * Smart Recommendation Engine
- *
- * Uses a hybrid scoring system with 5 weighted dimensions:
- *   Score = 0.35×IngredientMatch + 0.25×WasteReduction
- *         + 0.20×PreferenceMatch + 0.10×CookTimeScore
- *         + 0.10×NutritionScore
  */
 @Injectable()
 export class RecommendationService {
   // Scoring weights (must sum to 1.0)
   private readonly WEIGHTS = {
-    nutritionHealth: 0.25,
+    nutritionHealth: 0.20,
     ingredientMatch: 0.20,
     wasteReduction: 0.15,
     preferenceMatch: 0.15,
     cookTimeScore: 0.10,
-    caloriesScore: 0.15,
+    caloriesFitScore: 0.15,
+    dayCaloriesFitScore: 0.05,
   };
 
   // Anti-waste urgency tiers based on days until expiration
@@ -321,11 +319,20 @@ export class RecommendationService {
       );
 
       // Calculate calories score
-      const remainingCalories = remainingMealCalories;
       const recipeCalories = Number(recipe.calories || 0);
-      const caloriesScoreVal = this.calculateCaloriesScore(recipeCalories, remainingCalories);
-      // Normalize caloriesScoreVal from [-20, 20] range to [0, 1.0] for the weighted sum
-      const caloriesScoreNorm = (caloriesScoreVal + 20) / 40;
+      const caloriesFitScoreVal = this.calculateCaloriesFitScore({
+        currentCalories: currentMealCalories,
+        targetCalories: targetForMeal,
+        recipeCalories,
+      });
+      const caloriesFitScoreNorm = (caloriesFitScoreVal + 30) / 60;
+
+      const dayCaloriesFitScoreVal = this.calculateDayCaloriesFitScore({
+        currentDayCalories: options.currentDayCalories || 0,
+        dayTargetCalories: options.dayTargetCalories || user.dailyCalorieTarget || 2000,
+        recipeCalories,
+      });
+      const dayCaloriesFitScoreNorm = (dayCaloriesFitScoreVal + 25) / 50;
 
       // Calculate dynamic diversity score adjustment
       let diversityScore = 0;
@@ -398,7 +405,8 @@ export class RecommendationService {
         scores.wasteReduction * this.WEIGHTS.wasteReduction +
         scores.preferenceMatch * this.WEIGHTS.preferenceMatch +
         scores.cookTimeScore * this.WEIGHTS.cookTimeScore +
-        caloriesScoreNorm * this.WEIGHTS.caloriesScore;
+        caloriesFitScoreNorm * this.WEIGHTS.caloriesFitScore +
+        dayCaloriesFitScoreNorm * this.WEIGHTS.dayCaloriesFitScore;
 
       // Apply user habit adjustments and diversity score
       const habitAdjust = habitScores.get(recipe.id) || 0;
@@ -417,7 +425,8 @@ export class RecommendationService {
         expiringItems,
         targetForMeal,
         habitAdjust,
-        caloriesScoreVal,
+        caloriesFitScoreVal,
+        dayCaloriesFitScoreVal,
       );
 
       // Find which inventory items match and which are missing
@@ -465,7 +474,8 @@ export class RecommendationService {
           mealPlanHistoryCount: historyCount,
           usedInLast7Days: isUsedInLast7Days,
           ...scores,
-          caloriesScore: caloriesScoreNorm,
+          caloriesFitScore: caloriesFitScoreNorm,
+          dayCaloriesFitScore: dayCaloriesFitScoreNorm,
         },
         reasons,
         matchedInventory,
@@ -766,7 +776,8 @@ export class RecommendationService {
     expiringItems: Inventory[],
     targetCalories: number,
     habitAdjust: number = 0,
-    caloriesScoreVal: number = 0,
+    caloriesFitScoreVal: number = 0,
+    dayCaloriesFitScoreVal: number = 0,
   ): string[] {
     const reasons: string[] = [];
 
@@ -796,13 +807,21 @@ export class RecommendationService {
     // Nutrition reason
     if (scores.nutritionScore > 0.8) {
       reasons.push(
-        `Calories phù hợp mục tiêu (${recipe.calories}/${targetCalories} kcal)`,
+        `Dinh dưỡng cân bằng lý tưởng (${recipe.calories} kcal)`,
       );
     }
 
     // Calorie rating reason
-    if (caloriesScoreVal >= 10) {
-      reasons.push('Lượng calo phù hợp với bữa ăn');
+    if (caloriesFitScoreVal >= 18) {
+      reasons.push('Lượng calo tối ưu cho bữa ăn');
+    } else if (caloriesFitScoreVal >= 5) {
+      reasons.push('Lượng calo cân đối cho bữa ăn');
+    } else if (caloriesFitScoreVal <= -30) {
+      reasons.push('Calo vượt quá mức khuyến nghị cho bữa ăn');
+    }
+
+    if (dayCaloriesFitScoreVal >= 15) {
+      reasons.push('Hỗ trợ cân bằng calo toàn ngày');
     }
 
     // Preference reason
@@ -825,19 +844,52 @@ export class RecommendationService {
     return reasons;
   }
 
-  private calculateCaloriesScore(recipeCalories: number, remainingCalories: number | null): number {
-    if (remainingCalories === null || remainingCalories === undefined) return 0;
-    if (remainingCalories <= 0) {
-      return recipeCalories <= 150 ? 5 : -20;
-    }
+  private calculateCaloriesFitScore({
+    currentCalories,
+    targetCalories,
+    recipeCalories,
+  }: {
+    currentCalories: number;
+    targetCalories: number;
+    recipeCalories: number;
+  }): number {
+    if (!targetCalories || targetCalories <= 0) return 0;
 
-    const diff = Math.abs(remainingCalories - recipeCalories);
+    const afterAdd = currentCalories + recipeCalories;
+    const ratio = afterAdd / targetCalories;
 
-    if (recipeCalories <= remainingCalories && diff <= 150) return 20;
-    if (recipeCalories <= remainingCalories) return 10;
-    if (recipeCalories <= remainingCalories * 1.2) return 0;
+    if (ratio >= 0.9 && ratio <= 1.05) return 30;
+    if (ratio >= 0.8 && ratio < 0.9) return 18;
+    if (ratio > 1.05 && ratio <= 1.1) return 15;
+    if (ratio >= 0.7 && ratio < 0.8) return 5;
+    if (ratio > 1.1 && ratio <= 1.25) return -10;
+    if (ratio > 1.25) return -30;
 
     return -15;
+  }
+
+  private calculateDayCaloriesFitScore({
+    currentDayCalories,
+    dayTargetCalories,
+    recipeCalories,
+  }: {
+    currentDayCalories: number;
+    dayTargetCalories: number;
+    recipeCalories: number;
+  }): number {
+    if (!dayTargetCalories || dayTargetCalories <= 0) return 0;
+
+    const afterAdd = currentDayCalories + recipeCalories;
+    const ratio = afterAdd / dayTargetCalories;
+
+    if (ratio >= 0.9 && ratio <= 1.05) return 25;
+    if (ratio >= 0.8 && ratio < 0.9) return 15;
+    if (ratio > 1.05 && ratio <= 1.1) return 10;
+    if (ratio < 0.8) return 3;
+    if (ratio > 1.1 && ratio <= 1.2) return -10;
+    if (ratio > 1.2) return -25;
+
+    return 0;
   }
 
   /**

@@ -980,6 +980,11 @@ export default function MealPlannerPage() {
                               : `Tổng: ${formatNumber(dayCalories)} kcal`;
                           })()}
                         </span>
+                        {(() => {
+                          const tdee = getUserDailyCalories();
+                          const dayCalories = getDayCalories(dayItemsForDay);
+                          return getCalorieStatusBadge(dayCalories, tdee, dayItemsForDay.length > 0);
+                        })()}
                       </h2>
                       {isToday && (
                         <span className="rounded-brand-sm bg-brand-primary px-2 py-0.5 text-xs font-semibold text-white">
@@ -1062,26 +1067,7 @@ export default function MealPlannerPage() {
                                 const tdee = getUserDailyCalories();
                                 const mealCalories = getMealCalories(itemsForSlot);
                                 const mealTarget = tdee && tdee > 0 ? getMealTargetCalories(tdee, meal.key) : null;
-                                if (!mealTarget || mealTarget <= 0 || itemsForSlot.length === 0) return null;
-                                if (mealCalories > mealTarget * 1.15) {
-                                  return (
-                                    <span className="rounded-full bg-red-50 border border-red-200 px-1.5 py-0.5 text-[9px] font-bold text-red-600 normal-case tracking-normal">
-                                      Vượt kcal
-                                    </span>
-                                  );
-                                }
-                                if (mealCalories < mealTarget * 0.6) {
-                                  return (
-                                    <span className="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 normal-case tracking-normal">
-                                      Thấp kcal
-                                    </span>
-                                  );
-                                }
-                                return (
-                                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[9px] font-bold text-emerald-600 normal-case tracking-normal">
-                                    Hợp lý
-                                  </span>
-                                );
+                                return getCalorieStatusBadge(mealCalories, mealTarget || 0, itemsForSlot.length > 0);
                               })()}
                               {isPastMealItemSlot && (
                                 <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold normal-case tracking-normal text-slate-400">
@@ -1603,4 +1589,44 @@ function getMonday(d: Date): string {
   const diff = target.getDate() - day + (day === 0 ? -6 : 1);
   target.setDate(diff);
   return formatDateInput(target);
+}
+
+function getCalorieStatusBadge(current: number, target: number, hasItems: boolean) {
+  if (!target || target <= 0 || !hasItems) return null;
+  const ratio = current / target;
+
+  if (ratio < 0.8) {
+    return (
+      <span className="rounded-full bg-red-50 border border-red-200 px-1.5 py-0.5 text-[9px] font-bold text-red-600 normal-case tracking-normal">
+        Thiếu kcal
+      </span>
+    );
+  }
+  if (ratio >= 0.8 && ratio < 0.9) {
+    return (
+      <span className="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 normal-case tracking-normal">
+        Thiếu nhẹ
+      </span>
+    );
+  }
+  if (ratio >= 0.9 && ratio <= 1.05) {
+    return (
+      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[9px] font-bold text-emerald-600 normal-case tracking-normal">
+        Hợp lý
+      </span>
+    );
+  }
+  if (ratio > 1.05 && ratio <= 1.1) {
+    return (
+      <span className="rounded-full bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[9px] font-bold text-blue-600 normal-case tracking-normal">
+        Dư nhẹ
+      </span>
+    );
+  }
+  // ratio > 1.1
+  return (
+    <span className="rounded-full bg-rose-50 border border-rose-200 px-1.5 py-0.5 text-[9px] font-bold text-rose-600 normal-case tracking-normal">
+      Vượt kcal
+    </span>
+  );
 }

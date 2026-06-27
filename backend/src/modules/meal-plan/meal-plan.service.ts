@@ -491,6 +491,10 @@ export class MealPlanService {
             mealTargetCalories: recTarget,
             currentMealCalories: recCurrent,
             remainingMealCalories: recRemaining,
+            currentDayCalories: dayItemsList
+              .filter((item) => item.recipe)
+              .reduce((sum, item) => sum + Number(item.recipe?.calories || item.calories || 0), 0),
+            dayTargetCalories: user?.dailyCalorieTarget || 2000,
           },
         );
         this.logRepeatDebug(
@@ -611,6 +615,10 @@ export class MealPlanService {
               mealTargetCalories: recTarget,
               currentMealCalories: recCurrent,
               remainingMealCalories: recRemaining,
+              currentDayCalories: dayItemsList
+                .filter((item) => item.recipe)
+                .reduce((sum, item) => sum + Number(item.recipe?.calories || item.calories || 0), 0),
+              dayTargetCalories: user?.dailyCalorieTarget || 2000,
             },
           );
           this.logRepeatDebug(
@@ -1278,6 +1286,10 @@ export class MealPlanService {
                       mealTargetCalories: recTarget,
                       currentMealCalories: recCurrent,
                       remainingMealCalories: recRemaining,
+                      currentDayCalories: dayItemsList
+                        .filter((item) => item.recipe)
+                        .reduce((sum, item) => sum + Number(item.recipe?.calories || item.calories || 0), 0),
+                      dayTargetCalories: user?.dailyCalorieTarget || 2000,
                     },
                   );
 
@@ -1391,6 +1403,10 @@ export class MealPlanService {
             mealTargetCalories: recTarget,
             currentMealCalories: recCurrent,
             remainingMealCalories: recRemaining,
+            currentDayCalories: dayItemsList
+              .filter((item) => item.recipe)
+              .reduce((sum, item) => sum + Number(item.recipe?.calories || item.calories || 0), 0),
+            dayTargetCalories: user?.dailyCalorieTarget || 2000,
           },
         );
 
@@ -1537,6 +1553,10 @@ export class MealPlanService {
               mealTargetCalories: recTarget,
               currentMealCalories: recCurrent,
               remainingMealCalories: recRemaining,
+              currentDayCalories: dayItemsList
+                .filter((item) => item.recipe)
+                .reduce((sum, item) => sum + Number(item.recipe?.calories || item.calories || 0), 0),
+              dayTargetCalories: user?.dailyCalorieTarget || 2000,
             },
           );
           this.logRepeatDebug(

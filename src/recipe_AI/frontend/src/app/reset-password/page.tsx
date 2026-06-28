@@ -1,0 +1,205 @@
+﻿'use client';
+
+import { useState, useEffect, Suspense } from 'react';
+import { authAPI } from '@/lib/api';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { HiSparkles, HiExclamationCircle, HiCheckCircle } from 'react-icons/hi';
+
+function ResetPasswordForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [token, setToken] = useState<string | null>(null);
+
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const qToken = searchParams.get('token');
+    if (qToken) {
+      setToken(qToken);
+    } else {
+      setErrorMsg('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
+    }
+  }, [searchParams]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (!token) {
+      setErrorMsg('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
+      return;
+    }
+
+    if (!newPassword || !confirmPassword) {
+      toast.error('Vui lòng điền đầy đủ mật khẩu');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('Mật khẩu phải có tối thiểu 6 ký tự');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await authAPI.resetPassword({
+        token,
+        newPassword,
+        confirmPassword,
+      });
+      setSuccess(true);
+      toast.success(res.data.message || 'Đặt lại mật khẩu thành công!');
+
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+    } catch (err: any) {
+      console.error(err);
+      const apiMsg = err.response?.data?.message || 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.';
+      setErrorMsg('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
+      toast.error(apiMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (errorMsg && !success) {
+    return (
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center space-y-5">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 text-red-500 mb-2">
+          <HiExclamationCircle className="text-4xl" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900">Không thể thực hiện</h2>
+        <p className="text-sm text-gray-600 leading-relaxed px-4">
+          {errorMsg}
+        </p>
+        <div className="pt-4 flex flex-col gap-2">
+          <Link
+            href="/forgot-password"
+            className="inline-flex justify-center w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition duration-200"
+          >
+            Yêu cầu liên kết mới
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex justify-center w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition duration-200"
+          >
+            Quay lại đăng nhập
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center space-y-5">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 mb-2">
+          <HiCheckCircle className="text-4xl" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900">Đặt lại mật khẩu thành công</h2>
+        <p className="text-sm text-gray-600 leading-relaxed">
+          Mật khẩu của bạn đã được thay đổi thành công. Hệ thống đang chuyển hướng bạn về trang đăng nhập...
+        </p>
+        <div className="pt-4 animate-pulse text-sm text-emerald-600 font-medium">
+          Đang chuyển hướng...
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 space-y-6">
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-gray-700">Mật khẩu mới</label>
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          required
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+          placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-gray-700">Xác nhận mật khẩu mới</label>
+        <input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+          placeholder="Xác nhận lại mật khẩu mới"
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-[0.98]"
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            Đang lưu mật khẩu mới...
+          </span>
+        ) : (
+          'Đặt lại mật khẩu'
+        )}
+      </button>
+
+      <div className="text-center pt-2">
+        <Link
+          href="/login"
+          className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition"
+        >
+          Quay lại đăng nhập
+        </Link>
+      </div>
+    </form>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <div className="min-h-[85vh] flex items-center justify-center px-4 bg-gray-50/50">
+      <div className="w-full max-w-md">
+        {/* Logo Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 mb-4 shadow-sm">
+            <HiSparkles className="text-3xl" />
+          </div>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            Meal<span className="text-emerald-600">AI</span>
+          </h1>
+          <p className="text-gray-500 mt-2">Thiết lập lại mật khẩu mới cho tài khoản của bạn</p>
+        </div>
+
+        <Suspense fallback={
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
+            <p className="text-sm text-gray-500">Đang tải biểu mẫu đặt lại mật khẩu...</p>
+          </div>
+        }>
+          <ResetPasswordForm />
+        </Suspense>
+      </div>
+    </div>
+  );
+}

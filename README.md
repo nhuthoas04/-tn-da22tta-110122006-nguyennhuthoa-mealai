@@ -86,29 +86,37 @@ Quy trình gợi ý gồm ba giai đoạn:
 - **Frontend:** Vercel
 - **Backend:** Render Web Service
 - **Cơ sở dữ liệu:** Render PostgreSQL
-- File [`render.yaml`](./render.yaml) chứa Blueprint triển khai backend, database và một frontend tùy chọn trên Render.
+- File [`render.yaml`](./src/recipe_AI/render.yaml) chứa Blueprint triển khai backend, database và một frontend tùy chọn trên Render.
 
 ## 5. Cấu trúc thư mục
 
 ```text
-recipe_AI/
-|-- frontend/                 # Next.js, React, TypeScript, Tailwind CSS
-|   |-- src/app/              # Các trang theo App Router
-|   |-- src/components/       # Component dùng chung và ChatWidget
-|   |-- src/context/          # AuthContext
-|   `-- src/lib/              # API client và helper
-|-- backend/                  # NestJS, TypeORM, PostgreSQL
-|   |-- src/modules/auth/     # Xác thực và hồ sơ người dùng
-|   |-- src/modules/recipes/  # Công thức, yêu thích, đánh giá, kiểm duyệt
-|   |-- src/modules/inventory/
-|   |-- src/modules/recommendation/
-|   |-- src/modules/meal-plan/
-|   |-- src/modules/shopping-list/
-|   |-- src/modules/chatbot/
-|   |-- src/modules/notification/
-|   `-- src/modules/pdf/
-|-- assets/                   # Tài nguyên của đồ án
-|-- render.yaml               # Cấu hình triển khai Render
+.
+|-- docs/                     # Thư mục tài liệu (Báo cáo, poster, hướng dẫn sử dụng)
+|   |-- NguyenNhutHoa_110122006.docx
+|   |-- NguyenNhutHoa_110122006.pdf
+|   |-- poster.pdf
+|   `-- Huong_dan_su_dung_va_kich_ban_demo_MealAI.pdf
+|-- src/
+|   |-- mealai.backup         # Dữ liệu dự phòng
+|   `-- recipe_AI/            # Thư mục mã nguồn chính của đồ án
+|       |-- frontend/         # Next.js, React, TypeScript, Tailwind CSS
+|       |   |-- src/app/      # Các trang theo App Router
+|       |   |-- src/components/ # Component dùng chung và ChatWidget
+|       |   |-- src/context/  # AuthContext
+|       |   `-- src/lib/      # API client và helper
+|       |-- backend/          # NestJS, TypeORM, PostgreSQL
+|       |   |-- src/modules/auth/     # Xác thực và hồ sơ người dùng
+|       |   |-- src/modules/recipes/  # Công thức, yêu thích, đánh giá, kiểm duyệt
+|       |   |-- src/modules/inventory/
+|       |   |-- src/modules/recommendation/
+|       |   |-- src/modules/meal-plan/
+|       |   |-- src/modules/shopping-list/
+|       |   |-- src/modules/chatbot/
+|       |   |-- src/modules/notification/
+|       |   `-- src/modules/pdf/
+|       |-- assets/           # Tài nguyên của đồ án
+|       `-- render.yaml       # Cấu hình triển khai Render
 `-- README.md
 ```
 
@@ -135,8 +143,8 @@ Các dịch vụ ngoài:
 ### Bước 1: Tải mã nguồn
 
 ```bash
-git clone https://github.com/nhuthoas04/tn-da22tta-nguyennhuthoa-meal-ai.git
-cd tn-da22tta-nguyennhuthoa-meal-ai
+git clone https://github.com/nhuthoas04/-tn-da22tta-110122006-nguyennhuthoa-mealai.git
+cd -tn-da22tta-110122006-nguyennhuthoa-mealai
 ```
 
 ### Bước 2: Tạo cơ sở dữ liệu PostgreSQL
@@ -196,7 +204,7 @@ Lưu ý:
 Khởi chạy backend:
 
 ```bash
-cd backend
+cd src/recipe_AI/backend
 npm ci
 npm run start:dev
 ```
@@ -215,7 +223,7 @@ http://localhost:3001/api/v1/health
 
 ### Bước 4: Cấu hình frontend
 
-Mở terminal mới, tạo file `frontend/.env.local`:
+Mở terminal mới, tạo file `src/recipe_AI/frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
@@ -224,7 +232,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
 Khởi chạy frontend:
 
 ```bash
-cd frontend
+cd src/recipe_AI/frontend
 npm ci
 npm run dev
 ```
@@ -250,7 +258,7 @@ http://localhost:3000/register
 ### Backend
 
 ```bash
-cd backend
+cd src/recipe_AI/backend
 npm test
 npm run build
 ```
@@ -264,7 +272,7 @@ npm run start:prod
 ### Frontend
 
 ```bash
-cd frontend
+cd src/recipe_AI/frontend
 npm run lint
 npm run build
 npm run start
@@ -275,7 +283,7 @@ npm run start
 ### Backend và PostgreSQL trên Render
 
 1. Kết nối repository GitHub với Render.
-2. Chọn **Blueprint** và trỏ đến file `render.yaml`.
+2. Chọn **Blueprint** và trỏ đến file `src/recipe_AI/render.yaml`.
 3. Nhập các biến bí mật được đánh dấu `sync: false`, đặc biệt:
    - `GEMINI_API_KEY`
    - `MAIL_HOST`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM`
@@ -284,7 +292,7 @@ npm run start
 ### Frontend trên Vercel
 
 1. Import repository vào Vercel.
-2. Chọn **Root Directory** là `frontend`.
+2. Chọn **Root Directory** là `src/recipe_AI/frontend`.
 3. Framework Preset chọn **Next.js**.
 4. Thêm biến:
 

@@ -153,6 +153,14 @@ export default function MealPlannerPage() {
   };
 
   const getUserDailyCalories = () => {
+    const calories = Number(
+      (user as any)?.adjustedDailyCalorieTarget ||
+      (user as any)?.dailyCalorieTarget,
+    );
+    return Number.isFinite(calories) && calories > 0 ? calories : 0;
+  };
+
+  const getUserTdee = () => {
     const calories = Number((user as any)?.dailyCalorieTarget);
     return Number.isFinite(calories) && calories > 0 ? calories : 0;
   };
@@ -201,7 +209,9 @@ export default function MealPlannerPage() {
         totalDishes: overloadedMeal.currentCount,
         maxRecommendedDishes: overloadedMeal.maxCount,
         totalPortions: overloadedMeal.currentCount,
-        totalCaloriesNeeded: getUserDailyCalories(),
+        dailyCaloriesPerPerson: getUserDailyCalories(),
+        totalFamilyCaloriesNeeded: getUserDailyCalories() * getUserServings(),
+        totalCaloriesNeeded: getUserDailyCalories() * getUserServings(),
         dayOfWeek,
         mealDate,
         mealType: overloadedMeal.mealType,
@@ -281,6 +291,19 @@ export default function MealPlannerPage() {
       toast.error('Các bữa còn lại đã đủ món theo số người ăn, AI không thêm món nữa.');
       return;
     }
+    const exceededMeals = editableMealTypes.filter((mealType) => {
+      const target = getMealTargetCalories(getUserDailyCalories(), mealType);
+      const current = getMealCalories(
+        dayItems.filter((item: any) => item.mealType === mealType),
+      );
+      return target !== null && current >= target;
+    });
+    if (exceededMeals.length > 0) {
+      toast(
+        'Bữa này đã vượt mục tiêu kcal, AI sẽ ưu tiên món nhẹ hơn hoặc món thay thế phù hợp.',
+        { duration: 5000 },
+      );
+    }
 
     setAiSuggestingDay(dayOfWeek);
     setAiSuggestionError(null);
@@ -305,6 +328,9 @@ export default function MealPlannerPage() {
         useAntiWaste: true,
         overwrite,
         options: aiOptions,
+        healthConditions: (user as any)?.preferences?.healthConditions || '',
+        tdee: getUserTdee(),
+        adjustedDailyCalorieTarget: getUserDailyCalories(),
         excludeRecipeIds,
         recentSuggestedRecipeIds,
         forceRefresh: true,
@@ -933,6 +959,23 @@ export default function MealPlannerPage() {
               </span>
             </label>
           </div>
+          {getUserTdee() > 0 && getUserDailyCalories() !== getUserTdee() && (
+            <div className="flex flex-wrap gap-x-5 gap-y-1 border-t border-brand-primary/10 pt-3 text-xs text-slate-600">
+              <span>
+                TDEE gốc:{' '}
+                <strong>{formatNumber(getUserTdee())} kcal</strong>
+              </span>
+              <span>
+                Mục tiêu sức khỏe:{' '}
+                <strong className="text-brand-primary">
+                  {formatNumber(getUserDailyCalories())} kcal/ngày
+                </strong>
+              </span>
+            </div>
+          )}
+          <p className="border-t border-brand-primary/10 pt-3 text-xs font-medium text-slate-500">
+            Calories trong thực đơn được tính theo 1 khẩu phần/người. Nguyên liệu và danh sách mua sắm sẽ được quy đổi theo số người ăn đã lưu trong hồ sơ.
+          </p>
         </div>
 
         {/* Loading */}
@@ -980,8 +1023,8 @@ export default function MealPlannerPage() {
                             const tdee = getUserDailyCalories();
                             const dayCalories = getDayCalories(dayItemsForDay);
                             return tdee && tdee > 0
-                              ? `Tổng: ${formatNumber(dayCalories)}/${formatNumber(tdee)} kcal`
-                              : `Tổng: ${formatNumber(dayCalories)} kcal`;
+                              ? `Tổng/người: ${formatNumber(dayCalories)}/${formatNumber(tdee)} kcal`
+                              : `Tổng/người: ${formatNumber(dayCalories)} kcal`;
                           })()}
                         </span>
                         {(() => {
@@ -1063,8 +1106,8 @@ export default function MealPlannerPage() {
                                   const mealCalories = getMealCalories(itemsForSlot);
                                   const mealTarget = tdee && tdee > 0 ? getMealTargetCalories(tdee, meal.key) : null;
                                   return mealTarget !== null
-                                    ? `${formatNumber(mealCalories)}/${formatNumber(mealTarget)} kcal`
-                                    : `${formatNumber(mealCalories)} kcal`;
+                                    ? `${formatNumber(mealCalories)}/${formatNumber(mealTarget)} kcal/người`
+                                    : `${formatNumber(mealCalories)} kcal/người`;
                                 })()}
                               </span>
                               {(() => {
@@ -1222,14 +1265,14 @@ export default function MealPlannerPage() {
                 </div>
 
                 <div className="rounded-brand-md border border-brand-primary/15 bg-brand-primary/5 p-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-brand-primary">Tổng calories cần thiết</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-brand-primary">Mục tiêu calories cá nhân</p>
                   <p className="mt-1 text-2xl font-black text-slate-900">
-                    {portionWarning.totalCaloriesNeeded > 0
-                      ? `${portionWarning.totalCaloriesNeeded.toLocaleString('vi-VN')} kcal/ngày`
+                    {portionWarning.dailyCaloriesPerPerson > 0
+                      ? `${portionWarning.dailyCaloriesPerPerson.toLocaleString('vi-VN')} kcal/người/ngày`
                       : 'Chưa đủ dữ liệu calories'}
                   </p>
                   <p className="mt-1 text-xs font-medium text-slate-500">
-                    Hệ thống sẽ ưu tiên giữ món chính theo từng bữa, món đã khóa và món có giá trị dinh dưỡng tốt hơn khi tối ưu.
+                    Số người ăn không làm thay đổi mục tiêu này. Nếu cần ước tính cho cả gia đình: {portionWarning.totalFamilyCaloriesNeeded > 0 ? `${portionWarning.totalFamilyCaloriesNeeded.toLocaleString('vi-VN')} kcal/ngày` : 'chưa đủ dữ liệu'}.
                   </p>
                 </div>
 
@@ -1599,14 +1642,14 @@ function getCalorieStatusBadge(current: number, target: number, hasItems: boolea
   if (!target || target <= 0 || !hasItems) return null;
   const ratio = current / target;
 
-  if (ratio < 0.8) {
+  if (ratio < 0.75) {
     return (
       <span className="rounded-full bg-red-50 border border-red-200 px-1.5 py-0.5 text-[9px] font-bold text-red-600 normal-case tracking-normal">
         Thiếu kcal
       </span>
     );
   }
-  if (ratio >= 0.8 && ratio < 0.9) {
+  if (ratio >= 0.75 && ratio < 0.9) {
     return (
       <span className="rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 normal-case tracking-normal">
         Thiếu nhẹ

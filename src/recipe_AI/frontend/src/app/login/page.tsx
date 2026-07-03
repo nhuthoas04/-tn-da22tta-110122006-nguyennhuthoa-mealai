@@ -1,11 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { HiSparkles } from 'react-icons/hi';
-import { API_BASE_URL } from '@/lib/api';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -13,41 +12,54 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [takingLong, setTakingLong] = useState(false);
   const [loginError, setLoginError] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const emailFromQuery = params.get('email');
+    if (emailFromQuery) setEmail(emailFromQuery);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setTakingLong(false);
     setLoginError('');
+    const slowTimer = window.setTimeout(() => setTakingLong(true), 3000);
+
     try {
-      await login(email, password);
+      const authenticatedUser = await login(email, password);
       toast.success('Đăng nhập thành công!');
-      router.push('/');
+      router.replace(authenticatedUser.role === 'admin' ? '/admin' : '/');
     } catch (err: any) {
       let message = '';
       const status = err.response?.status;
-      if (err.code === 'ERR_NETWORK' || !err.response) {
-        message = 'Không kết nối được backend. Vui lòng kiểm tra backend đang chạy ở http://localhost:3001.';
+      if (err.code === 'ECONNABORTED') {
+        message = 'Máy chủ phản hồi quá lâu. Vui lòng chờ một phút rồi thử lại.';
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        message = 'Không thể kết nối máy chủ. Vui lòng thử lại sau.';
       } else if (status === 401) {
         message = 'Email hoặc mật khẩu không đúng.';
       } else if (status === 404) {
-        message = 'Sai endpoint API đăng nhập. Kiểm tra cấu hình NEXT_PUBLIC_API_URL hoặc AuthController.';
+        message = 'Không tìm thấy API đăng nhập. Vui lòng kiểm tra cấu hình hệ thống.';
       } else if (status >= 500) {
-        message = 'Lỗi máy chủ. Vui lòng kiểm tra backend hoặc PostgreSQL.';
+        message = 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau.';
       } else {
         message = err.response?.data?.message || 'Email hoặc mật khẩu không đúng.';
       }
       setLoginError(message);
       toast.error(message);
     } finally {
+      window.clearTimeout(slowTimer);
       setLoading(false);
+      setTakingLong(false);
     }
   };
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <HiSparkles className="text-5xl text-emerald-600 mx-auto mb-3" />
           <h1 className="text-3xl font-bold text-gray-900">
@@ -56,7 +68,6 @@ export default function LoginPage() {
           <p className="text-gray-500 mt-2">Đăng nhập để quản lý thực đơn</p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -65,6 +76,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
               placeholder="example@email.com"
             />
@@ -81,6 +93,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
               placeholder="Nhập mật khẩu"
             />
@@ -90,15 +103,12 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition disabled:opacity-50"
           >
-            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {takingLong ? 'Máy chủ đang khởi động...' : loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
 
           {loginError && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               <p className="font-semibold">{loginError}</p>
-              <p className="mt-1 text-xs text-red-600">
-                URL đang gọi: {API_BASE_URL}/auth/login
-              </p>
             </div>
           )}
 

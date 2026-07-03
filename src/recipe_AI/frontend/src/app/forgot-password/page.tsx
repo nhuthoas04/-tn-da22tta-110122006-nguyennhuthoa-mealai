@@ -42,15 +42,21 @@ export default function ForgotPasswordPage() {
       toast.success(res.data.message || 'Yêu cầu đặt lại mật khẩu đã được ghi nhận!');
     } catch (err: any) {
       console.error(err);
-      // Under all circumstances, we show a success status, but if it is a physical network/connection error we toast it
-      if (err.code === 'ERR_NETWORK' || !err.response) {
-        toast.error('Lỗi kết nối mạng. Vui lòng thử lại sau.');
-        setErrorMsg('Lỗi kết nối máy chủ. Vui lòng thử lại sau.');
-      } else {
-        // Safe backend will return success even if email does not exist.
-        // We set success true here to be consistent.
-        setSuccess(true);
-      }
+      const isTimeout =
+        err.code === 'ECONNABORTED' ||
+        err.code === 'ETIMEDOUT' ||
+        /timeout/i.test(String(err.message || ''));
+      const backendMessage = err.response?.data?.message;
+      const message = isTimeout
+        ? 'Máy chủ gửi email phản hồi quá lâu. Vui lòng thử lại sau.'
+        : typeof backendMessage === 'string'
+          ? backendMessage
+          : err.code === 'ERR_NETWORK' || !err.response
+            ? 'Không thể kết nối máy chủ. Vui lòng thử lại sau.'
+            : 'Không thể gửi email đặt lại mật khẩu. Vui lòng thử lại sau.';
+
+      setErrorMsg(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -79,7 +85,7 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="text-xl font-bold text-gray-900">Kiểm tra hộp thư của bạn</h2>
               <p className="text-sm text-gray-600 leading-relaxed px-2">
-                Nếu email <strong>{email}</strong> tồn tại trong hệ thống, liên kết đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra và nhấp vào liên kết để tạo mật khẩu mới.
+                Nếu email <strong>{email}</strong> tồn tại, hệ thống đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra Gmail.
               </p>
               <div className="pt-4">
                 <Link

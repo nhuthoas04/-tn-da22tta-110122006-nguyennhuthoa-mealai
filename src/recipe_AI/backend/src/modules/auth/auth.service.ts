@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { User } from './entities/user.entity';
 import { UserPreference } from './entities/user-preference.entity';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CalorieService } from '../recommendation/calorie.service';
 import { Favorite } from '../recipes/entities/favorite.entity';
@@ -45,6 +45,8 @@ export class AuthService {
       email: dto.email,
       passwordHash,
       fullName: dto.fullName,
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
     });
     await this.userRepo.save(user);
 
@@ -52,15 +54,13 @@ export class AuthService {
     const prefs = this.prefRepo.create({ userId: user.id, servings: null });
     await this.prefRepo.save(prefs);
 
-    // Generate tokens
-    const tokens = await this.generateTokens(user);
-
     return {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
       role: user.role,
-      ...tokens,
+      emailVerified: user.emailVerified,
+      message: 'Đăng ký thành công. Bạn có thể đăng nhập ngay.',
     };
   }
 
@@ -82,6 +82,7 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user);
+    const calorieTargets = this.calorieService.getUserCalorieTargets(user);
 
     return {
       ...tokens,
@@ -91,6 +92,11 @@ export class AuthService {
         fullName: user.fullName,
         role: user.role,
         dailyCalorieTarget: user.dailyCalorieTarget,
+        adjustedDailyCalorieTarget: calorieTargets.adjustedDailyTarget,
+        calorieGoal: calorieTargets.goal,
+        calorieBreakdown: calorieTargets.meals,
+        preferences: user.preferences,
+        emailVerified: user.emailVerified,
       },
     };
   }
@@ -119,6 +125,7 @@ export class AuthService {
     });
 
     if (!user) return null;
+    const calorieTargets = this.calorieService.getUserCalorieTargets(user);
 
     return {
       id: user.id,
@@ -126,12 +133,17 @@ export class AuthService {
       role: user.role,
       fullName: user.fullName,
       avatarUrl: user.avatarUrl,
+      emailVerified: user.emailVerified,
+      emailVerifiedAt: user.emailVerifiedAt,
       gender: user.gender,
       dateOfBirth: user.dateOfBirth,
       weight: user.weight,
       height: user.height,
       activityLevel: user.activityLevel,
       dailyCalorieTarget: user.dailyCalorieTarget,
+      adjustedDailyCalorieTarget: calorieTargets.adjustedDailyTarget,
+      calorieGoal: calorieTargets.goal,
+      calorieBreakdown: calorieTargets.meals,
       preferences: user.preferences
         ? {
             dietType: user.preferences.dietType,
@@ -195,17 +207,17 @@ export class AuthService {
       }
       Object.assign(prefs, dto.preferences);
       await this.prefRepo.save(prefs);
+      user.preferences = prefs;
     }
 
-    // Return calorie breakdown
-    const breakdown = this.calorieService.getMealDistribution(
-      user.dailyCalorieTarget,
-    );
+    const calorieTargets = this.calorieService.getUserCalorieTargets(user);
 
     return {
       message: 'Profile updated',
       dailyCalorieTarget: user.dailyCalorieTarget,
-      calorieBreakdown: breakdown,
+      adjustedDailyCalorieTarget: calorieTargets.adjustedDailyTarget,
+      calorieGoal: calorieTargets.goal,
+      calorieBreakdown: calorieTargets.meals,
     };
   }
 
@@ -225,6 +237,7 @@ export class AuthService {
         height: user.height,
         activityLevel: user.activityLevel,
         dailyCalorieTarget: user.dailyCalorieTarget,
+        emailVerified: user.emailVerified,
         createdAt: user.createdAt,
       })),
     };
@@ -242,6 +255,8 @@ export class AuthService {
       passwordHash,
       fullName: dto.fullName,
       role: dto.role || 'user',
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
     });
     await this.userRepo.save(user);
 
@@ -254,6 +269,7 @@ export class AuthService {
       email: user.email,
       fullName: user.fullName,
       role: user.role,
+      emailVerified: user.emailVerified,
       createdAt: user.createdAt,
     };
   }
@@ -295,6 +311,7 @@ export class AuthService {
       email: user.email,
       fullName: user.fullName,
       role: user.role,
+      emailVerified: user.emailVerified,
       updatedAt: user.updatedAt,
     };
   }
@@ -354,7 +371,7 @@ export class AuthService {
       .innerJoin('rating.recipe', 'recipe')
       .select('AVG(rating.rating)', 'avg')
       .where('recipe.submittedBy = :userId', { userId })
-      .andWhere('rating.moderationStatus = :status', { status: 'reviewed' })
+      .andWhere('rating.moderationStatus != :status', { status: 'removed' })
       .getRawOne();
     const averageRating = parseFloat(ratingResult?.avg || '0');
 

@@ -14,7 +14,11 @@ import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserPreference, PasswordResetToken]),
+    TypeOrmModule.forFeature([
+      User,
+      UserPreference,
+      PasswordResetToken,
+    ]),
     PassportModule,
     JwtModule.register({}), // Config is done per-sign in AuthService
     forwardRef(() => RecommendationModule),

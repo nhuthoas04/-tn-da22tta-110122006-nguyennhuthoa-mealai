@@ -60,12 +60,21 @@ api.interceptors.response.use(
 
 export default api;
 
+// ==================== HEALTH API ====================
+export const healthAPI = {
+    wake: () =>
+        api.get('/health', {
+            timeout: 70000,
+            headers: { 'Cache-Control': 'no-cache' },
+        }),
+};
+
 // ==================== AUTH API ====================
 export const authAPI = {
     register: (data: { email: string; password: string; fullName: string }) =>
         api.post('/auth/register', data),
     login: (data: { email: string; password: string }) =>
-        api.post('/auth/login', data),
+        api.post('/auth/login', data, { timeout: 70000 }),
     getProfile: () => api.get('/auth/profile'),
     updateProfile: (data: any) => api.put('/auth/profile', data),
     getProfileStats: () => api.get('/auth/profile/stats'),
@@ -75,8 +84,10 @@ export const authAPI = {
     adminDeleteUser: (id: string) => api.delete(`/auth/admin/users/${id}`),
     
     // Password Reset
-    forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+    forgotPassword: (email: string) =>
+        api.post('/auth/forgot-password', { email }, { timeout: 12000 }),
     resetPassword: (data: any) => api.post('/auth/reset-password', data),
+
 };
 
 // ==================== RECIPES API ====================
@@ -205,7 +216,7 @@ export const mealPlanAPI = {
             mutation: 'generate',
             weekStart: data?.weekStart,
         }),
-    generateForDays: (data: { weekStart?: string; days?: number[]; mealDates?: string[]; targetDate?: string; scope?: 'day' | 'week'; source?: string; useAntiWaste?: boolean; mealType?: string; mealTypes?: string[]; overwrite?: boolean; optimizePortions?: boolean; options?: { preferNewRecipes?: boolean; avoidRepeatLast7Days?: boolean }; prioritizeNew?: boolean; noRepeatIn7Days?: boolean; avoidRepeatMeals?: boolean; excludeRecipeIds?: string[]; recentSuggestedRecipeIds?: string[]; forceRefresh?: boolean }) =>
+    generateForDays: (data: { weekStart?: string; days?: number[]; mealDates?: string[]; targetDate?: string; scope?: 'day' | 'week'; source?: string; healthConditions?: string; tdee?: number; adjustedDailyCalorieTarget?: number; useAntiWaste?: boolean; mealType?: string; mealTypes?: string[]; overwrite?: boolean; optimizePortions?: boolean; options?: { preferNewRecipes?: boolean; avoidRepeatLast7Days?: boolean }; prioritizeNew?: boolean; noRepeatIn7Days?: boolean; avoidRepeatMeals?: boolean; excludeRecipeIds?: string[]; recentSuggestedRecipeIds?: string[]; forceRefresh?: boolean }) =>
         invalidateMealPlanAfter(api.post('/meal-plans/generate-days', data), {
             mutation: 'generate-days',
             weekStart: data.weekStart,
@@ -267,6 +278,9 @@ export const chatbotAPI = {
 
 // ==================== ADMIN MODERATION API ====================
 export const adminModerationAPI = {
+    getFlaggedReviews: () => api.get('/admin/reviews/flagged'),
+    deleteFlaggedReview: (reviewId: string) => api.delete(`/admin/reviews/${reviewId}`),
+    ignoreFlaggedReview: (reviewId: string) => api.patch(`/admin/reviews/${reviewId}/ignore`),
     getNotifications: () => api.get('/admin/moderation/notifications'),
     markNotificationAsRead: (id: string) => api.patch(`/admin/moderation/notifications/${id}/read`),
     approveReview: (reviewId: string) => api.post(`/admin/moderation/reviews/${reviewId}/approve`),

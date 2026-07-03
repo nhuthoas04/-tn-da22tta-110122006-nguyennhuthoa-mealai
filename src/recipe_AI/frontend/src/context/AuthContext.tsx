@@ -8,13 +8,21 @@ interface User {
   fullName: string;
   role: string; // 'user' | 'admin'
   dailyCalorieTarget?: number;
+  adjustedDailyCalorieTarget?: number;
+  calorieGoal?: 'weight_loss' | 'muscle_gain' | 'maintenance';
+  preferences?: {
+    healthConditions?: string;
+    servings?: number;
+    minProteinPerMeal?: number;
+    [key: string]: unknown;
+  };
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  register: (email: string, password: string, fullName: string) => Promise<any>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   isAdmin: boolean;
@@ -51,13 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('accessToken', res.data.accessToken);
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
+    return res.data.user as User;
   };
 
   const register = async (email: string, password: string, fullName: string) => {
     const res = await authAPI.register({ email, password, fullName });
-    localStorage.setItem('accessToken', res.data.accessToken);
-    localStorage.setItem('refreshToken', res.data.refreshToken);
-    setUser({ id: res.data.id, email: res.data.email, fullName: res.data.fullName, role: res.data.role || 'user' });
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    setUser(null);
+    return res.data;
   };
 
   const logout = () => {

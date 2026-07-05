@@ -92,12 +92,17 @@ Quy trình gợi ý gồm ba giai đoạn:
 
 ```text
 .
-|-- docs/                     # Thư mục tài liệu (Báo cáo, poster, hướng dẫn sử dụng)
-|   |-- NguyenNhutHoa_110122006.docx
-|   |-- NguyenNhutHoa_110122006.pdf
-|   |-- poster.pdf
-|   |-- poster.png
-|   `-- Huong_dan_su_dung_va_kich_ban_demo_MealAI.pdf
+|-- docs/                     # Thư mục tài liệu (Báo cáo, poster, slide thuyết trình, hướng dẫn sử dụng)
+|   |-- baocao/               # Báo cáo đồ án tốt nghiệp (Word & PDF)
+|   |   |-- NguyenNhutHoa_110122006.docx
+|   |   `-- NguyenNhutHoa_110122006.pdf
+|   |-- poster/               # Poster giới thiệu đồ án (PDF & PNG)
+|   |   |-- poster.pdf
+|   |   `-- poster.png
+|   |-- slides/               # Slide báo cáo bảo vệ đồ án tốt nghiệp (PPTX & PDF)
+|   |   |-- MealAI_BaoVe_DoAn_NguyenNhutHoa.pdf
+|   |   `-- MealAI_BaoVe_DoAn_NguyenNhutHoa.pptx
+|   `-- Huong_dan_su_dung_va_kich_ban_demo_MealAI.pdf  # Hướng dẫn sử dụng và kịch bản demo
 |-- src/
 |   |-- mealai.backup         # Dữ liệu dự phòng
 |   `-- recipe_AI/            # Thư mục mã nguồn chính của đồ án

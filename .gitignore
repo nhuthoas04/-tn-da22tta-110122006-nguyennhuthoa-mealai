@@ -1,0 +1,11 @@
+# Temporary MS Office files
+~$*
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Environments
+.env
+.env.*
+!.env.example

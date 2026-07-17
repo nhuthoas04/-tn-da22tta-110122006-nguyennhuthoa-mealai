@@ -17,31 +17,12 @@ export interface MealPortionWarningResult {
   message: string | null;
 }
 
-export function getMaxRecommendedDishes(servingsInput: number): number {
-  const servings = Math.max(1, Math.floor(Number(servingsInput) || 1));
-
-  if (servings <= 1) return 6;
-  if (servings <= 2) return 8;
-  if (servings <= 4) return 11;
-  if (servings <= 6) return 14;
-
-  return Math.ceil(servings * 2.5);
+export function getMaxRecommendedDishes(servingsInput?: number): number {
+  return 6;
 }
 
-export function getMealSlotLimit(servingsInput: number, mealType: string): number {
-  const servings = Math.max(1, Math.floor(Number(servingsInput) || 1));
-
-  if (servings <= 1) return 2;
-  if (servings === 2) return mealType === 'breakfast' ? 2 : 3;
-  if (servings <= 4) return mealType === 'breakfast' ? 3 : 4;
-  if (servings <= 6) return mealType === 'breakfast' ? 4 : 5;
-
-  const max = getMaxRecommendedDishes(servings);
-  const breakfast = Math.max(4, Math.round(max * 0.28));
-  const lunch = Math.max(5, Math.round((max - breakfast) / 2));
-  if (mealType === 'breakfast') return breakfast;
-  if (mealType === 'lunch') return lunch;
-  return Math.max(5, max - breakfast - lunch);
+export function getMealSlotLimit(servingsInput?: number, mealType?: string): number {
+  return 2;
 }
 
 export function getMaxDishesByServings(servings: number): number {
@@ -75,11 +56,8 @@ export function calculateMealPortionWarning(input: MealPortionWarningInput, isAi
   };
 }
 
-export function getDishCountLimit(peopleCount: number) {
-  if (peopleCount <= 1) return 2;
-  if (peopleCount === 2) return 4;
-  if (peopleCount <= 4) return 6;
-  return 8;
+export function getDishCountLimit(peopleCount?: number): number {
+  return 6;
 }
 
 export function getMealTargetCalories(tdee: number, mealType: string) {

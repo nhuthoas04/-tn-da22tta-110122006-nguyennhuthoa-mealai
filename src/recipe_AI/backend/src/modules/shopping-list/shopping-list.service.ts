@@ -97,19 +97,19 @@ export class ShoppingListService {
 
     return {
       data: lists.map((list) => {
-        const buyItems = list.items.filter(
-          (item) => Number(item.needToBuyQuantity ?? item.quantity ?? 0) > 0,
-        );
-        const purchasedItems = buyItems.filter((i) => i.isPurchased).length;
+        const summary = this.buildSummary(list.items);
         return {
           id: list.id,
           name: list.name,
           mealPlanId: list.mealPlanId,
           status: list.status,
-          totalItems: buyItems.length,
-          purchasedItems,
-          inventoryCoveredItems: list.items.filter((i) => i.isEnoughFromInventory).length,
-          totalIngredients: list.items.length,
+          totalItems: summary.totalItems,
+          totalIngredients: summary.totalItems,
+          needToBuyItems: summary.needToBuyItems,
+          purchasedItems: summary.purchasedItems,
+          inventoryCoveredItems: summary.availableItems,
+          availableItems: summary.availableItems,
+          summary,
           estimatedTotal: 0,
           createdAt: list.createdAt,
         };
@@ -147,6 +147,8 @@ export class ShoppingListService {
     });
 
     const mappedItems = list.items.map((item) => {
+      const ingredientName = item.ingredient?.name || 'Nguyên liệu không xác định';
+      const ingredientCategory = item.ingredient?.category || item.category || 'other';
       const requiredQuantity = this.roundQuantity(
         Number(item.quantityNeeded ?? item.quantity ?? 0),
       );
@@ -160,10 +162,11 @@ export class ShoppingListService {
 
       return {
         id: item.id,
+        name: ingredientName,
         ingredient: {
-          id: item.ingredient.id,
-          name: item.ingredient.name,
-          category: item.ingredient.category,
+          id: item.ingredient?.id || item.ingredientId,
+          name: ingredientName,
+          category: ingredientCategory,
         },
         quantity: needToBuyQuantity,
         requiredQuantity,
@@ -172,10 +175,10 @@ export class ShoppingListService {
         quantitySourced: availableQuantity,
         needToBuyQuantity,
         unit: item.unit,
-        category: item.category || this.getCategoryLabel(item.ingredient.category),
+        category: item.category || this.getCategoryLabel(ingredientCategory),
         estimatedPrice: item.estimatedPrice,
         isPurchased: item.isPurchased,
-        isEnoughFromInventory: item.isEnoughFromInventory,
+        isEnoughFromInventory: item.isEnoughFromInventory || needToBuyQuantity <= 0,
         note: item.note,
         allocations: allocationsForItem,
       };
@@ -184,23 +187,27 @@ export class ShoppingListService {
     const groups = this.groupItems(mappedItems);
     const toBuyItems = mappedItems.filter((item) => item.needToBuyQuantity > 0);
     const inventoryOnlyItems = mappedItems.filter(
-      (item) => item.needToBuyQuantity <= 0 && item.availableQuantity > 0,
+      (item) => item.needToBuyQuantity <= 0 || item.isEnoughFromInventory,
     );
     const autoDeducted = mappedItems.filter((item) => item.availableQuantity > 0).length;
+    const summary = this.buildSummary(mappedItems);
 
     return {
       id: list.id,
+      title: list.name,
       name: list.name,
       status: list.status,
       createdAt: list.createdAt,
+      shoppingDate: list.createdAt,
       estimatedTotal: 0,
       summary: {
-        totalIngredients: mappedItems.length,
-        needToBuyItems: toBuyItems.length,
-        alreadyInInventoryItems: inventoryOnlyItems.length,
+        ...summary,
+        totalIngredients: summary.totalItems,
+        alreadyInInventoryItems: summary.availableItems,
+        inventoryCoveredItems: summary.availableItems,
         autoDeductedItems: autoDeducted,
-        purchasedItems: toBuyItems.filter((item) => item.isPurchased).length,
       },
+      items: mappedItems,
       groups,
       purchaseGroups: this.groupItems(toBuyItems),
       inventoryGroups: this.groupItems(inventoryOnlyItems),
@@ -861,9 +868,35 @@ export class ShoppingListService {
       .map(([category, groupedItems]) => ({
         category,
         items: groupedItems.sort((a, b) =>
-          a.ingredient.name.localeCompare(b.ingredient.name, 'vi'),
+          (a.ingredient?.name || a.name || '').localeCompare(
+            b.ingredient?.name || b.name || '',
+            'vi',
+          ),
         ),
       }));
+  }
+
+  private buildSummary(items: Array<Record<string, any>>) {
+    const totalItems = items.length;
+    const needToBuyItems = items.filter((item) => this.getNeedToBuyQuantity(item) > 0)
+      .length;
+    const availableItems = items.filter(
+      (item) => this.getNeedToBuyQuantity(item) <= 0 || item.isEnoughFromInventory,
+    ).length;
+    const purchasedItems = items.filter(
+      (item) => this.getNeedToBuyQuantity(item) > 0 && item.isPurchased,
+    ).length;
+
+    return {
+      totalItems,
+      needToBuyItems,
+      availableItems,
+      purchasedItems,
+    };
+  }
+
+  private getNeedToBuyQuantity(item: Record<string, any>) {
+    return Number(item.needToBuyQuantity ?? item.quantity ?? 0);
   }
 
   private mapAllocationDetail(alloc: InventoryAllocation) {

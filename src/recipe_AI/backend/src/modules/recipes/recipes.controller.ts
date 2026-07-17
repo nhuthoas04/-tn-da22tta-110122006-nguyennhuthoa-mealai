@@ -30,6 +30,11 @@ export class RecipesController {
 
   // ==================== PUBLIC ====================
 
+  @Get('public/stats')
+  getPublicStats() {
+    return this.recipesService.getPublicStats();
+  }
+
   @Get()
   findAll(
     @Request() req,

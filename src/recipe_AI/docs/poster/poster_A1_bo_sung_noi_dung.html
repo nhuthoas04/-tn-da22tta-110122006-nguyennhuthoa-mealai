@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Poster MealAI A1 - Bổ sung nội dung</title>
+  <style>
+    @page {
+      size: 594mm 841mm;
+      margin: 0;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 594mm;
+      height: 841mm;
+      margin: 0;
+      background: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      position: relative;
+      width: 594mm;
+      height: 841mm;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .poster {
+      position: absolute;
+      inset: 0;
+      width: 594mm;
+      height: 841mm;
+      object-fit: fill;
+      z-index: 0;
+    }
+
+    .info-bar {
+      position: absolute;
+      z-index: 2;
+      left: 20mm;
+      top: 73.9mm;
+      width: 554mm;
+      height: 20mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4.2mm;
+      padding: 0 10mm;
+      background: #f4fffa;
+      color: #06432f;
+      font-size: 4.28mm;
+      line-height: 1;
+      font-weight: 650;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .info-bar strong {
+      color: #006b43;
+      font-weight: 900;
+    }
+
+    .info-separator {
+      color: #0b5f42;
+      font-weight: 900;
+      opacity: .8;
+    }
+
+    .patch {
+      position: absolute;
+      z-index: 2;
+      background: #fbfffd;
+      color: #063f2d;
+      overflow: hidden;
+    }
+
+    .grid-list,
+    .single-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: 3.45mm;
+      line-height: 1.32;
+      font-weight: 760;
+    }
+
+    .grid-list {
+      gap: 1.2mm 8mm;
+    }
+
+    .single-list {
+      gap: 1.35mm 8mm;
+    }
+
+    .grid-list li,
+    .single-list li {
+      position: relative;
+      padding-left: 4.1mm;
+    }
+
+    .grid-list li::before,
+    .single-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: #069a61;
+      font-weight: 900;
+    }
+
+    .note-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2.5mm;
+      margin-top: 4mm;
+    }
+
+    .pill {
+      min-height: 11.5mm;
+      border: .35mm solid #b9e8d3;
+      background: #edf9f3;
+      border-radius: 2mm;
+      padding: 1.6mm 2mm 1.35mm;
+      text-align: center;
+      color: #04623f;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 3.25mm;
+      line-height: 1.02;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <img class="poster" src="./_extracted_poster_assets/01-img_p0_1-3508x4967.png" alt="Poster MealAI gốc" />
+
+    <div class="info-bar" aria-label="Thông tin sinh viên">
+      <span><strong>Sinh viên:</strong> Nguyễn Nhựt Hóa</span>
+      <span class="info-separator">|</span>
+      <span><strong>MSSV:</strong> 110122006</span>
+      <span class="info-separator">|</span>
+      <span><strong>Lớp:</strong> DA22TTA</span>
+      <span class="info-separator">|</span>
+      <span><strong>Khóa:</strong> 2022</span>
+      <span class="info-separator">|</span>
+      <span><strong>GVHD:</strong> ThS. Dương Ngọc Vân Khanh</span>
+      <span class="info-separator">|</span>
+      <span><strong>Đơn vị:</strong> Đại học Trà Vinh – Trường Kỹ thuật và Công nghệ</span>
+    </div>
+
+    <section class="patch" style="left:25mm; top:763.5mm; width:263mm; height:55mm; padding:8.7mm 7mm 3mm;">
+      <ul class="grid-list">
+        <li>Hoàn thiện website MealAI và triển khai trực tuyến.</li>
+        <li>Lập thực đơn ngày/tuần, khóa bữa đã qua.</li>
+        <li>Gợi ý món theo nguyên liệu, sở thích, sức khỏe và TDEE.</li>
+        <li>Theo dõi calories, protein, carbs, fat theo mục tiêu.</li>
+        <li>Tự động tạo danh sách mua sắm và trừ tủ lạnh.</li>
+        <li>Chatbot MealAI hỗ trợ thêm, đổi, xóa món.</li>
+        <li>Xác thực email, quên mật khẩu bằng Resend.</li>
+        <li>Kiểm duyệt bình luận và cảnh báo nội dung vi phạm.</li>
+      </ul>
+      <div class="note-row">
+        <div class="pill">8 nhóm<br />chức năng</div>
+        <div class="pill">AI + TDEE<br />cá nhân hóa</div>
+        <div class="pill">Online<br />Vercel · Render</div>
+      </div>
+    </section>
+
+    <section class="patch" style="left:296mm; top:763.5mm; width:217mm; height:55mm; padding:8.7mm 7mm 3mm;">
+      <ul class="single-list">
+        <li>Mở rộng dữ liệu món ăn và dinh dưỡng Việt Nam.</li>
+        <li>Nâng cấp thuật toán bằng Machine Learning.</li>
+        <li>Tích hợp OCR nhận diện nguyên liệu từ hình ảnh.</li>
+        <li>Phát triển ứng dụng mobile.</li>
+        <li>Cá nhân hóa sâu theo hồ sơ sức khỏe.</li>
+        <li>Cải thiện bảo mật, thông báo và trải nghiệm email.</li>
+      </ul>
+      <div class="note-row">
+        <div class="pill">Dữ liệu<br />Việt Nam</div>
+        <div class="pill">OCR<br />nguyên liệu</div>
+        <div class="pill">Ứng dụng<br />mobile</div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

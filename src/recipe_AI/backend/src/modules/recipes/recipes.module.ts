@@ -19,6 +19,8 @@ import { User } from '../auth/entities/user.entity';
 import { RecipeView } from './entities/recipe-view.entity';
 import { RecipeEditHistory } from './entities/recipe-edit-history.entity';
 import { NotificationModule } from '../notification/notification.module';
+import { MealPlan } from '../meal-plan/entities/meal-plan.entity';
+import { UserActionLog } from '../chatbot/entities/user-action-log.entity';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { NotificationModule } from '../notification/notification.module';
       User,
       RecipeView,
       RecipeEditHistory,
+      MealPlan,
+      UserActionLog,
     ]),
     NotificationModule,
   ],

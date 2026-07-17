@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useInView } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { recommendationAPI, mealPlanAPI, inventoryAPI } from '@/lib/api';
+import { recommendationAPI, mealPlanAPI, inventoryAPI, recipesAPI } from '@/lib/api';
 import { MEAL_PLAN_UPDATED_EVENT } from '@/lib/mealPlanEvents';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -47,6 +47,13 @@ type DashboardInsightItem = {
   tone: 'emerald' | 'amber' | 'teal' | 'rose';
 };
 
+type PublicStats = {
+  totalRecipes: number;
+  totalMealPlans: number;
+  totalAiActions: number;
+  totalUsers: number;
+};
+
 const formatDateInputValue = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -89,9 +96,9 @@ function isPastMealSlot(dateString: string, mealType: string) {
   if (!isToday(dateString)) return false;
 
   const hour = new Date().getHours();
-  if (mealType === 'breakfast') return hour >= 10;
-  if (mealType === 'lunch') return hour >= 14;
-  if (mealType === 'dinner') return hour >= 21;
+  if (mealType === 'breakfast') return hour >= 8;
+  if (mealType === 'lunch') return hour >= 12;
+  if (mealType === 'dinner') return hour >= 19;
 
   return false;
 }
@@ -372,6 +379,41 @@ export default function HomePage() {
   const [nutritionAnalysis, setNutritionAnalysis] = useState<any>(null);
   const [consumedMeals, setConsumedMeals] = useState<Record<string, boolean>>({});
   const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [publicStats, setPublicStats] = useState<PublicStats>({
+    totalRecipes: 0,
+    totalMealPlans: 0,
+    totalAiActions: 0,
+    totalUsers: 0,
+  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    recipesAPI
+      .getPublicStats()
+      .then((response) => {
+        if (!mounted) return;
+        setPublicStats({
+          totalRecipes: Number(response.data?.totalRecipes || 0),
+          totalMealPlans: Number(response.data?.totalMealPlans || 0),
+          totalAiActions: Number(response.data?.totalAiActions || 0),
+          totalUsers: Number(response.data?.totalUsers || 0),
+        });
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setPublicStats({
+          totalRecipes: 0,
+          totalMealPlans: 0,
+          totalAiActions: 0,
+          totalUsers: 0,
+        });
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -1019,30 +1061,30 @@ export default function HomePage() {
 
             <div className="space-y-2">
               <p className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-                <AnimatedCounter to={500} suffix="+" />
+                <AnimatedCounter to={publicStats.totalRecipes} />
               </p>
-              <p className="text-xs sm:text-sm text-slate-505 font-bold">Công thức nấu ăn Việt</p>
+              <p className="text-xs sm:text-sm text-slate-505 font-bold">Công thức đang có</p>
             </div>
 
             <div className="space-y-2">
               <p className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-                <AnimatedCounter to={1000} suffix="+" />
+                <AnimatedCounter to={publicStats.totalMealPlans} />
               </p>
-              <p className="text-xs sm:text-sm text-slate-550 font-bold">Thực đơn được tạo</p>
+              <p className="text-xs sm:text-sm text-slate-550 font-bold">Thực đơn đã tạo</p>
             </div>
 
             <div className="space-y-2">
               <p className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-                <AnimatedCounter to={3000} suffix="+" />
+                <AnimatedCounter to={publicStats.totalAiActions} />
               </p>
-              <p className="text-xs sm:text-sm text-slate-550 font-bold">Lượt gợi ý từ AI</p>
+              <p className="text-xs sm:text-sm text-slate-550 font-bold">Lượt thao tác AI</p>
             </div>
 
             <div className="space-y-2">
               <p className="text-3xl sm:text-5xl font-extrabold text-brand-primary tracking-tight">
-                <AnimatedCounter to={95} suffix="%" className="text-brand-primary" />
+                <AnimatedCounter to={publicStats.totalUsers} className="text-brand-primary" />
               </p>
-              <p className="text-xs sm:text-sm text-slate-550 font-bold">Người dùng hài lòng</p>
+              <p className="text-xs sm:text-sm text-slate-550 font-bold">Người dùng</p>
             </div>
 
           </div>

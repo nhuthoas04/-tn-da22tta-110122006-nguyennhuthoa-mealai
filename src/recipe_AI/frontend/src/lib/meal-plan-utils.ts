@@ -44,9 +44,9 @@ export function isPastMealSlot(dateString: string, mealType: string): boolean {
   if (dateString > getTodayInputValue()) return false;
 
   const currentHour = new Date().getHours();
-  if (mealType === 'breakfast') return currentHour >= 10;
-  if (mealType === 'lunch') return currentHour >= 14;
-  if (mealType === 'dinner') return currentHour >= 21;
+  if (mealType === 'breakfast') return currentHour >= 8;
+  if (mealType === 'lunch') return currentHour >= 12;
+  if (mealType === 'dinner') return currentHour >= 19;
   return false;
 }
 

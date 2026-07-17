@@ -78,6 +78,7 @@ export default function ProfilePage() {
       setServingsError(servingsValidation.message);
       return;
     }
+    const { maxCookingTime, budgetPerMeal, ...visiblePreferences } = profile.preferences || {};
 
     setSaving(true);
     try {
@@ -89,7 +90,7 @@ export default function ProfilePage() {
         height: profile.height ? Number(profile.height) : undefined,
         activityLevel: profile.activityLevel,
         preferences: {
-          ...profile.preferences,
+          ...visiblePreferences,
           servings: servingsValidation.servings,
         },
       });
@@ -686,28 +687,6 @@ export default function ProfilePage() {
               <option value="keto">Keto (Cắt tinh bột, nhiều béo)</option>
             </select>
             <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Lựa chọn chế độ ăn kiêng phù hợp (nếu có)</p>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Thời gian nấu tối đa (phút)</label>
-            <input
-              type="number"
-              value={profile.preferences?.maxCookingTime || ''}
-              onChange={(e) => updatePref('maxCookingTime', Number(e.target.value))}
-              placeholder="VD: 30"
-              className="w-full px-3 py-2 border border-brand-light-border rounded-brand-sm text-sm font-medium focus:ring-2 focus:ring-brand-primary/10 focus:border-brand-primary outline-none"
-            />
-            <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Để trống nếu không giới hạn thời gian nấu</p>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Ngân sách/bữa (VNĐ)</label>
-            <input
-              type="number"
-              value={profile.preferences?.budgetPerMeal || ''}
-              onChange={(e) => updatePref('budgetPerMeal', Number(e.target.value))}
-              placeholder="VD: 50000"
-              className="w-full px-3 py-2 border border-brand-light-border rounded-brand-sm text-sm font-medium focus:ring-2 focus:ring-brand-primary/10 focus:border-brand-primary outline-none"
-            />
-            <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Để trống nếu không giới hạn ngân sách</p>
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Số người ăn *</label>

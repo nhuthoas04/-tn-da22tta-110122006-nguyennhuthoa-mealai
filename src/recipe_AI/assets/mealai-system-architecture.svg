@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560">
+  <defs>
+    <style>
+      .title { font-family: Arial, Helvetica, sans-serif; font-size: 34px; font-weight: 800; fill: #075b38; }
+      .subtitle { font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 500; fill: #49665d; }
+      .boxTitle { font-family: Arial, Helvetica, sans-serif; font-size: 21px; font-weight: 800; fill: #075b38; }
+      .boxText { font-family: Arial, Helvetica, sans-serif; font-size: 15px; font-weight: 600; fill: #31564a; }
+      .small { font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; fill: #075b38; }
+      .deploy { font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 800; fill: #075b38; }
+      .deployText { font-family: Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 600; fill: #31564a; }
+      .node { fill: #f5fcf8; stroke: #8bdab6; stroke-width: 2; }
+      .iconBg { fill: #e1f7ec; stroke: #8bdab6; stroke-width: 1.5; }
+      .arrow { stroke: #04835a; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowHead); }
+      .soft { fill: #eaf8f1; stroke: #8bdab6; stroke-width: 1.8; }
+    </style>
+    <marker id="arrowHead" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#04835a"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0b6b45" flood-opacity="0.10"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="560" rx="34" fill="#ffffff"/>
+  <rect x="22" y="22" width="1556" height="516" rx="30" fill="#fbfffd" stroke="#9bd9bc" stroke-width="3"/>
+
+  <text x="800" y="76" text-anchor="middle" class="title">KIẾN TRÚC HỆ THỐNG MEALAI</text>
+  <text x="800" y="108" text-anchor="middle" class="subtitle">Luồng xử lý từ người dùng đến giao diện web, API, cơ sở dữ liệu và dịch vụ AI/Email</text>
+
+  <!-- Main flow nodes -->
+  <g filter="url(#shadow)">
+    <rect class="node" x="70" y="168" width="210" height="168" rx="22"/>
+    <circle class="iconBg" cx="175" cy="216" r="30"/>
+    <path d="M160 226c0-15 30-15 30 0M175 211a13 13 0 1 0 0-26a13 13 0 0 0 0 26" fill="none" stroke="#04835a" stroke-width="5" stroke-linecap="round"/>
+    <text x="175" y="267" text-anchor="middle" class="boxTitle">Người dùng</text>
+    <text x="175" y="294" text-anchor="middle" class="boxText">Web / Mobile</text>
+    <text x="175" y="318" text-anchor="middle" class="boxText">Lập thực đơn, tra cứu</text>
+
+    <rect class="node" x="363" y="168" width="210" height="168" rx="22"/>
+    <circle class="iconBg" cx="468" cy="216" r="30"/>
+    <rect x="448" y="199" width="40" height="28" rx="4" fill="none" stroke="#04835a" stroke-width="5"/>
+    <path d="M454 235h28" stroke="#04835a" stroke-width="5" stroke-linecap="round"/>
+    <text x="468" y="267" text-anchor="middle" class="boxTitle">Frontend</text>
+    <text x="468" y="294" text-anchor="middle" class="boxText">Next.js • React</text>
+    <text x="468" y="318" text-anchor="middle" class="boxText">Tailwind CSS</text>
+
+    <rect class="node" x="656" y="168" width="210" height="168" rx="22"/>
+    <circle class="iconBg" cx="761" cy="216" r="30"/>
+    <path d="M744 201h34v30h-34zM752 209h18M752 218h18" fill="none" stroke="#04835a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="761" y="267" text-anchor="middle" class="boxTitle">Backend API</text>
+    <text x="761" y="294" text-anchor="middle" class="boxText">NestJS • JWT</text>
+    <text x="761" y="318" text-anchor="middle" class="boxText">TypeORM</text>
+
+    <rect class="node" x="949" y="168" width="210" height="168" rx="22"/>
+    <circle class="iconBg" cx="1054" cy="216" r="30"/>
+    <ellipse cx="1054" cy="203" rx="22" ry="8" fill="none" stroke="#04835a" stroke-width="5"/>
+    <path d="M1032 203v29c0 5 10 9 22 9s22-4 22-9v-29M1032 217c0 5 10 9 22 9s22-4 22-9" fill="none" stroke="#04835a" stroke-width="5"/>
+    <text x="1054" y="267" text-anchor="middle" class="boxTitle">PostgreSQL</text>
+    <text x="1054" y="294" text-anchor="middle" class="boxText">Users • Recipes</text>
+    <text x="1054" y="318" text-anchor="middle" class="boxText">Meal Plans • Ratings</text>
+
+    <rect class="node" x="1242" y="168" width="288" height="168" rx="22"/>
+    <circle class="iconBg" cx="1386" cy="216" r="30"/>
+    <path d="M1386 190l7 18l18 7l-18 7l-7 18l-7-18l-18-7l18-7z" fill="#04835a"/>
+    <text x="1386" y="267" text-anchor="middle" class="boxTitle">AI &amp; Email Service</text>
+    <text x="1386" y="294" text-anchor="middle" class="boxText">Gemini AI • Recommendation</text>
+    <text x="1386" y="318" text-anchor="middle" class="boxText">Resend Email</text>
+  </g>
+
+  <path class="arrow" d="M280 252 H352"/>
+  <path class="arrow" d="M573 252 H645"/>
+  <path class="arrow" d="M866 252 H938"/>
+  <path class="arrow" d="M1159 252 H1231"/>
+
+  <!-- Supporting notes -->
+  <rect class="soft" x="112" y="390" width="1376" height="76" rx="20"/>
+  <text x="156" y="438" class="deploy">Deploy:</text>
+  <text x="245" y="438" class="deployText">Frontend trên Vercel  •  Backend API trên Render  •  PostgreSQL Database  •  Gemini AI gợi ý món  •  Resend gửi email</text>
+
+  <rect x="112" y="486" width="1376" height="28" rx="14" fill="#eaf8f1"/>
+  <text x="800" y="506" text-anchor="middle" class="small">MealAI kết hợp rule-based filtering và scoring-based ranking để gợi ý món theo nguyên liệu, sức khỏe, sở thích, TDEE và lịch sử thực đơn.</text>
+</svg>

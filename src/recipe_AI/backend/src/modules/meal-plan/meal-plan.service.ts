@@ -1362,10 +1362,18 @@ export class MealPlanService {
             (item) => item.recipeId && item.mealType === mealType,
           ).length;
           const maxCount = this.getTargetDishesCount(servings, mealType);
+          const remainingDailyCapacity = Math.max(
+            0,
+            getMaxRecommendedDishes(servings) -
+              dayItemsList.filter((item) => item.recipeId).length,
+          );
           acc[mealType] = {
             currentCount,
             maxCount,
-            neededCount: Math.max(0, maxCount - currentCount),
+            neededCount: Math.min(
+              Math.max(0, maxCount - currentCount),
+              remainingDailyCapacity,
+            ),
           };
           return acc;
         },
@@ -1376,7 +1384,15 @@ export class MealPlanService {
       );
 
       for (const mealType of mealTypesToGenerate) {
-        const neededCount = slotTargets[mealType]?.neededCount || 0;
+        const remainingDailyCapacity = Math.max(
+          0,
+          getMaxRecommendedDishes(servings) -
+            dayItemsList.filter((item) => item.recipeId).length,
+        );
+        const neededCount = Math.min(
+          slotTargets[mealType]?.neededCount || 0,
+          remainingDailyCapacity,
+        );
         if (neededCount <= 0) continue;
 
         const calorieTarget = this.calorieService.getMealDistribution(this.getAdjustedDailyCalorieTarget(user));
@@ -2044,11 +2060,7 @@ export class MealPlanService {
   }
 
   private getTargetDishesPerDay(servings: number): number {
-    return this.MEAL_TYPES.reduce(
-      (total, mealType) =>
-        total + this.getTargetDishesCount(servings, mealType),
-      0,
-    );
+    return getMaxRecommendedDishes(servings);
   }
 
   private scoreMealPlanItemForKeeping(
@@ -2223,6 +2235,34 @@ export class MealPlanService {
       if (errorReason) break;
 
       // Removed nutrition calorie limit check
+      const maxDailyDishes = this.getTargetDishesPerDay(servings);
+      const lockedKeepCount = dayItems.filter(
+        (item) => item.isLocked && keepIds.has(item.id),
+      ).length;
+      if (lockedKeepCount > maxDailyDishes) {
+        errorReason = `locked_exceeds_limit:${lockedKeepCount}:${maxDailyDishes}`;
+        afterCount = dayItems.length;
+        break;
+      }
+
+      const keptItems = dayItems.filter((item) => keepIds.has(item.id));
+      if (keptItems.length > maxDailyDishes) {
+        const removableKeptItems = keptItems
+          .filter((item) => !item.isLocked && activeMealTypes.includes(item.mealType))
+          .sort((a, b) => {
+            const scoreA = this.scoreMealPlanItemForKeeping(a, dayItems);
+            const scoreB = this.scoreMealPlanItemForKeeping(b, dayItems);
+            if (scoreA !== scoreB) return scoreA - scoreB;
+
+            const timeA = new Date(a.createdAt || 0).getTime();
+            const timeB = new Date(b.createdAt || 0).getTime();
+            return timeB - timeA;
+          });
+        const removeFromKeepCount = keptItems.length - maxDailyDishes;
+        removableKeptItems.slice(0, removeFromKeepCount).forEach((item) => {
+          keepIds.delete(item.id);
+        });
+      }
 
       const dayToRemove = optimizableItems.filter(
         (item) => !item.isLocked && !keepIds.has(item.id),
@@ -2258,29 +2298,7 @@ export class MealPlanService {
   }
 
   private getTargetDishesCount(servings: number, mealType: string): number {
-    const s = Math.max(1, Math.floor(Number(servings) || 1));
-    if (s <= 1) {
-      return 2;
-    }
-    if (s <= 2) {
-      if (mealType === 'breakfast' || mealType === 'snack') return 2;
-      return 3;
-    }
-    if (s <= 4) {
-      if (mealType === 'breakfast' || mealType === 'snack') return 3;
-      return 4;
-    }
-    if (s <= 6) {
-      if (mealType === 'breakfast' || mealType === 'snack') return 4;
-      return 5;
-    }
-    // Fallback for > 6 servings
-    const max = getMaxRecommendedDishes(s);
-    const bf = Math.max(4, Math.round(max * 0.28));
-    const ld = Math.max(1, Math.round((max - bf) / 2));
-    if (mealType === 'breakfast' || mealType === 'snack') return bf;
-    if (mealType === 'lunch') return ld;
-    return max - bf - ld; // dinner
+    return 2;
   }
 
   private getMealRemainingCapacity(
@@ -2292,7 +2310,13 @@ export class MealPlanService {
     const current = dayItemsList.filter(
       (item) => item.mealType === mealType && item.recipeId,
     ).length;
-    return Math.max(0, target - current);
+    const remainingMealCapacity = Math.max(0, target - current);
+    const remainingDailyCapacity = Math.max(
+      0,
+      getMaxRecommendedDishes(servings) -
+        dayItemsList.filter((item) => item.recipeId).length,
+    );
+    return Math.min(remainingMealCapacity, remainingDailyCapacity);
   }
 
   private getUserServingsOrThrow(user?: User | null): number {

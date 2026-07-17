@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+﻿import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -7,6 +7,12 @@ import { ChatMessage } from './entities/chat-message.entity';
 import { UserActionLog } from './entities/user-action-log.entity';
 import { ChatbotActionHandler } from './chatbot-action.handler';
 import { User } from '../auth/entities/user.entity';
+import {
+  getProfileCompletion,
+  getProfileUpdateAction,
+  ProfileCompletionResult,
+  ProfileCompletionStatus,
+} from './profile-completion.util';
 
 @Injectable()
 export class ChatbotAIService implements OnModuleInit {
@@ -61,40 +67,40 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'search_recipes',
         description:
-          'Tìm kiếm công thức nấu ăn trong cơ sở dữ liệu với các bộ lọc như tên, loại bữa ăn, thời gian nấu, lượng calo, vùng miền.',
+          'TÃ¬m kiáº¿m cÃ´ng thá»©c náº¥u Äƒn trong cÆ¡ sá»Ÿ dá»¯ liá»‡u vá»›i cÃ¡c bá»™ lá»c nhÆ° tÃªn, loáº¡i bá»¯a Äƒn, thá»i gian náº¥u, lÆ°á»£ng calo, vÃ¹ng miá»n.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             search: {
               type: 'STRING' as any,
               description:
-                'Từ khóa tìm kiếm tên công thức món ăn (ví dụ: phở, gà, cá...)',
+                'Tá»« khÃ³a tÃ¬m kiáº¿m tÃªn cÃ´ng thá»©c mÃ³n Äƒn (vÃ­ dá»¥: phá»Ÿ, gÃ , cÃ¡...)',
             },
             mealType: {
               type: 'STRING' as any,
               description:
-                'Loại bữa ăn: breakfast (bữa sáng), lunch (bữa trưa), dinner (bữa tối)',
+                'Loáº¡i bá»¯a Äƒn: breakfast (bá»¯a sÃ¡ng), lunch (bá»¯a trÆ°a), dinner (bá»¯a tá»‘i)',
             },
             maxCookingTime: {
               type: 'NUMBER' as any,
-              description: 'Thời gian nấu tối đa bằng phút',
+              description: 'Thá»i gian náº¥u tá»‘i Ä‘a báº±ng phÃºt',
             },
             minCalories: {
               type: 'NUMBER' as any,
-              description: 'Lượng calo tối thiểu',
+              description: 'LÆ°á»£ng calo tá»‘i thiá»ƒu',
             },
             maxCalories: {
               type: 'NUMBER' as any,
-              description: 'Lượng calo tối đa',
+              description: 'LÆ°á»£ng calo tá»‘i Ä‘a',
             },
             region: {
               type: 'STRING' as any,
               description:
-                'Vùng miền ẩm thực (ví dụ: miền Bắc, miền Trung, miền Nam)',
+                'VÃ¹ng miá»n áº©m thá»±c (vÃ­ dá»¥: miá»n Báº¯c, miá»n Trung, miá»n Nam)',
             },
             limit: {
               type: 'NUMBER' as any,
-              description: 'Số lượng công thức muốn lấy (mặc định 5)',
+              description: 'Sá»‘ lÆ°á»£ng cÃ´ng thá»©c muá»‘n láº¥y (máº·c Ä‘á»‹nh 5)',
             },
           },
         },
@@ -102,13 +108,13 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'get_recipe_detail',
         description:
-          'Xem chi tiết một công thức cụ thể bao gồm mô tả, nguyên liệu chi tiết, các bước thực hiện và dinh dưỡng.',
+          'Xem chi tiáº¿t má»™t cÃ´ng thá»©c cá»¥ thá»ƒ bao gá»“m mÃ´ táº£, nguyÃªn liá»‡u chi tiáº¿t, cÃ¡c bÆ°á»›c thá»±c hiá»‡n vÃ  dinh dÆ°á»¡ng.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             recipeId: {
               type: 'STRING' as any,
-              description: 'ID duy nhất của công thức món ăn',
+              description: 'ID duy nháº¥t cá»§a cÃ´ng thá»©c mÃ³n Äƒn',
             },
           },
           required: ['recipeId'],
@@ -117,28 +123,28 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'get_recommendations',
         description:
-          'Gợi ý món ăn cá nhân hóa từ AI dựa trên sở thích, dị ứng, mục tiêu dinh dưỡng hoặc sử dụng nguyên liệu thông minh (chống lãng phí).',
+          'Gá»£i Ã½ mÃ³n Äƒn cÃ¡ nhÃ¢n hÃ³a tá»« AI dá»±a trÃªn sá»Ÿ thÃ­ch, dá»‹ á»©ng, má»¥c tiÃªu dinh dÆ°á»¡ng hoáº·c sá»­ dá»¥ng nguyÃªn liá»‡u thÃ´ng minh (chá»‘ng lÃ£ng phÃ­).',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             mealType: {
               type: 'STRING' as any,
-              description: 'Loại bữa ăn: breakfast, lunch, dinner',
+              description: 'Loáº¡i bá»¯a Äƒn: breakfast, lunch, dinner',
             },
             limit: {
               type: 'NUMBER' as any,
-              description: 'Số lượng gợi ý (mặc định 5)',
+              description: 'Sá»‘ lÆ°á»£ng gá»£i Ã½ (máº·c Ä‘á»‹nh 5)',
             },
             useAntiWaste: {
               type: 'BOOLEAN' as any,
               description:
-                'Có ưu tiên sử dụng nguyên liệu sắp hết hạn trong tủ lạnh không (mặc định true)',
+                'CÃ³ Æ°u tiÃªn sá»­ dá»¥ng nguyÃªn liá»‡u sáº¯p háº¿t háº¡n trong tá»§ láº¡nh khÃ´ng (máº·c Ä‘á»‹nh true)',
             },
             excludeIds: {
               type: 'ARRAY' as any,
               items: { type: 'STRING' as any },
               description:
-                'Danh sách ID các món ăn muốn loại trừ không gợi ý trùng lặp (ví dụ: các món đã có trong thực đơn).',
+                'Danh sÃ¡ch ID cÃ¡c mÃ³n Äƒn muá»‘n loáº¡i trá»« khÃ´ng gá»£i Ã½ trÃ¹ng láº·p (vÃ­ dá»¥: cÃ¡c mÃ³n Ä‘Ã£ cÃ³ trong thá»±c Ä‘Æ¡n).',
             },
           },
         },
@@ -146,26 +152,26 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'get_inventory',
         description:
-          'Xem toàn bộ các nguyên liệu đang có sẵn trong tủ lạnh (inventory) của người dùng.',
+          'Xem toÃ n bá»™ cÃ¡c nguyÃªn liá»‡u Ä‘ang cÃ³ sáºµn trong tá»§ láº¡nh (inventory) cá»§a ngÆ°á»i dÃ¹ng.',
         parameters: { type: 'OBJECT' as any, properties: {} },
       },
       {
         name: 'get_expiring_items',
         description:
-          'Kiểm tra và tìm các nguyên liệu trong tủ lạnh của người dùng sắp hết hạn sử dụng (trong vòng 7 ngày tới) hoặc ở mức cảnh báo.',
+          'Kiá»ƒm tra vÃ  tÃ¬m cÃ¡c nguyÃªn liá»‡u trong tá»§ láº¡nh cá»§a ngÆ°á»i dÃ¹ng sáº¯p háº¿t háº¡n sá»­ dá»¥ng (trong vÃ²ng 7 ngÃ y tá»›i) hoáº·c á»Ÿ má»©c cáº£nh bÃ¡o.',
         parameters: { type: 'OBJECT' as any, properties: {} },
       },
       {
         name: 'search_ingredients',
         description:
-          'Tìm kiếm nguyên liệu trong danh mục hệ thống để lấy ID chính xác khi muốn thêm vào tủ lạnh.',
+          'TÃ¬m kiáº¿m nguyÃªn liá»‡u trong danh má»¥c há»‡ thá»‘ng Ä‘á»ƒ láº¥y ID chÃ­nh xÃ¡c khi muá»‘n thÃªm vÃ o tá»§ láº¡nh.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             query: {
               type: 'STRING' as any,
               description:
-                'Tên nguyên liệu cần tìm (ví dụ: trứng, sữa, thịt bò...)',
+                'TÃªn nguyÃªn liá»‡u cáº§n tÃ¬m (vÃ­ dá»¥: trá»©ng, sá»¯a, thá»‹t bÃ²...)',
             },
           },
           required: ['query'],
@@ -174,27 +180,27 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'add_to_inventory',
         description:
-          'Thêm một nguyên liệu mới vào tủ lạnh của người dùng để theo dõi hạn sử dụng.',
+          'ThÃªm má»™t nguyÃªn liá»‡u má»›i vÃ o tá»§ láº¡nh cá»§a ngÆ°á»i dÃ¹ng Ä‘á»ƒ theo dÃµi háº¡n sá»­ dá»¥ng.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             ingredientId: {
               type: 'STRING' as any,
-              description: 'ID của nguyên liệu trong hệ thống',
+              description: 'ID cá»§a nguyÃªn liá»‡u trong há»‡ thá»‘ng',
             },
             quantity: {
               type: 'NUMBER' as any,
-              description: 'Số lượng nguyên liệu',
+              description: 'Sá»‘ lÆ°á»£ng nguyÃªn liá»‡u',
             },
             unit: {
               type: 'STRING' as any,
-              description: 'Đơn vị tính (ví dụ: g, quả, hộp, lít...)',
+              description: 'ÄÆ¡n vá»‹ tÃ­nh (vÃ­ dá»¥: g, quáº£, há»™p, lÃ­t...)',
             },
             expirationDate: {
               type: 'STRING' as any,
-              description: 'Ngày hết hạn định dạng YYYY-MM-DD (nếu có)',
+              description: 'NgÃ y háº¿t háº¡n Ä‘á»‹nh dáº¡ng YYYY-MM-DD (náº¿u cÃ³)',
             },
-            notes: { type: 'STRING' as any, description: 'Ghi chú thêm' },
+            notes: { type: 'STRING' as any, description: 'Ghi chÃº thÃªm' },
           },
           required: ['ingredientId', 'quantity', 'unit'],
         },
@@ -202,24 +208,24 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'generate_meal_plan',
         description:
-          'Tự động lên thực đơn/kế hoạch ăn uống thông minh cho cả tuần dựa trên sở thích và dinh dưỡng. Không tạo món cho ngày đã qua; nếu là tuần hiện tại thì chỉ tạo từ hôm nay trở đi.',
+          'Tá»± Ä‘á»™ng lÃªn thá»±c Ä‘Æ¡n/káº¿ hoáº¡ch Äƒn uá»‘ng thÃ´ng minh cho cáº£ tuáº§n dá»±a trÃªn sá»Ÿ thÃ­ch vÃ  dinh dÆ°á»¡ng. KhÃ´ng táº¡o mÃ³n cho ngÃ y Ä‘Ã£ qua; náº¿u lÃ  tuáº§n hiá»‡n táº¡i thÃ¬ chá»‰ táº¡o tá»« hÃ´m nay trá»Ÿ Ä‘i.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             weekStart: {
               type: 'STRING' as any,
               description:
-                'Ngày bắt đầu của tuần định dạng YYYY-MM-DD (phải là ngày Thứ Hai, không thuộc tuần đã qua)',
+                'NgÃ y báº¯t Ä‘áº§u cá»§a tuáº§n Ä‘á»‹nh dáº¡ng YYYY-MM-DD (pháº£i lÃ  ngÃ y Thá»© Hai, khÃ´ng thuá»™c tuáº§n Ä‘Ã£ qua)',
             },
             useAntiWaste: {
               type: 'BOOLEAN' as any,
               description:
-                'Có ưu tiên nấu các nguyên liệu đang sắp hết hạn trong tủ lạnh không (mặc định true)',
+                'CÃ³ Æ°u tiÃªn náº¥u cÃ¡c nguyÃªn liá»‡u Ä‘ang sáº¯p háº¿t háº¡n trong tá»§ láº¡nh khÃ´ng (máº·c Ä‘á»‹nh true)',
             },
             overwrite: {
               type: 'BOOLEAN' as any,
               description:
-                'Đặt là true nếu muốn tạo lại/thiết lập lại toàn bộ thực đơn tuần mới (ghi đè các món cũ không bị khóa).',
+                'Äáº·t lÃ  true náº¿u muá»‘n táº¡o láº¡i/thiáº¿t láº­p láº¡i toÃ n bá»™ thá»±c Ä‘Æ¡n tuáº§n má»›i (ghi Ä‘Ã¨ cÃ¡c mÃ³n cÅ© khÃ´ng bá»‹ khÃ³a).',
             },
           },
         },
@@ -227,39 +233,39 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'get_meal_plan',
         description:
-          'Xem thực đơn / kế hoạch ăn uống hiện tại của người dùng cho một tuần cụ thể.',
+          'Xem thá»±c Ä‘Æ¡n / káº¿ hoáº¡ch Äƒn uá»‘ng hiá»‡n táº¡i cá»§a ngÆ°á»i dÃ¹ng cho má»™t tuáº§n cá»¥ thá»ƒ.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             weekStart: {
               type: 'STRING' as any,
               description:
-                'Ngày bắt đầu của tuần định dạng YYYY-MM-DD (Thứ Hai)',
+                'NgÃ y báº¯t Ä‘áº§u cá»§a tuáº§n Ä‘á»‹nh dáº¡ng YYYY-MM-DD (Thá»© Hai)',
             },
           },
         },
       },
       {
         name: 'get_shopping_lists',
-        description: 'Xem các danh sách mua sắm hiện có của người dùng.',
+        description: 'Xem cÃ¡c danh sÃ¡ch mua sáº¯m hiá»‡n cÃ³ cá»§a ngÆ°á»i dÃ¹ng.',
         parameters: { type: 'OBJECT' as any, properties: {} },
       },
       {
         name: 'generate_shopping_list',
         description:
-          'Tạo danh sách mua sắm nguyên liệu tự động từ một kế hoạch thực đơn (meal plan) cụ thể, tự động trừ đi nguyên liệu đã có trong tủ lạnh. Có thể tùy chọn tạo cho các ngày cụ thể.',
+          'Táº¡o danh sÃ¡ch mua sáº¯m nguyÃªn liá»‡u tá»± Ä‘á»™ng tá»« má»™t káº¿ hoáº¡ch thá»±c Ä‘Æ¡n (meal plan) cá»¥ thá»ƒ, tá»± Ä‘á»™ng trá»« Ä‘i nguyÃªn liá»‡u Ä‘Ã£ cÃ³ trong tá»§ láº¡nh. CÃ³ thá»ƒ tÃ¹y chá»n táº¡o cho cÃ¡c ngÃ y cá»¥ thá»ƒ.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             mealPlanId: {
               type: 'STRING' as any,
-              description: 'ID của thực đơn tuần cần tạo danh sách mua sắm',
+              description: 'ID cá»§a thá»±c Ä‘Æ¡n tuáº§n cáº§n táº¡o danh sÃ¡ch mua sáº¯m',
             },
             days: {
               type: 'ARRAY' as any,
               items: { type: 'NUMBER' as any },
               description:
-                'Mảng số nguyên đại diện cho các ngày cụ thể trong tuần muốn tạo nguyên liệu đi chợ (1: Thứ Hai, 2: Thứ Ba, ..., 7: Chủ Nhật). Để trống nếu muốn xuất cả tuần.',
+                'Máº£ng sá»‘ nguyÃªn Ä‘áº¡i diá»‡n cho cÃ¡c ngÃ y cá»¥ thá»ƒ trong tuáº§n muá»‘n táº¡o nguyÃªn liá»‡u Ä‘i chá»£ (1: Thá»© Hai, 2: Thá»© Ba, ..., 7: Chá»§ Nháº­t). Äá»ƒ trá»‘ng náº¿u muá»‘n xuáº¥t cáº£ tuáº§n.',
             },
           },
           required: ['mealPlanId'],
@@ -268,44 +274,44 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'add_to_meal_plan',
         description:
-          'Thêm hoặc cập nhật một món ăn cụ thể vào một ngày và buổi ăn xác định trong thực đơn tuần của người dùng. Chỉ chọn ngày hôm nay hoặc tương lai.',
+          'ThÃªm hoáº·c cáº­p nháº­t má»™t mÃ³n Äƒn cá»¥ thá»ƒ vÃ o má»™t ngÃ y vÃ  buá»•i Äƒn xÃ¡c Ä‘á»‹nh trong thá»±c Ä‘Æ¡n tuáº§n cá»§a ngÆ°á»i dÃ¹ng. Chá»‰ chá»n ngÃ y hÃ´m nay hoáº·c tÆ°Æ¡ng lai.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             recipeId: {
               type: 'STRING' as any,
               description:
-                'ID của công thức món ăn muốn thêm. Nếu không có ID nhưng có tên món ăn cụ thể, hãy bỏ trống recipeId và điền recipeName.',
+                'ID cá»§a cÃ´ng thá»©c mÃ³n Äƒn muá»‘n thÃªm. Náº¿u khÃ´ng cÃ³ ID nhÆ°ng cÃ³ tÃªn mÃ³n Äƒn cá»¥ thá»ƒ, hÃ£y bá» trá»‘ng recipeId vÃ  Ä‘iá»n recipeName.',
             },
             recipeName: {
               type: 'STRING' as any,
               description:
-                'Tên món ăn muốn thêm (ví dụ: phở bò, cháo gà) nếu chưa có recipeId.',
+                'TÃªn mÃ³n Äƒn muá»‘n thÃªm (vÃ­ dá»¥: phá»Ÿ bÃ², chÃ¡o gÃ ) náº¿u chÆ°a cÃ³ recipeId.',
             },
             mealDate: {
               type: 'STRING' as any,
               description:
-                'Ngày cụ thể muốn thêm món ăn, định dạng YYYY-MM-DD (ví dụ: 2026-06-08)',
+                'NgÃ y cá»¥ thá»ƒ muá»‘n thÃªm mÃ³n Äƒn, Ä‘á»‹nh dáº¡ng YYYY-MM-DD (vÃ­ dá»¥: 2026-06-08)',
             },
             mealType: {
               type: 'STRING' as any,
               description:
-                'Loại bữa ăn: breakfast (Sáng), lunch (Trưa), dinner (Tối)',
+                'Loáº¡i bá»¯a Äƒn: breakfast (SÃ¡ng), lunch (TrÆ°a), dinner (Tá»‘i)',
             },
             dayOfWeek: {
               type: 'NUMBER' as any,
               description:
-                'Ngày trong tuần (1: Thứ Hai, 2: Thứ Ba, ..., 7: Chủ Nhật) - Fallback nếu không có mealDate',
+                'NgÃ y trong tuáº§n (1: Thá»© Hai, 2: Thá»© Ba, ..., 7: Chá»§ Nháº­t) - Fallback náº¿u khÃ´ng cÃ³ mealDate',
             },
             weekStart: {
               type: 'STRING' as any,
               description:
-                'Ngày bắt đầu của tuần YYYY-MM-DD - Fallback nếu không có mealDate',
+                'NgÃ y báº¯t Ä‘áº§u cá»§a tuáº§n YYYY-MM-DD - Fallback náº¿u khÃ´ng cÃ³ mealDate',
             },
             overwrite: {
               type: 'BOOLEAN' as any,
               description:
-                'Đặt là true nếu đây là yêu cầu thay đổi, đổi món, hoặc thay thế món ăn đã có sẵn trong bữa ăn.',
+                'Äáº·t lÃ  true náº¿u Ä‘Ã¢y lÃ  yÃªu cáº§u thay Ä‘á»•i, Ä‘á»•i mÃ³n, hoáº·c thay tháº¿ mÃ³n Äƒn Ä‘Ã£ cÃ³ sáºµn trong bá»¯a Äƒn.',
             },
           },
           required: ['mealDate', 'mealType'],
@@ -314,34 +320,34 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'remove_from_meal_plan',
         description:
-          'Xóa hoặc hủy một món ăn khỏi bữa ăn cụ thể (Sáng, Trưa, Tối) trong thực đơn tuần của người dùng.',
+          'XÃ³a hoáº·c há»§y má»™t mÃ³n Äƒn khá»i bá»¯a Äƒn cá»¥ thá»ƒ (SÃ¡ng, TrÆ°a, Tá»‘i) trong thá»±c Ä‘Æ¡n tuáº§n cá»§a ngÆ°á»i dÃ¹ng.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             mealDate: {
               type: 'STRING' as any,
               description:
-                'Ngày cụ thể muốn xóa món ăn, định dạng YYYY-MM-DD (ví dụ: 2026-06-08)',
+                'NgÃ y cá»¥ thá»ƒ muá»‘n xÃ³a mÃ³n Äƒn, Ä‘á»‹nh dáº¡ng YYYY-MM-DD (vÃ­ dá»¥: 2026-06-08)',
             },
             mealType: {
               type: 'STRING' as any,
               description:
-                'Loại bữa ăn muốn xóa: breakfast (Sáng), lunch (Trưa), dinner (Tối)',
+                'Loáº¡i bá»¯a Äƒn muá»‘n xÃ³a: breakfast (SÃ¡ng), lunch (TrÆ°a), dinner (Tá»‘i)',
             },
             dayOfWeek: {
               type: 'NUMBER' as any,
               description:
-                'Ngày trong tuần muốn xóa (1-7) - Fallback nếu không có mealDate',
+                'NgÃ y trong tuáº§n muá»‘n xÃ³a (1-7) - Fallback náº¿u khÃ´ng cÃ³ mealDate',
             },
             weekStart: {
               type: 'STRING' as any,
               description:
-                'Ngày bắt đầu của tuần YYYY-MM-DD - Fallback nếu không có mealDate',
+                'NgÃ y báº¯t Ä‘áº§u cá»§a tuáº§n YYYY-MM-DD - Fallback náº¿u khÃ´ng cÃ³ mealDate',
             },
             recipeId: {
               type: 'STRING' as any,
               description:
-                'ID của công thức món ăn muốn xóa cụ thể. Nếu để trống, hệ thống sẽ xóa toàn bộ các món ăn trong bữa ăn này.',
+                'ID cá»§a cÃ´ng thá»©c mÃ³n Äƒn muá»‘n xÃ³a cá»¥ thá»ƒ. Náº¿u Ä‘á»ƒ trá»‘ng, há»‡ thá»‘ng sáº½ xÃ³a toÃ n bá»™ cÃ¡c mÃ³n Äƒn trong bá»¯a Äƒn nÃ y.',
             },
           },
           required: ['mealDate', 'mealType'],
@@ -349,14 +355,14 @@ export class ChatbotAIService implements OnModuleInit {
       },
       {
         name: 'delete_meal_plan',
-        description: 'Xóa hoàn toàn thực đơn tuần hiện tại của người dùng.',
+        description: 'XÃ³a hoÃ n toÃ n thá»±c Ä‘Æ¡n tuáº§n hiá»‡n táº¡i cá»§a ngÆ°á»i dÃ¹ng.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             weekStart: {
               type: 'STRING' as any,
               description:
-                'Ngày bắt đầu của tuần YYYY-MM-DD cần xóa. Để trống nếu là tuần hiện tại.',
+                'NgÃ y báº¯t Ä‘áº§u cá»§a tuáº§n YYYY-MM-DD cáº§n xÃ³a. Äá»ƒ trá»‘ng náº¿u lÃ  tuáº§n hiá»‡n táº¡i.',
             },
           },
         },
@@ -364,7 +370,7 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'generate_meal_plan_for_days',
         description:
-          'Tự động tạo hoặc cập nhật thực đơn tuần chỉ dành cho một hoặc một vài ngày được chọn (giữ nguyên các ngày khác). Chỉ tạo cho hôm nay hoặc ngày tương lai.',
+          'Tá»± Ä‘á»™ng táº¡o hoáº·c cáº­p nháº­t thá»±c Ä‘Æ¡n tuáº§n chá»‰ dÃ nh cho má»™t hoáº·c má»™t vÃ i ngÃ y Ä‘Æ°á»£c chá»n (giá»¯ nguyÃªn cÃ¡c ngÃ y khÃ¡c). Chá»‰ táº¡o cho hÃ´m nay hoáº·c ngÃ y tÆ°Æ¡ng lai.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
@@ -372,33 +378,33 @@ export class ChatbotAIService implements OnModuleInit {
               type: 'ARRAY' as any,
               items: { type: 'STRING' as any },
               description:
-                'Mảng chuỗi các ngày cụ thể cần tạo thực đơn, định dạng YYYY-MM-DD (ví dụ: ["2026-06-08", "2026-06-09"]).',
+                'Máº£ng chuá»—i cÃ¡c ngÃ y cá»¥ thá»ƒ cáº§n táº¡o thá»±c Ä‘Æ¡n, Ä‘á»‹nh dáº¡ng YYYY-MM-DD (vÃ­ dá»¥: ["2026-06-08", "2026-06-09"]).',
             },
             days: {
               type: 'ARRAY' as any,
               items: { type: 'NUMBER' as any },
               description:
-                'Mảng số nguyên các ngày (1-7) - Fallback nếu không có mealDates.',
+                'Máº£ng sá»‘ nguyÃªn cÃ¡c ngÃ y (1-7) - Fallback náº¿u khÃ´ng cÃ³ mealDates.',
             },
             weekStart: {
               type: 'STRING' as any,
               description:
-                'Ngày bắt đầu của tuần YYYY-MM-DD - Fallback nếu không có mealDates.',
+                'NgÃ y báº¯t Ä‘áº§u cá»§a tuáº§n YYYY-MM-DD - Fallback náº¿u khÃ´ng cÃ³ mealDates.',
             },
             useAntiWaste: {
               type: 'BOOLEAN' as any,
               description:
-                'Có ưu tiên sử dụng nguyên liệu sắp hết hạn trong tủ lạnh không.',
+                'CÃ³ Æ°u tiÃªn sá»­ dá»¥ng nguyÃªn liá»‡u sáº¯p háº¿t háº¡n trong tá»§ láº¡nh khÃ´ng.',
             },
             mealType: {
               type: 'STRING' as any,
               description:
-                'Loại bữa ăn muốn tạo: breakfast (Sáng), lunch (Trưa), dinner (Tối). Để trống nếu muốn tạo cả ngày.',
+                'Loáº¡i bá»¯a Äƒn muá»‘n táº¡o: breakfast (SÃ¡ng), lunch (TrÆ°a), dinner (Tá»‘i). Äá»ƒ trá»‘ng náº¿u muá»‘n táº¡o cáº£ ngÃ y.',
             },
             overwrite: {
               type: 'BOOLEAN' as any,
               description:
-                'Đặt là true nếu người dùng yêu cầu làm mới hoặc tạo lại thực đơn của ngày hôm nay/ngày cụ thể (ghi đè món cũ không bị khóa). Mặc định false chỉ gợi ý món còn thiếu.',
+                'Äáº·t lÃ  true náº¿u ngÆ°á»i dÃ¹ng yÃªu cáº§u lÃ m má»›i hoáº·c táº¡o láº¡i thá»±c Ä‘Æ¡n cá»§a ngÃ y hÃ´m nay/ngÃ y cá»¥ thá»ƒ (ghi Ä‘Ã¨ mÃ³n cÅ© khÃ´ng bá»‹ khÃ³a). Máº·c Ä‘á»‹nh false chá»‰ gá»£i Ã½ mÃ³n cÃ²n thiáº¿u.',
             },
           },
           required: ['mealDates'],
@@ -407,18 +413,18 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'get_recipe_ratings',
         description:
-          'Lấy danh sách các đánh giá, bình luận và điểm số trung bình của món ăn cụ thể.',
+          'Láº¥y danh sÃ¡ch cÃ¡c Ä‘Ã¡nh giÃ¡, bÃ¬nh luáº­n vÃ  Ä‘iá»ƒm sá»‘ trung bÃ¬nh cá»§a mÃ³n Äƒn cá»¥ thá»ƒ.',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             recipeId: {
               type: 'STRING' as any,
-              description: 'ID duy nhất của công thức món ăn (nếu có)',
+              description: 'ID duy nháº¥t cá»§a cÃ´ng thá»©c mÃ³n Äƒn (náº¿u cÃ³)',
             },
             recipeName: {
               type: 'STRING' as any,
               description:
-                'Tên món ăn (ví dụ: Phở bò, Canh chua) để tìm kiếm nếu chưa có ID',
+                'TÃªn mÃ³n Äƒn (vÃ­ dá»¥: Phá»Ÿ bÃ², Canh chua) Ä‘á»ƒ tÃ¬m kiáº¿m náº¿u chÆ°a cÃ³ ID',
             },
           },
         },
@@ -426,20 +432,20 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'calculate_calories',
         description:
-          'Tính toán chỉ số năng lượng hàng ngày (TDEE) và phân bổ calo lý tưởng cho các bữa ăn dựa trên cân nặng, chiều cao, giới tính, tuổi tác và mức độ vận động.',
+          'TÃ­nh toÃ¡n chá»‰ sá»‘ nÄƒng lÆ°á»£ng hÃ ng ngÃ y (TDEE) vÃ  phÃ¢n bá»• calo lÃ½ tÆ°á»Ÿng cho cÃ¡c bá»¯a Äƒn dá»±a trÃªn cÃ¢n náº·ng, chiá»u cao, giá»›i tÃ­nh, tuá»•i tÃ¡c vÃ  má»©c Ä‘á»™ váº­n Ä‘á»™ng.',
         parameters: { type: 'OBJECT' as any, properties: {} },
       },
       {
         name: 'navigate_to',
         description:
-          'Điều hướng người dùng đến một trang cụ thể trên ứng dụng MealAI (như Tủ lạnh, Lập thực đơn, Danh sách mua sắm, Công thức, Dinh dưỡng, Trang cá nhân).',
+          'Äiá»u hÆ°á»›ng ngÆ°á»i dÃ¹ng Ä‘áº¿n má»™t trang cá»¥ thá»ƒ trÃªn á»©ng dá»¥ng MealAI (nhÆ° Tá»§ láº¡nh, Láº­p thá»±c Ä‘Æ¡n, Danh sÃ¡ch mua sáº¯m, CÃ´ng thá»©c, Dinh dÆ°á»¡ng, Trang cÃ¡ nhÃ¢n).',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             page: {
               type: 'STRING' as any,
               description:
-                'Tên trang cần đến: "inventory" (Tủ lạnh/Kho nguyên liệu), "meal-planner" (Lập thực đơn), "shopping-list" (Danh sách mua sắm), "recipes" (Công thức nấu ăn), "profile" (Trang cá nhân / cấu hình sức khỏe), "nutrition" (Dinh dưỡng / calories), "home" (Trang chủ)',
+                'TÃªn trang cáº§n Ä‘áº¿n: "inventory" (Tá»§ láº¡nh/Kho nguyÃªn liá»‡u), "meal-planner" (Láº­p thá»±c Ä‘Æ¡n), "shopping-list" (Danh sÃ¡ch mua sáº¯m), "recipes" (CÃ´ng thá»©c náº¥u Äƒn), "profile" (Trang cÃ¡ nhÃ¢n / cáº¥u hÃ¬nh sá»©c khá»e), "nutrition" (Dinh dÆ°á»¡ng / calories), "home" (Trang chá»§)',
             },
           },
           required: ['page'],
@@ -448,31 +454,31 @@ export class ChatbotAIService implements OnModuleInit {
       {
         name: 'update_user_preferences',
         description:
-          'Cập nhật hồ sơ sức khỏe và chế độ ăn uống của người dùng dựa trên yêu cầu của họ (ví dụ: chuyển sang giảm cân, tăng cơ, tiểu đường, cao huyết áp, ăn chay).',
+          'Cáº­p nháº­t há»“ sÆ¡ sá»©c khá»e vÃ  cháº¿ Ä‘á»™ Äƒn uá»‘ng cá»§a ngÆ°á»i dÃ¹ng dá»±a trÃªn yÃªu cáº§u cá»§a há» (vÃ­ dá»¥: chuyá»ƒn sang giáº£m cÃ¢n, tÄƒng cÆ¡, tiá»ƒu Ä‘Æ°á»ng, cao huyáº¿t Ã¡p, Äƒn chay).',
         parameters: {
           type: 'OBJECT' as any,
           properties: {
             healthConditions: {
               type: 'STRING' as any,
               description:
-                'Các bệnh lý phân tách bởi dấu phẩy: "diabetes" (tiểu đường), "hypertension" (cao huyết áp), "weight_loss" (giảm cân), "muscle_gain" (tăng cơ), hoặc "none" để xóa bỏ.',
+                'CÃ¡c bá»‡nh lÃ½ phÃ¢n tÃ¡ch bá»Ÿi dáº¥u pháº©y: "diabetes" (tiá»ƒu Ä‘Æ°á»ng), "hypertension" (cao huyáº¿t Ã¡p), "weight_loss" (giáº£m cÃ¢n), "muscle_gain" (tÄƒng cÆ¡), hoáº·c "none" Ä‘á»ƒ xÃ³a bá».',
             },
             dietType: {
               type: 'STRING' as any,
               description:
-                'Chế độ ăn kiêng: "vegetarian" (ăn chay), "keto" (keto), "lowcarb" (lowcarb), hoặc "none" để xóa bỏ.',
+                'Cháº¿ Ä‘á»™ Äƒn kiÃªng: "vegetarian" (Äƒn chay), "keto" (keto), "lowcarb" (lowcarb), hoáº·c "none" Ä‘á»ƒ xÃ³a bá».',
             },
             maxSugarPerMeal: {
               type: 'NUMBER' as any,
-              description: 'Lượng đường tối đa mỗi bữa ăn (g)',
+              description: 'LÆ°á»£ng Ä‘Æ°á»ng tá»‘i Ä‘a má»—i bá»¯a Äƒn (g)',
             },
             maxSodiumPerMeal: {
               type: 'NUMBER' as any,
-              description: 'Lượng natri/muối tối đa mỗi bữa ăn (mg)',
+              description: 'LÆ°á»£ng natri/muá»‘i tá»‘i Ä‘a má»—i bá»¯a Äƒn (mg)',
             },
             minProteinPerMeal: {
               type: 'NUMBER' as any,
-              description: 'Lượng protein/đạm tối thiểu mỗi bữa ăn (g)',
+              description: 'LÆ°á»£ng protein/Ä‘áº¡m tá»‘i thiá»ƒu má»—i bá»¯a Äƒn (g)',
             },
           },
         },
@@ -510,7 +516,13 @@ export class ChatbotAIService implements OnModuleInit {
   async sendMessage(
     userId: string,
     content: string,
-  ): Promise<{ text: string; actionTaken?: any }> {
+    profileCompletion?: ProfileCompletionResult,
+  ): Promise<{
+    text: string;
+    actionTaken?: any;
+    profileCompletionStatus?: ProfileCompletionStatus;
+    profileAction?: { label: string; route: string };
+  }> {
     // 1. Save user message to database
     const userMsg = this.chatMessageRepo.create({
       userId,
@@ -524,25 +536,39 @@ export class ChatbotAIService implements OnModuleInit {
       where: { id: userId },
       relations: ['preferences'],
     });
-    const fullName = user?.fullName || 'Người dùng';
+    const profileStatus = profileCompletion || getProfileCompletion(user);
+    const profileAction =
+      profileStatus.status !== 'complete' ? getProfileUpdateAction() : undefined;
+    const fullName = user?.fullName || 'NgÆ°á»i dÃ¹ng';
     const allergies = user?.preferences?.allergies || [];
-    const dietType = user?.preferences?.dietType || 'Bình thường';
+    const dietType = user?.preferences?.dietType || 'BÃ¬nh thÆ°á»ng';
     const savedServings = Number(user?.preferences?.servings);
     const servings = Number.isInteger(savedServings) && savedServings >= 1 && savedServings <= 20
       ? savedServings
       : null;
-    const servingsLabel = servings ? `${servings} người` : 'chưa cập nhật';
+    const servingsLabel = servings ? `${servings} ngÆ°á»i` : 'chÆ°a cáº­p nháº­t';
     const servingsRule = servings
-      ? `   - Khi gợi ý món ăn, cung cấp công thức hoặc liệt kê nguyên liệu chi tiết, bạn PHẢI dựa vào thông tin "Khẩu phần ăn (Số người ăn)" của người dùng (${servings} người) để tính toán, nhân/chia và hiển thị định lượng nguyên liệu chính xác, đủ cho số lượng người đó.`
-      : '   - Hồ sơ người dùng chưa có số người ăn. Nếu người dùng yêu cầu gợi ý khẩu phần, lập thực đơn hoặc tính nguyên liệu, hãy yêu cầu họ cập nhật số người ăn trong hồ sơ trước.';
+      ? `   - Khi gá»£i Ã½ mÃ³n Äƒn, cung cáº¥p cÃ´ng thá»©c hoáº·c liá»‡t kÃª nguyÃªn liá»‡u chi tiáº¿t, báº¡n PHáº¢I dá»±a vÃ o thÃ´ng tin "Kháº©u pháº§n Äƒn (Sá»‘ ngÆ°á»i Äƒn)" cá»§a ngÆ°á»i dÃ¹ng (${servings} ngÆ°á»i) Ä‘á»ƒ tÃ­nh toÃ¡n, nhÃ¢n/chia vÃ  hiá»ƒn thá»‹ Ä‘á»‹nh lÆ°á»£ng nguyÃªn liá»‡u chÃ­nh xÃ¡c, Ä‘á»§ cho sá»‘ lÆ°á»£ng ngÆ°á»i Ä‘Ã³.`
+      : '   - Há»“ sÆ¡ ngÆ°á»i dÃ¹ng chÆ°a cÃ³ sá»‘ ngÆ°á»i Äƒn. Náº¿u ngÆ°á»i dÃ¹ng yÃªu cáº§u gá»£i Ã½ kháº©u pháº§n, láº­p thá»±c Ä‘Æ¡n hoáº·c tÃ­nh nguyÃªn liá»‡u, hÃ£y yÃªu cáº§u há» cáº­p nháº­t sá»‘ ngÆ°á»i Äƒn trong há»“ sÆ¡ trÆ°á»›c.';
     const servingsNote = servings
-      ? `   - Hãy ghi chú rõ trong câu trả lời: "Định lượng nguyên liệu dưới đây đã được tự động quy đổi cho ${servings} người theo hồ sơ của bạn."`
-      : '   - Không tự giả định khẩu phần mặc định 4 người khi hồ sơ chưa có số người ăn.';
+      ? `   - HÃ£y ghi chÃº rÃµ trong cÃ¢u tráº£ lá»i: "Äá»‹nh lÆ°á»£ng nguyÃªn liá»‡u dÆ°á»›i Ä‘Ã¢y Ä‘Ã£ Ä‘Æ°á»£c tá»± Ä‘á»™ng quy Ä‘á»•i cho ${servings} ngÆ°á»i theo há»“ sÆ¡ cá»§a báº¡n."`
+      : '   - KhÃ´ng tá»± giáº£ Ä‘á»‹nh kháº©u pháº§n máº·c Ä‘á»‹nh 4 ngÆ°á»i khi há»“ sÆ¡ chÆ°a cÃ³ sá»‘ ngÆ°á»i Äƒn.';
     const todayValue = this.formatDateInput(new Date());
     const currentWeekStart = this.getMondayString(new Date());
+    const profilePromptBlock = `
+TRANG THAI HO SO CA NHAN:
+- Muc do hoan thien: ${profileStatus.status}
+- Thong tin con thieu: ${profileStatus.missingFields.length > 0 ? profileStatus.missingFields.join(', ') : 'khong co'}
+- Huong dan bat buoc: ${profileStatus.promptInstruction}
+
+QUY TAC CA NHAN HOA CALO:
+- Chi duoc noi "dua tren muc tieu calo cua ban", "theo ho so dinh duong cua ban", "theo nhu cau calo ca nhan" hoac cac cau tuong tu khi muc do hoan thien la complete.
+- Neu muc do hoan thien la partial, chi duoc noi day la goi y tham khao va khong khang dinh chinh xac ve TDEE/BMR/macro.
+- Neu muc do hoan thien la incomplete, khong duoc tinh hay khang dinh calo ca nhan hoa; hay goi y mon pho thong, de nau, tuong doi can bang va nhac nguoi dung cap nhat ho so.
+`;
 
     // Load current week's meal plan to inject as context
-    let mealPlanContext = 'Hiện tại chưa có thực đơn nào cho tuần này.';
+    let mealPlanContext = 'Hiá»‡n táº¡i chÆ°a cÃ³ thá»±c Ä‘Æ¡n nÃ o cho tuáº§n nÃ y.';
     try {
       const currentPlan = await this.actionHandler.mealPlanService.findByWeek(
         userId,
@@ -556,7 +582,7 @@ export class ChatbotAIService implements OnModuleInit {
           mealPlanContext = activeItems
             .map(
               (item: any) =>
-                `- ${item.dayLabel} (Bữa ${item.mealType === 'breakfast' ? 'Sáng' : item.mealType === 'lunch' ? 'Trưa' : 'Tối'}): ${item.recipe.name} [ID: ${item.recipe.id}]`,
+                `- ${item.dayLabel} (Bá»¯a ${item.mealType === 'breakfast' ? 'SÃ¡ng' : item.mealType === 'lunch' ? 'TrÆ°a' : 'Tá»‘i'}): ${item.recipe.name} [ID: ${item.recipe.id}]`,
             )
             .join('\n');
         }
@@ -584,58 +610,60 @@ export class ChatbotAIService implements OnModuleInit {
       const model = this.genAI.getGenerativeModel({
         model: this.modelName,
         generationConfig: { temperature: 0.2 },
-        systemInstruction: `Bạn là MealAI Assistant - Trợ lý ẩm thực và dinh dưỡng thông minh dành cho người Việt Nam. 
-Nhiệm vụ của bạn là tư vấn ẩm thực, gợi ý món ăn, lên thực đơn tuần, kiểm tra tủ lạnh, tính toán calo và danh sách mua sắm.
+        systemInstruction: `Báº¡n lÃ  MealAI Assistant - Trá»£ lÃ½ áº©m thá»±c vÃ  dinh dÆ°á»¡ng thÃ´ng minh dÃ nh cho ngÆ°á»i Viá»‡t Nam.
+Nhiá»‡m vá»¥ cá»§a báº¡n lÃ  tÆ° váº¥n áº©m thá»±c, gá»£i Ã½ mÃ³n Äƒn, lÃªn thá»±c Ä‘Æ¡n tuáº§n, kiá»ƒm tra tá»§ láº¡nh, tÃ­nh toÃ¡n calo vÃ  danh sÃ¡ch mua sáº¯m.
 
-THÔNG TIN NGƯỜI DÙNG HIỆN TẠI:
-- Tên: ${fullName}
-- Dị ứng thực phẩm: ${allergies.length > 0 ? allergies.join(', ') : 'Không có'}
-- Chế độ ăn: ${dietType}
-- Khẩu phần ăn (Số người ăn): ${servingsLabel}
-- Hôm nay: ${todayValue}
-- Tuần hiện tại bắt đầu vào: ${currentWeekStart}
+THÃ”NG TIN NGÆ¯á»œI DÃ™NG HIá»†N Táº I:
+- TÃªn: ${fullName}
+- Dá»‹ á»©ng thá»±c pháº©m: ${allergies.length > 0 ? allergies.join(', ') : 'KhÃ´ng cÃ³'}
+- Cháº¿ Ä‘á»™ Äƒn: ${dietType}
+- Kháº©u pháº§n Äƒn (Sá»‘ ngÆ°á»i Äƒn): ${servingsLabel}
+- HÃ´m nay: ${todayValue}
+- Tuáº§n hiá»‡n táº¡i báº¯t Ä‘áº§u vÃ o: ${currentWeekStart}
 
-THỰC ĐƠN HIỆN TẠI TUẦN NÀY CỦA NGƯỜI DÙNG:
+${profilePromptBlock}
+
+THá»°C ÄÆ N HIá»†N Táº I TUáº¦N NÃ€Y Cá»¦A NGÆ¯á»œI DÃ™NG:
 ${mealPlanContext}
 
-QUY TẮC RẤT QUAN TRỌNG:
-1. Bạn CÓ THỂ THAO TÁC trực tiếp với dữ liệu của người dùng thông qua các công cụ (tools) được cung cấp. Hãy gọi tool thích hợp ngay khi người dùng yêu cầu hành động.
-2. Luôn phản hồi bằng tiếng Việt thân thiện, lịch sự, chuyên nghiệp.
-3. Tuyệt đối chỉ gợi ý hoặc cung cấp các món ăn thực tế có trên hệ thống bằng cách tìm kiếm qua công cụ search_recipes hoặc gợi ý qua get_recommendations. Không tự bịa ra công thức hay món ăn lạ không có trong cơ sở dữ liệu.
-4. Nếu thực hiện hành động thành công (như thêm nguyên liệu, tạo thực đơn, v.v.), hãy báo cáo rõ ràng kết quả cho người dùng.
-5. Không được tạo, thêm, hoặc cập nhật thực đơn cho ngày đã qua. Nếu người dùng nói "hôm nay", "ngày mai", "ngày kia", hoặc chỉ định một ngày cụ thể (ví dụ: "đổi ngày 8/6/2026"), hãy tính ngày thật chính xác định dạng YYYY-MM-DD dựa trên thông tin Hôm nay ở trên và truyền vào đối số \`mealDate\` hoặc \`mealDates\`. TUYỆT ĐỐI không tự ý dịch chuyển sang ngày kế tiếp, ngày trước đó hoặc tuần khác. Mặc định bạn KHÔNG ĐƯỢC PHÉP thay thế, ghi đè, hoặc xóa các món ăn đã có trong thực đơn (luôn truyền \`overwrite: false\` hoặc không truyền). Chỉ truyền \`overwrite: true\` khi người dùng chỉ định rõ ràng yêu cầu thay đổi, đổi món, hoặc thay thế món ăn (ví dụ: "Đổi món bữa trưa", "Thay thế món ăn ngày mai").
-6. QUY TẮC AN TOÀN DỊ ỨNG (CỰC KỲ QUAN TRỌNG):
-   - Tuyệt đối không được gợi ý hay thiết kế thực đơn chứa các nguyên liệu mà người dùng bị dị ứng (${allergies.join(', ')}).
-   - Nếu người dùng hỏi xin công thức hoặc hỏi xem có ăn được món ăn chứa chất dị ứng của họ hay không, bạn PHẦI cảnh báo khẩn cấp bằng biểu tượng ⚠️ và giải thích chi tiết chất gây dị ứng trong món đó để bảo vệ an toàn cho họ.
-7. QUY TẮC KHẨU PHẦN ĂN (SỐ NGƯỜI ĂN) & SỐ LƯỢNG MÓN ĂN:
+QUY Táº®C Ráº¤T QUAN TRá»ŒNG:
+1. Báº¡n CÃ“ THá»‚ THAO TÃC trá»±c tiáº¿p vá»›i dá»¯ liá»‡u cá»§a ngÆ°á»i dÃ¹ng thÃ´ng qua cÃ¡c cÃ´ng cá»¥ (tools) Ä‘Æ°á»£c cung cáº¥p. HÃ£y gá»i tool thÃ­ch há»£p ngay khi ngÆ°á»i dÃ¹ng yÃªu cáº§u hÃ nh Ä‘á»™ng.
+2. LuÃ´n pháº£n há»“i báº±ng tiáº¿ng Viá»‡t thÃ¢n thiá»‡n, lá»‹ch sá»±, chuyÃªn nghiá»‡p.
+3. Tuyá»‡t Ä‘á»‘i chá»‰ gá»£i Ã½ hoáº·c cung cáº¥p cÃ¡c mÃ³n Äƒn thá»±c táº¿ cÃ³ trÃªn há»‡ thá»‘ng báº±ng cÃ¡ch tÃ¬m kiáº¿m qua cÃ´ng cá»¥ search_recipes hoáº·c gá»£i Ã½ qua get_recommendations. KhÃ´ng tá»± bá»‹a ra cÃ´ng thá»©c hay mÃ³n Äƒn láº¡ khÃ´ng cÃ³ trong cÆ¡ sá»Ÿ dá»¯ liá»‡u.
+4. Náº¿u thá»±c hiá»‡n hÃ nh Ä‘á»™ng thÃ nh cÃ´ng (nhÆ° thÃªm nguyÃªn liá»‡u, táº¡o thá»±c Ä‘Æ¡n, v.v.), hÃ£y bÃ¡o cÃ¡o rÃµ rÃ ng káº¿t quáº£ cho ngÆ°á»i dÃ¹ng.
+5. KhÃ´ng Ä‘Æ°á»£c táº¡o, thÃªm, hoáº·c cáº­p nháº­t thá»±c Ä‘Æ¡n cho ngÃ y Ä‘Ã£ qua. Náº¿u ngÆ°á»i dÃ¹ng nÃ³i "hÃ´m nay", "ngÃ y mai", "ngÃ y kia", hoáº·c chá»‰ Ä‘á»‹nh má»™t ngÃ y cá»¥ thá»ƒ (vÃ­ dá»¥: "Ä‘á»•i ngÃ y 8/6/2026"), hÃ£y tÃ­nh ngÃ y tháº­t chÃ­nh xÃ¡c Ä‘á»‹nh dáº¡ng YYYY-MM-DD dá»±a trÃªn thÃ´ng tin HÃ´m nay á»Ÿ trÃªn vÃ  truyá»n vÃ o Ä‘á»‘i sá»‘ \`mealDate\` hoáº·c \`mealDates\`. TUYá»†T Äá»I khÃ´ng tá»± Ã½ dá»‹ch chuyá»ƒn sang ngÃ y káº¿ tiáº¿p, ngÃ y trÆ°á»›c Ä‘Ã³ hoáº·c tuáº§n khÃ¡c. Máº·c Ä‘á»‹nh báº¡n KHÃ”NG ÄÆ¯á»¢C PHÃ‰P thay tháº¿, ghi Ä‘Ã¨, hoáº·c xÃ³a cÃ¡c mÃ³n Äƒn Ä‘Ã£ cÃ³ trong thá»±c Ä‘Æ¡n (luÃ´n truyá»n \`overwrite: false\` hoáº·c khÃ´ng truyá»n). Chá»‰ truyá»n \`overwrite: true\` khi ngÆ°á»i dÃ¹ng chá»‰ Ä‘á»‹nh rÃµ rÃ ng yÃªu cáº§u thay Ä‘á»•i, Ä‘á»•i mÃ³n, hoáº·c thay tháº¿ mÃ³n Äƒn (vÃ­ dá»¥: "Äá»•i mÃ³n bá»¯a trÆ°a", "Thay tháº¿ mÃ³n Äƒn ngÃ y mai").
+6. QUY Táº®C AN TOÃ€N Dá»Š á»¨NG (Cá»°C Ká»² QUAN TRá»ŒNG):
+   - Tuyá»‡t Ä‘á»‘i khÃ´ng Ä‘Æ°á»£c gá»£i Ã½ hay thiáº¿t káº¿ thá»±c Ä‘Æ¡n chá»©a cÃ¡c nguyÃªn liá»‡u mÃ  ngÆ°á»i dÃ¹ng bá»‹ dá»‹ á»©ng (${allergies.join(', ')}).
+   - Náº¿u ngÆ°á»i dÃ¹ng há»i xin cÃ´ng thá»©c hoáº·c há»i xem cÃ³ Äƒn Ä‘Æ°á»£c mÃ³n Äƒn chá»©a cháº¥t dá»‹ á»©ng cá»§a há» hay khÃ´ng, báº¡n PHáº¦I cáº£nh bÃ¡o kháº©n cáº¥p báº±ng biá»ƒu tÆ°á»£ng âš ï¸ vÃ  giáº£i thÃ­ch chi tiáº¿t cháº¥t gÃ¢y dá»‹ á»©ng trong mÃ³n Ä‘Ã³ Ä‘á»ƒ báº£o vá»‡ an toÃ n cho há».
+7. QUY Táº®C KHáº¨U PHáº¦N Ä‚N (Sá» NGÆ¯á»œI Ä‚N) & Sá» LÆ¯á»¢NG MÃ“N Ä‚N:
 ${servingsRule}
 ${servingsNote}
-   - Khi thiết kế mâm cơm cho bữa trưa (lunch) hoặc bữa tối (dinner), hãy cân nhắc quy mô gia đình của họ:
-     - Gia đình từ 1-2 người ăn: Chỉ gợi ý 1 món ăn đơn giản/bữa.
-     - Gia đình từ 3-5 người ăn: Gợi ý mâm cơm 2 món gồm 1 món chính (thịt/cá/tôm/đậu...) + 1 món canh hoặc rau xào.
-     - Gia đình từ 6 người ăn trở lên: Gợi ý mâm cơm đầy đủ 3 món gồm 1 món chính + 1 món xào/rau + 1 món canh.
-8. QUY TẮC GỌI CÔNG CỤ THỰC ĐƠN:
-   - Khi gọi các tool \`add_to_meal_plan\`, \`remove_from_meal_plan\`, \`generate_meal_plan_for_days\`, hãy luôn truyền ngày cụ thể dưới dạng chuỗi \`YYYY-MM-DD\` vào đối số \`mealDate\` / \`mealDates\`.
-   - Nếu người dùng muốn thêm món ăn nhưng bạn chưa biết ID của món đó trong cơ sở dữ liệu, hãy điền tên món ăn vào đối số \`recipeName\` trong tool \`add_to_meal_plan\` (để trống đối số \`recipeId\`), hệ thống sẽ tự động tìm kiếm món khớp nhất để thêm.
-   - Nếu người dùng muốn xóa món ăn cụ thể khỏi lịch ăn, hãy gọi tool \`remove_from_meal_plan\`.
-   - Tránh gợi ý trùng lặp các món ăn đã có trong tuần này. Khi gọi tool \`get_recommendations\`, hãy truyền mảng các ID món ăn đã có ở trên vào đối số \`excludeIds\`.
-   - Khi phản hồi người dùng về thực đơn được đề xuất hoặc cập nhật, hãy hiển thị định dạng chính xác những bữa nào đã được giữ nguyên và những bữa nào đã được thêm mới theo định dạng sau:
-     Đã giữ nguyên:
-     ✓ Bữa sáng
-     ✓ Bữa tối
+   - Khi thiáº¿t káº¿ mÃ¢m cÆ¡m cho bá»¯a trÆ°a (lunch) hoáº·c bá»¯a tá»‘i (dinner), hÃ£y cÃ¢n nháº¯c quy mÃ´ gia Ä‘Ã¬nh cá»§a há»:
+     - Gia Ä‘Ã¬nh tá»« 1-2 ngÆ°á»i Äƒn: Chá»‰ gá»£i Ã½ 1 mÃ³n Äƒn Ä‘Æ¡n giáº£n/bá»¯a.
+     - Gia Ä‘Ã¬nh tá»« 3-5 ngÆ°á»i Äƒn: Gá»£i Ã½ mÃ¢m cÆ¡m 2 mÃ³n gá»“m 1 mÃ³n chÃ­nh (thá»‹t/cÃ¡/tÃ´m/Ä‘áº­u...) + 1 mÃ³n canh hoáº·c rau xÃ o.
+     - Gia Ä‘Ã¬nh tá»« 6 ngÆ°á»i Äƒn trá»Ÿ lÃªn: Gá»£i Ã½ mÃ¢m cÆ¡m Ä‘áº§y Ä‘á»§ 3 mÃ³n gá»“m 1 mÃ³n chÃ­nh + 1 mÃ³n xÃ o/rau + 1 mÃ³n canh.
+8. QUY Táº®C Gá»ŒI CÃ”NG Cá»¤ THá»°C ÄÆ N:
+   - Khi gá»i cÃ¡c tool \`add_to_meal_plan\`, \`remove_from_meal_plan\`, \`generate_meal_plan_for_days\`, hÃ£y luÃ´n truyá»n ngÃ y cá»¥ thá»ƒ dÆ°á»›i dáº¡ng chuá»—i \`YYYY-MM-DD\` vÃ o Ä‘á»‘i sá»‘ \`mealDate\` / \`mealDates\`.
+   - Náº¿u ngÆ°á»i dÃ¹ng muá»‘n thÃªm mÃ³n Äƒn nhÆ°ng báº¡n chÆ°a biáº¿t ID cá»§a mÃ³n Ä‘Ã³ trong cÆ¡ sá»Ÿ dá»¯ liá»‡u, hÃ£y Ä‘iá»n tÃªn mÃ³n Äƒn vÃ o Ä‘á»‘i sá»‘ \`recipeName\` trong tool \`add_to_meal_plan\` (Ä‘á»ƒ trá»‘ng Ä‘á»‘i sá»‘ \`recipeId\`), há»‡ thá»‘ng sáº½ tá»± Ä‘á»™ng tÃ¬m kiáº¿m mÃ³n khá»›p nháº¥t Ä‘á»ƒ thÃªm.
+   - Náº¿u ngÆ°á»i dÃ¹ng muá»‘n xÃ³a mÃ³n Äƒn cá»¥ thá»ƒ khá»i lá»‹ch Äƒn, hÃ£y gá»i tool \`remove_from_meal_plan\`.
+   - TrÃ¡nh gá»£i Ã½ trÃ¹ng láº·p cÃ¡c mÃ³n Äƒn Ä‘Ã£ cÃ³ trong tuáº§n nÃ y. Khi gá»i tool \`get_recommendations\`, hÃ£y truyá»n máº£ng cÃ¡c ID mÃ³n Äƒn Ä‘Ã£ cÃ³ á»Ÿ trÃªn vÃ o Ä‘á»‘i sá»‘ \`excludeIds\`.
+   - Khi pháº£n há»“i ngÆ°á»i dÃ¹ng vá» thá»±c Ä‘Æ¡n Ä‘Æ°á»£c Ä‘á» xuáº¥t hoáº·c cáº­p nháº­t, hÃ£y hiá»ƒn thá»‹ Ä‘á»‹nh dáº¡ng chÃ­nh xÃ¡c nhá»¯ng bá»¯a nÃ o Ä‘Ã£ Ä‘Æ°á»£c giá»¯ nguyÃªn vÃ  nhá»¯ng bá»¯a nÃ o Ä‘Ã£ Ä‘Æ°á»£c thÃªm má»›i theo Ä‘á»‹nh dáº¡ng sau:
+     ÄÃ£ giá»¯ nguyÃªn:
+     âœ“ Bá»¯a sÃ¡ng
+     âœ“ Bá»¯a tá»‘i
 
-     Đã thêm:
-     ✓ Bữa trưa
+     ÄÃ£ thÃªm:
+     âœ“ Bá»¯a trÆ°a
 
-     Không có món nào bị thay thế.
-9. QUY TẮC GIẢI THÍCH GỢI Ý (EXPLAINABLE AI):
-   - Khi gợi ý món ăn hoặc lập thực đơn, bạn phải giải thích rõ lý do dựa trên: nguyên liệu sẵn có, đồ sắp hết hạn trong tủ lạnh, calo phù hợp mục tiêu, thời gian nấu, và sở thích ăn uống. Trích xuất thông tin này từ trường \`reasons\` trong kết quả của tool và định dạng câu trả lời thân thiện, dễ hiểu.
-10. QUY TẮC XUẤT FILE PDF:
-    - Khi người dùng muốn xuất/tải file PDF thực đơn tuần này, hãy cung cấp chính xác đường dẫn markdown dạng: \`[Tải xuống file PDF Thực đơn tuần này của bạn tại đây](/api/v1/meal-plans/current/pdf)\`.
-    - Khi người dùng muốn xuất/tải file PDF danh sách mua sắm, bạn hãy gọi tool \`get_shopping_lists\` để lấy danh sách. Nếu có, hãy tìm ID của danh sách mua sắm gần đây nhất và trả về đường dẫn markdown dạng: \`[Tải xuống file PDF Danh sách mua sắm của bạn tại đây](/api/v1/shopping-lists/<ID_DANH_SACH_MUA_SAM>/pdf)\` (thay thế <ID_DANH_SACH_MUA_SAM> bằng ID thực tế). Nếu chưa có danh sách nào, hãy gọi tool \`generate_shopping_list\` để tạo trước rồi trả về link PDF của danh sách vừa tạo.
-11. QUY TẮC XEM ĐÁNH GIÁ/BÌNH LUẬN MÓN ĂN:
-    - Khi người dùng hỏi xem đánh giá, bình luận hoặc sao của một món ăn cụ thể (ví dụ: "Cho tôi xem đánh giá món Phở bò"), hãy gọi tool \`get_recipe_ratings\` với \`recipeName\` tương ứng.
-    - Từ kết quả của công cụ trả về, hãy tổng hợp điểm số trung bình (sao), tổng số lượt đánh giá, và liệt kê tóm tắt các nhận xét/bình luận tiêu biểu của người dùng khác một cách ngắn gọn, sinh động.`,
+     KhÃ´ng cÃ³ mÃ³n nÃ o bá»‹ thay tháº¿.
+9. QUY Táº®C GIáº¢I THÃCH Gá»¢I Ã (EXPLAINABLE AI):
+   - Khi gá»£i Ã½ mÃ³n Äƒn hoáº·c láº­p thá»±c Ä‘Æ¡n, báº¡n pháº£i giáº£i thÃ­ch rÃµ lÃ½ do dá»±a trÃªn: nguyÃªn liá»‡u sáºµn cÃ³, Ä‘á»“ sáº¯p háº¿t háº¡n trong tá»§ láº¡nh, calo phÃ¹ há»£p má»¥c tiÃªu, thá»i gian náº¥u, vÃ  sá»Ÿ thÃ­ch Äƒn uá»‘ng. TrÃ­ch xuáº¥t thÃ´ng tin nÃ y tá»« trÆ°á»ng \`reasons\` trong káº¿t quáº£ cá»§a tool vÃ  Ä‘á»‹nh dáº¡ng cÃ¢u tráº£ lá»i thÃ¢n thiá»‡n, dá»… hiá»ƒu.
+10. QUY Táº®C XUáº¤T FILE PDF:
+    - Khi ngÆ°á»i dÃ¹ng muá»‘n xuáº¥t/táº£i file PDF thá»±c Ä‘Æ¡n tuáº§n nÃ y, hÃ£y cung cáº¥p chÃ­nh xÃ¡c Ä‘Æ°á»ng dáº«n markdown dáº¡ng: \`[Táº£i xuá»‘ng file PDF Thá»±c Ä‘Æ¡n tuáº§n nÃ y cá»§a báº¡n táº¡i Ä‘Ã¢y](/api/v1/meal-plans/current/pdf)\`.
+    - Khi ngÆ°á»i dÃ¹ng muá»‘n xuáº¥t/táº£i file PDF danh sÃ¡ch mua sáº¯m, báº¡n hÃ£y gá»i tool \`get_shopping_lists\` Ä‘á»ƒ láº¥y danh sÃ¡ch. Náº¿u cÃ³, hÃ£y tÃ¬m ID cá»§a danh sÃ¡ch mua sáº¯m gáº§n Ä‘Ã¢y nháº¥t vÃ  tráº£ vá» Ä‘Æ°á»ng dáº«n markdown dáº¡ng: \`[Táº£i xuá»‘ng file PDF Danh sÃ¡ch mua sáº¯m cá»§a báº¡n táº¡i Ä‘Ã¢y](/api/v1/shopping-lists/<ID_DANH_SACH_MUA_SAM>/pdf)\` (thay tháº¿ <ID_DANH_SACH_MUA_SAM> báº±ng ID thá»±c táº¿). Náº¿u chÆ°a cÃ³ danh sÃ¡ch nÃ o, hÃ£y gá»i tool \`generate_shopping_list\` Ä‘á»ƒ táº¡o trÆ°á»›c rá»“i tráº£ vá» link PDF cá»§a danh sÃ¡ch vá»«a táº¡o.
+11. QUY Táº®C XEM ÄÃNH GIÃ/BÃŒNH LUáº¬N MÃ“N Ä‚N:
+    - Khi ngÆ°á»i dÃ¹ng há»i xem Ä‘Ã¡nh giÃ¡, bÃ¬nh luáº­n hoáº·c sao cá»§a má»™t mÃ³n Äƒn cá»¥ thá»ƒ (vÃ­ dá»¥: "Cho tÃ´i xem Ä‘Ã¡nh giÃ¡ mÃ³n Phá»Ÿ bÃ²"), hÃ£y gá»i tool \`get_recipe_ratings\` vá»›i \`recipeName\` tÆ°Æ¡ng á»©ng.
+    - Tá»« káº¿t quáº£ cá»§a cÃ´ng cá»¥ tráº£ vá», hÃ£y tá»•ng há»£p Ä‘iá»ƒm sá»‘ trung bÃ¬nh (sao), tá»•ng sá»‘ lÆ°á»£t Ä‘Ã¡nh giÃ¡, vÃ  liá»‡t kÃª tÃ³m táº¯t cÃ¡c nháº­n xÃ©t/bÃ¬nh luáº­n tiÃªu biá»ƒu cá»§a ngÆ°á»i dÃ¹ng khÃ¡c má»™t cÃ¡ch ngáº¯n gá»n, sinh Ä‘á»™ng.`,
       });
 
       // 4. Start chat session
@@ -674,7 +702,7 @@ ${servingsNote}
       // (e.g., invalid API key that doesn't throw). Fall back to rule-based handler.
       if (!responseText && (!functionCalls || functionCalls.length === 0)) {
         this.logger.warn(
-          'Gemini trả về kết quả rỗng (có thể do API key không hợp lệ). Chuyển sang fallback...',
+          'Gemini tráº£ vá» káº¿t quáº£ rá»—ng (cÃ³ thá»ƒ do API key khÃ´ng há»£p lá»‡). Chuyá»ƒn sang fallback...',
         );
         return this.handleFallback(userId, content);
       }
@@ -683,16 +711,16 @@ ${servingsNote}
       const lowerContent = content.toLowerCase();
       if (
         (functionCalls || []).length === 0 &&
-        (lowerContent.includes('đổi ngày') ||
-          lowerContent.includes('đổi thực đơn') ||
-          lowerContent.includes('thay đổi thực đơn') ||
-          lowerContent.includes('lập thực đơn') ||
-          lowerContent.includes('tạo thực đơn') ||
-          lowerContent.includes('xóa thực đơn') ||
-          lowerContent.includes('xóa ngày'))
+        (lowerContent.includes('Ä‘á»•i ngÃ y') ||
+          lowerContent.includes('Ä‘á»•i thá»±c Ä‘Æ¡n') ||
+          lowerContent.includes('thay Ä‘á»•i thá»±c Ä‘Æ¡n') ||
+          lowerContent.includes('láº­p thá»±c Ä‘Æ¡n') ||
+          lowerContent.includes('táº¡o thá»±c Ä‘Æ¡n') ||
+          lowerContent.includes('xÃ³a thá»±c Ä‘Æ¡n') ||
+          lowerContent.includes('xÃ³a ngÃ y'))
       ) {
         this.logger.warn(
-          'Gemini không gọi tool cho yêu cầu thực đơn. Tự động chuyển sang fallback.',
+          'Gemini khÃ´ng gá»i tool cho yÃªu cáº§u thá»±c Ä‘Æ¡n. Tá»± Ä‘á»™ng chuyá»ƒn sang fallback.',
         );
         return this.handleFallback(userId, content);
       }
@@ -764,14 +792,14 @@ ${servingsNote}
       if (!responseText) {
         if (executedSteps.length > 0) {
           responseText =
-            `✅ Đã thực hiện hoàn tất chuỗi thao tác tự động:\n` +
+            `âœ… ÄÃ£ thá»±c hiá»‡n hoÃ n táº¥t chuá»—i thao tÃ¡c tá»± Ä‘á»™ng:\n` +
             executedSteps
               .map(
-                (s, idx) => `${idx + 1}. Chạy lệnh **${s.name}** thành công.`,
+                (s, idx) => `${idx + 1}. Cháº¡y lá»‡nh **${s.name}** thÃ nh cÃ´ng.`,
               )
               .join('\n');
         } else {
-          responseText = `Tôi đã nhận yêu cầu nhưng chưa thể hoàn thành thao tác tự động lúc này.`;
+          responseText = `TÃ´i Ä‘Ã£ nháº­n yÃªu cáº§u nhÆ°ng chÆ°a thá»ƒ hoÃ n thÃ nh thao tÃ¡c tá»± Ä‘á»™ng lÃºc nÃ y.`;
         }
       }
 
@@ -780,7 +808,11 @@ ${servingsNote}
         userId,
         role: 'model',
         content: responseText,
-        metadata: executedSteps.length > 0 ? { steps: executedSteps } : null,
+        metadata: {
+          ...(executedSteps.length > 0 ? { steps: executedSteps } : {}),
+          profileCompletionStatus: profileStatus.status,
+          profileAction,
+        },
       });
       await this.chatMessageRepo.save(assistantMsg);
 
@@ -790,6 +822,8 @@ ${servingsNote}
           executedSteps.length > 0
             ? executedSteps[executedSteps.length - 1]
             : undefined,
+        profileCompletionStatus: profileStatus.status,
+        profileAction,
       };
     } catch (err: any) {
       this.logger.error(
@@ -797,7 +831,7 @@ ${servingsNote}
         err.stack,
       );
       this.logger.warn(
-        'Gemini gặp lỗi, chuyển sang rule-based fallback để xử lý yêu cầu người dùng...',
+        'Gemini gáº·p lá»—i, chuyá»ƒn sang rule-based fallback Ä‘á»ƒ xá»­ lÃ½ yÃªu cáº§u ngÆ°á»i dÃ¹ng...',
       );
 
       // When Gemini fails at runtime (bad API key, network error, quota exceeded, etc.),
@@ -810,7 +844,13 @@ ${servingsNote}
   private async handleFallback(
     userId: string,
     content: string,
-  ): Promise<{ text: string; actionTaken?: any }> {
+    profileCompletion?: ProfileCompletionResult,
+  ): Promise<{
+    text: string;
+    actionTaken?: any;
+    profileCompletionStatus?: ProfileCompletionStatus;
+    profileAction?: { label: string; route: string };
+  }> {
     const text = content.toLowerCase();
     let responseText = '';
     let actionTaken: any = null;
@@ -820,74 +860,77 @@ ${servingsNote}
       where: { id: userId },
       relations: ['preferences'],
     });
+    const profileStatus = profileCompletion || getProfileCompletion(user);
+    const profileAction =
+      profileStatus.status !== 'complete' ? getProfileUpdateAction() : undefined;
     const allergies = user?.preferences?.allergies || [];
     const dateSelections = this.parseDateSelections(text);
     const requestedMealType = this.parseMealTypeFromText(text);
 
-    // ── NEW: Lệnh điều hướng giao diện (UI Navigation Commands)
+    // â”€â”€ NEW: Lá»‡nh Ä‘iá»u hÆ°á»›ng giao diá»‡n (UI Navigation Commands)
     const isInventoryPage =
-      text.includes('mở tủ lạnh') ||
-      text.includes('đi tới tủ lạnh') ||
-      text.includes('xem tủ lạnh') ||
-      text.includes('vào tủ lạnh') ||
-      text.includes('kho nguyên liệu') ||
-      text.trim() === 'tủ lạnh';
+      text.includes('má»Ÿ tá»§ láº¡nh') ||
+      text.includes('Ä‘i tá»›i tá»§ láº¡nh') ||
+      text.includes('xem tá»§ láº¡nh') ||
+      text.includes('vÃ o tá»§ láº¡nh') ||
+      text.includes('kho nguyÃªn liá»‡u') ||
+      text.trim() === 'tá»§ láº¡nh';
     const isMealPlannerPage =
-      text.includes('mở thực đơn') ||
-      text.includes('đi tới thực đơn') ||
-      text.includes('lịch ăn') ||
-      text.includes('kế hoạch ăn') ||
-      text.includes('trang thực đơn') ||
-      text.trim() === 'thực đơn';
+      text.includes('má»Ÿ thá»±c Ä‘Æ¡n') ||
+      text.includes('Ä‘i tá»›i thá»±c Ä‘Æ¡n') ||
+      text.includes('lá»‹ch Äƒn') ||
+      text.includes('káº¿ hoáº¡ch Äƒn') ||
+      text.includes('trang thá»±c Ä‘Æ¡n') ||
+      text.trim() === 'thá»±c Ä‘Æ¡n';
     const isShoppingListPage =
-      text.includes('mở danh sách mua sắm') ||
-      text.includes('mở danh sách đi chợ') ||
-      text.includes('đi tới danh sách mua sắm') ||
-      text.includes('trang mua sắm') ||
-      text.includes('trang đi chợ');
+      text.includes('má»Ÿ danh sÃ¡ch mua sáº¯m') ||
+      text.includes('má»Ÿ danh sÃ¡ch Ä‘i chá»£') ||
+      text.includes('Ä‘i tá»›i danh sÃ¡ch mua sáº¯m') ||
+      text.includes('trang mua sáº¯m') ||
+      text.includes('trang Ä‘i chá»£');
     const isRecipesPage =
-      text.includes('mở trang công thức') ||
-      text.includes('đi tới công thức') ||
-      text.includes('tìm món ăn') ||
-      text.includes('trang công thức');
+      text.includes('má»Ÿ trang cÃ´ng thá»©c') ||
+      text.includes('Ä‘i tá»›i cÃ´ng thá»©c') ||
+      text.includes('tÃ¬m mÃ³n Äƒn') ||
+      text.includes('trang cÃ´ng thá»©c');
     const isProfilePage =
-      text.includes('mở trang cá nhân') ||
-      text.includes('đi tới trang cá nhân') ||
-      text.includes('hồ sơ cá nhân') ||
-      text.includes('mở hồ sơ') ||
-      text.includes('trang cá nhân');
+      text.includes('má»Ÿ trang cÃ¡ nhÃ¢n') ||
+      text.includes('Ä‘i tá»›i trang cÃ¡ nhÃ¢n') ||
+      text.includes('há»“ sÆ¡ cÃ¡ nhÃ¢n') ||
+      text.includes('má»Ÿ há»“ sÆ¡') ||
+      text.includes('trang cÃ¡ nhÃ¢n');
     const isNutritionPage =
-      text.includes('mở trang dinh dưỡng') ||
-      text.includes('đi tới trang dinh dưỡng') ||
-      text.includes('xem dinh dưỡng') ||
-      text.includes('biểu đồ dinh dưỡng') ||
-      text.includes('trang dinh dưỡng');
+      text.includes('má»Ÿ trang dinh dÆ°á»¡ng') ||
+      text.includes('Ä‘i tá»›i trang dinh dÆ°á»¡ng') ||
+      text.includes('xem dinh dÆ°á»¡ng') ||
+      text.includes('biá»ƒu Ä‘á»“ dinh dÆ°á»¡ng') ||
+      text.includes('trang dinh dÆ°á»¡ng');
     const isHomePage =
-      text.includes('về trang chủ') ||
-      text.includes('đi tới trang chủ') ||
-      text.trim() === 'trang chủ';
+      text.includes('vá» trang chá»§') ||
+      text.includes('Ä‘i tá»›i trang chá»§') ||
+      text.trim() === 'trang chá»§';
 
     if (isInventoryPage) {
       actionTaken = { name: 'navigate_to', args: { page: 'inventory' } };
-      responseText = 'Đang mở tủ lạnh của bạn.';
+      responseText = 'Äang má»Ÿ tá»§ láº¡nh cá»§a báº¡n.';
     } else if (isMealPlannerPage) {
       actionTaken = { name: 'navigate_to', args: { page: 'meal-planner' } };
-      responseText = 'Đang mở trang lập thực đơn và lịch ăn.';
+      responseText = 'Äang má»Ÿ trang láº­p thá»±c Ä‘Æ¡n vÃ  lá»‹ch Äƒn.';
     } else if (isShoppingListPage) {
       actionTaken = { name: 'navigate_to', args: { page: 'shopping-list' } };
-      responseText = 'Đang mở danh sách đi chợ của bạn.';
+      responseText = 'Äang má»Ÿ danh sÃ¡ch Ä‘i chá»£ cá»§a báº¡n.';
     } else if (isRecipesPage) {
       actionTaken = { name: 'navigate_to', args: { page: 'recipes' } };
-      responseText = 'Đang mở danh mục công thức nấu ăn.';
+      responseText = 'Äang má»Ÿ danh má»¥c cÃ´ng thá»©c náº¥u Äƒn.';
     } else if (isProfilePage) {
       actionTaken = { name: 'navigate_to', args: { page: 'profile' } };
-      responseText = 'Đang mở hồ sơ sức khỏe cá nhân.';
+      responseText = 'Äang má»Ÿ há»“ sÆ¡ sá»©c khá»e cÃ¡ nhÃ¢n.';
     } else if (isNutritionPage) {
       actionTaken = { name: 'navigate_to', args: { page: 'nutrition' } };
-      responseText = 'Đang mở trang thống kê dinh dưỡng.';
+      responseText = 'Äang má»Ÿ trang thá»‘ng kÃª dinh dÆ°á»¡ng.';
     } else if (isHomePage) {
       actionTaken = { name: 'navigate_to', args: { page: 'home' } };
-      responseText = 'Đang quay về trang chủ MealAI.';
+      responseText = 'Äang quay vá» trang chá»§ MealAI.';
     }
 
     if (actionTaken && actionTaken.name === 'navigate_to') {
@@ -900,23 +943,23 @@ ${servingsNote}
       return { text: responseText, actionTaken };
     }
 
-    // ── NEW: Lệnh cập nhật cấu hình sức khỏe (Update Preferences Commands)
+    // â”€â”€ NEW: Lá»‡nh cáº­p nháº­t cáº¥u hÃ¬nh sá»©c khá»e (Update Preferences Commands)
     const isDiabetesReq =
-      text.includes('tiểu đường') || text.includes('đái tháo đường');
+      text.includes('tiá»ƒu Ä‘Æ°á»ng') || text.includes('Ä‘Ã¡i thÃ¡o Ä‘Æ°á»ng');
     const isHypertensionReq =
-      text.includes('cao huyết áp') || text.includes('tăng huyết áp');
+      text.includes('cao huyáº¿t Ã¡p') || text.includes('tÄƒng huyáº¿t Ã¡p');
     const isWeightLossReq =
-      text.includes('giảm cân') || text.includes('giảm béo');
+      text.includes('giáº£m cÃ¢n') || text.includes('giáº£m bÃ©o');
     const isMuscleGainReq =
-      text.includes('tăng cơ') || text.includes('phát triển cơ');
+      text.includes('tÄƒng cÆ¡') || text.includes('phÃ¡t triá»ƒn cÆ¡');
     const isVegetarianReq =
-      text.includes('ăn chay') ||
-      text.includes('thực đơn chay') ||
-      text.includes('món chay');
-    const isKetoReq = text.includes('ăn keto') || text.includes('chế độ keto');
+      text.includes('Äƒn chay') ||
+      text.includes('thá»±c Ä‘Æ¡n chay') ||
+      text.includes('mÃ³n chay');
+    const isKetoReq = text.includes('Äƒn keto') || text.includes('cháº¿ Ä‘á»™ keto');
     const isLowcarbReq =
-      text.includes('ăn lowcarb') ||
-      text.includes('chế độ lowcarb') ||
+      text.includes('Äƒn lowcarb') ||
+      text.includes('cháº¿ Ä‘á»™ lowcarb') ||
       text.includes('low carb');
 
     let updateArgs: any = null;
@@ -925,28 +968,28 @@ ${servingsNote}
     if (isDiabetesReq) {
       updateArgs = { healthConditions: 'diabetes' };
       updateResponse =
-        'Đã cập nhật hồ sơ sức khỏe: Ưu tiên chế độ ăn cho người tiểu đường (kiểm soát đường huyết).';
+        'ÄÃ£ cáº­p nháº­t há»“ sÆ¡ sá»©c khá»e: Æ¯u tiÃªn cháº¿ Ä‘á»™ Äƒn cho ngÆ°á»i tiá»ƒu Ä‘Æ°á»ng (kiá»ƒm soÃ¡t Ä‘Æ°á»ng huyáº¿t).';
     } else if (isHypertensionReq) {
       updateArgs = { healthConditions: 'hypertension' };
       updateResponse =
-        'Đã cập nhật hồ sơ sức khỏe: Ưu tiên chế độ ăn giảm muối/natri cho người cao huyết áp.';
+        'ÄÃ£ cáº­p nháº­t há»“ sÆ¡ sá»©c khá»e: Æ¯u tiÃªn cháº¿ Ä‘á»™ Äƒn giáº£m muá»‘i/natri cho ngÆ°á»i cao huyáº¿t Ã¡p.';
     } else if (isWeightLossReq) {
       updateArgs = { healthConditions: 'weight_loss', dietType: 'weight_loss' };
       updateResponse =
-        'Đã chuyển chế độ ăn của bạn sang: Giảm cân (kiểm soát chặt chẽ calo bữa ăn).';
+        'ÄÃ£ chuyá»ƒn cháº¿ Ä‘á»™ Äƒn cá»§a báº¡n sang: Giáº£m cÃ¢n (kiá»ƒm soÃ¡t cháº·t cháº½ calo bá»¯a Äƒn).';
     } else if (isMuscleGainReq) {
       updateArgs = { healthConditions: 'muscle_gain' };
       updateResponse =
-        'Đã chuyển chế độ ăn của bạn sang: Tăng cơ (ưu tiên hàm lượng protein cao).';
+        'ÄÃ£ chuyá»ƒn cháº¿ Ä‘á»™ Äƒn cá»§a báº¡n sang: TÄƒng cÆ¡ (Æ°u tiÃªn hÃ m lÆ°á»£ng protein cao).';
     } else if (isVegetarianReq) {
       updateArgs = { dietType: 'vegetarian' };
-      updateResponse = 'Đã cập nhật chế độ ăn uống của bạn sang: Ăn chay.';
+      updateResponse = 'ÄÃ£ cáº­p nháº­t cháº¿ Ä‘á»™ Äƒn uá»‘ng cá»§a báº¡n sang: Ä‚n chay.';
     } else if (isKetoReq) {
       updateArgs = { dietType: 'keto' };
-      updateResponse = 'Đã cập nhật chế độ ăn uống của bạn sang: Keto.';
+      updateResponse = 'ÄÃ£ cáº­p nháº­t cháº¿ Ä‘á»™ Äƒn uá»‘ng cá»§a báº¡n sang: Keto.';
     } else if (isLowcarbReq) {
       updateArgs = { dietType: 'lowcarb' };
-      updateResponse = 'Đã cập nhật chế độ ăn uống của bạn sang: Lowcarb.';
+      updateResponse = 'ÄÃ£ cáº­p nháº­t cháº¿ Ä‘á»™ Äƒn uá»‘ng cá»§a báº¡n sang: Lowcarb.';
     }
 
     if (updateArgs) {
@@ -976,10 +1019,10 @@ ${servingsNote}
 
     if (matchedAllergen) {
       responseText =
-        `⚠️ **CẢNH BÁO NGUY HIỂM (DỊ ỨNG THỰC PHẨM):**\n\n` +
-        `Chào bạn, hệ thống ghi nhận hồ sơ sức khỏe của bạn dị ứng với **"${matchedAllergen.toUpperCase()}"**.\n` +
-        `Câu hỏi hoặc món ăn bạn vừa nhắc tới có thể chứa thành phần gây nguy hiểm cho sức khỏe của bạn! ` +
-        `Để đảm bảo an toàn tuyệt đối, vui lòng tránh xa món này và ưu tiên các nguyên liệu lành tính khác nhé!`;
+        `âš ï¸ **Cáº¢NH BÃO NGUY HIá»‚M (Dá»Š á»¨NG THá»°C PHáº¨M):**\n\n` +
+        `ChÃ o báº¡n, há»‡ thá»‘ng ghi nháº­n há»“ sÆ¡ sá»©c khá»e cá»§a báº¡n dá»‹ á»©ng vá»›i **"${matchedAllergen.toUpperCase()}"**.\n` +
+        `CÃ¢u há»i hoáº·c mÃ³n Äƒn báº¡n vá»«a nháº¯c tá»›i cÃ³ thá»ƒ chá»©a thÃ nh pháº§n gÃ¢y nguy hiá»ƒm cho sá»©c khá»e cá»§a báº¡n! ` +
+        `Äá»ƒ Ä‘áº£m báº£o an toÃ n tuyá»‡t Ä‘á»‘i, vui lÃ²ng trÃ¡nh xa mÃ³n nÃ y vÃ  Æ°u tiÃªn cÃ¡c nguyÃªn liá»‡u lÃ nh tÃ­nh khÃ¡c nhÃ©!`;
 
       const assistantMsg = this.chatMessageRepo.create({
         userId,
@@ -990,77 +1033,77 @@ ${servingsNote}
       return { text: responseText };
     }
 
-    // ── NEW: "cả 3 bữa luôn" / "cà 3 bữa" / "3 bữa hôm nay"
+    // â”€â”€ NEW: "cáº£ 3 bá»¯a luÃ´n" / "cÃ  3 bá»¯a" / "3 bá»¯a hÃ´m nay"
     const isChangePlanRequest =
-      text.includes('đổi thực đơn') ||
-      text.includes('thay đổi thực đơn') ||
-      text.includes('tạo thực đơn mới') ||
-      text.includes('lên thực đơn mới') ||
-      text.includes('làm mới thực đơn');
+      text.includes('Ä‘á»•i thá»±c Ä‘Æ¡n') ||
+      text.includes('thay Ä‘á»•i thá»±c Ä‘Æ¡n') ||
+      text.includes('táº¡o thá»±c Ä‘Æ¡n má»›i') ||
+      text.includes('lÃªn thá»±c Ä‘Æ¡n má»›i') ||
+      text.includes('lÃ m má»›i thá»±c Ä‘Æ¡n');
 
     const isAllMealsToday =
-      text.includes('cả 3 bữa') ||
-      text.includes('cà 3 bữa') ||
-      (text.includes('3 bữa') &&
-        (text.includes('luôn') ||
-          text.includes('hôm nay') ||
+      text.includes('cáº£ 3 bá»¯a') ||
+      text.includes('cÃ  3 bá»¯a') ||
+      (text.includes('3 bá»¯a') &&
+        (text.includes('luÃ´n') ||
+          text.includes('hÃ´m nay') ||
           text.includes('hm nay'))) ||
-      text.includes('tất cả bữa') ||
-      text.includes('hết bữa') ||
-      (text.includes('đủ bữa') && text.includes('hôm'));
+      text.includes('táº¥t cáº£ bá»¯a') ||
+      text.includes('háº¿t bá»¯a') ||
+      (text.includes('Ä‘á»§ bá»¯a') && text.includes('hÃ´m'));
 
-    // ── "thêm vài món nữa" / "thêm vô" / "thêm vào" (without a specific dish name)
+    // â”€â”€ "thÃªm vÃ i mÃ³n ná»¯a" / "thÃªm vÃ´" / "thÃªm vÃ o" (without a specific dish name)
     const isAddMultipleVague =
-      text.includes('thêm vài') ||
-      text.includes('thêm nhiều') ||
-      text.includes('thêm thêm') ||
-      text.includes('thêm nữa') ||
-      text.includes('món nữa') ||
-      // "thêm vô" = Southern Vietnamese dialect for "thêm vào"
-      (text.includes('thêm') &&
-        text.includes('vô') &&
-        !text.includes('thực đơn')) ||
-      // "thêm vào" without specifying a dish
-      (text.includes('thêm') &&
-        (text.includes('vào') || text.includes('vô')) &&
-        !text.includes('thực đơn') &&
+      text.includes('thÃªm vÃ i') ||
+      text.includes('thÃªm nhiá»u') ||
+      text.includes('thÃªm thÃªm') ||
+      text.includes('thÃªm ná»¯a') ||
+      text.includes('mÃ³n ná»¯a') ||
+      // "thÃªm vÃ´" = Southern Vietnamese dialect for "thÃªm vÃ o"
+      (text.includes('thÃªm') &&
+        text.includes('vÃ´') &&
+        !text.includes('thá»±c Ä‘Æ¡n')) ||
+      // "thÃªm vÃ o" without specifying a dish
+      (text.includes('thÃªm') &&
+        (text.includes('vÃ o') || text.includes('vÃ´')) &&
+        !text.includes('thá»±c Ä‘Æ¡n') &&
         this.cleanRecipeQuery(text) === '');
 
-    // ── "sáng" / "trưa" / "tối" as a standalone reply → add recommendation for that meal today
+    // â”€â”€ "sÃ¡ng" / "trÆ°a" / "tá»‘i" as a standalone reply â†’ add recommendation for that meal today
     const isSingleMealTime =
-      text === 'sáng' ||
-      text === 'trưa' ||
-      text === 'tối' ||
-      text === 'bữa sáng' ||
-      text === 'bữa trưa' ||
-      text === 'bữa tối' ||
-      text === 'buổi sáng' ||
-      text === 'buổi trưa' ||
-      text === 'buổi tối';
+      text === 'sÃ¡ng' ||
+      text === 'trÆ°a' ||
+      text === 'tá»‘i' ||
+      text === 'bá»¯a sÃ¡ng' ||
+      text === 'bá»¯a trÆ°a' ||
+      text === 'bá»¯a tá»‘i' ||
+      text === 'buá»•i sÃ¡ng' ||
+      text === 'buá»•i trÆ°a' ||
+      text === 'buá»•i tá»‘i';
 
-    // ── NEW: "healthy" / "lành mạnh" / "ít calo"
+    // â”€â”€ NEW: "healthy" / "lÃ nh máº¡nh" / "Ã­t calo"
     const isHealthyRequest =
       text.includes('healthy') ||
-      text.includes('lành mạnh') ||
-      text.includes('ít calo') ||
-      text.includes('ít béo') ||
+      text.includes('lÃ nh máº¡nh') ||
+      text.includes('Ã­t calo') ||
+      text.includes('Ã­t bÃ©o') ||
       text.includes('eat clean') ||
-      text.includes('ăn sạch') ||
-      text.includes('giảm cân') ||
+      text.includes('Äƒn sáº¡ch') ||
+      text.includes('giáº£m cÃ¢n') ||
       text.includes('diet');
 
     if (isSingleMealTime) {
-      // User replied with just a meal time → add AI recommendation for that meal today
+      // User replied with just a meal time â†’ add AI recommendation for that meal today
       const today = this.dateOnly(new Date());
       const weekStart = this.getMondayString(today);
       const dayOfWeek = this.getMealPlanDay(today);
       const mealType = this.parseMealTypeFromText(text);
       const mealLabel =
         mealType === 'breakfast'
-          ? 'Sáng'
+          ? 'SÃ¡ng'
           : mealType === 'lunch'
-            ? 'Trưa'
-            : 'Tối';
+            ? 'TrÆ°a'
+            : 'Tá»‘i';
 
       const recRes = await this.actionHandler.handleAction(
         'get_recommendations',
@@ -1069,7 +1112,7 @@ ${servingsNote}
       );
       const recipe = recRes.recommendations?.[0]?.recipe;
       if (!recipe?.id) {
-        responseText = `Không tìm được món phù hợp cho bữa ${mealLabel} hôm nay. Hãy thử "gợi ý ${mealLabel.toLowerCase()} nay" nhé!`;
+        responseText = `KhÃ´ng tÃ¬m Ä‘Æ°á»£c mÃ³n phÃ¹ há»£p cho bá»¯a ${mealLabel} hÃ´m nay. HÃ£y thá»­ "gá»£i Ã½ ${mealLabel.toLowerCase()} nay" nhÃ©!`;
       } else {
         actionTaken = {
           name: 'add_to_meal_plan',
@@ -1082,9 +1125,9 @@ ${servingsNote}
         );
         actionTaken.result = addRes;
         if (addRes.error) {
-          responseText = `Không thể thêm món: ${addRes.error}`;
+          responseText = `KhÃ´ng thá»ƒ thÃªm mÃ³n: ${addRes.error}`;
         } else {
-          responseText = `✅ Đã thêm **${recipe.name}** vào Bữa **${mealLabel}** hôm nay!\n(${recipe.calories} kcal, nấu trong ${recipe.cookingTime} phút)`;
+          responseText = `âœ… ÄÃ£ thÃªm **${recipe.name}** vÃ o Bá»¯a **${mealLabel}** hÃ´m nay!\n(${recipe.calories} kcal, náº¥u trong ${recipe.cookingTime} phÃºt)`;
         }
       }
     } else if (isAllMealsToday) {
@@ -1103,22 +1146,22 @@ ${servingsNote}
       );
       actionTaken.result = res;
       if (res.error) {
-        responseText = `⚠️ Không thể tạo thực đơn: ${res.error}`;
+        responseText = `âš ï¸ KhÃ´ng thá»ƒ táº¡o thá»±c Ä‘Æ¡n: ${res.error}`;
       } else {
         const todayItems = (res.items || []).filter(
           (i: any) => i.dayOfWeek === dayOfWeek,
         );
         responseText =
-          `🎉 **Đã lên thực đơn cả 3 bữa hôm nay!**\n\n` +
+          `ðŸŽ‰ **ÄÃ£ lÃªn thá»±c Ä‘Æ¡n cáº£ 3 bá»¯a hÃ´m nay!**\n\n` +
           (todayItems.length > 0
             ? todayItems
                 .map(
                   (i: any) =>
-                    `- **Bữa ${i.mealType === 'breakfast' ? 'Sáng' : i.mealType === 'lunch' ? 'Trưa' : 'Tối'}**: ${i.recipe ? i.recipe.name : 'Chưa có món'}`,
+                    `- **Bá»¯a ${i.mealType === 'breakfast' ? 'SÃ¡ng' : i.mealType === 'lunch' ? 'TrÆ°a' : 'Tá»‘i'}**: ${i.recipe ? i.recipe.name : 'ChÆ°a cÃ³ mÃ³n'}`,
                 )
                 .join('\n')
-            : '- Thực đơn đã được cập nhật!') +
-          `\n\nBạn có thể xem chi tiết ở trang Lịch Ăn nhé! 📅`;
+            : '- Thá»±c Ä‘Æ¡n Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t!') +
+          `\n\nBáº¡n cÃ³ thá»ƒ xem chi tiáº¿t á»Ÿ trang Lá»‹ch Ä‚n nhÃ©! ðŸ“…`;
       }
     } else if (isAddMultipleVague) {
       // Auto-fill empty meal slots for today using AI recommendations
@@ -1138,7 +1181,7 @@ ${servingsNote}
       );
 
       if (emptyMeals.length === 0) {
-        responseText = `✅ Hôm nay bạn đã có đủ 3 bữa rồi! 🎉 Bạn có muốn xem thực đơn không?`;
+        responseText = `âœ… HÃ´m nay báº¡n Ä‘Ã£ cÃ³ Ä‘á»§ 3 bá»¯a rá»“i! ðŸŽ‰ Báº¡n cÃ³ muá»‘n xem thá»±c Ä‘Æ¡n khÃ´ng?`;
       } else {
         const addedMeals: string[] = [];
         for (const mealType of emptyMeals) {
@@ -1155,7 +1198,7 @@ ${servingsNote}
               userId,
             );
             addedMeals.push(
-              `Bữa ${mealType === 'breakfast' ? 'Sáng' : mealType === 'lunch' ? 'Trưa' : 'Tối'}: **${recipe.name}**`,
+              `Bá»¯a ${mealType === 'breakfast' ? 'SÃ¡ng' : mealType === 'lunch' ? 'TrÆ°a' : 'Tá»‘i'}: **${recipe.name}**`,
             );
           }
         }
@@ -1166,11 +1209,11 @@ ${servingsNote}
         };
         if (addedMeals.length > 0) {
           responseText =
-            `✅ **Đã thêm các món cho hôm nay:**\n\n` +
+            `âœ… **ÄÃ£ thÃªm cÃ¡c mÃ³n cho hÃ´m nay:**\n\n` +
             addedMeals.map((m) => `- ${m}`).join('\n') +
-            `\n\nThực đơn đã được cập nhật! Bạn có thể xem ở trang Lịch Ăn.`;
+            `\n\nThá»±c Ä‘Æ¡n Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t! Báº¡n cÃ³ thá»ƒ xem á»Ÿ trang Lá»‹ch Ä‚n.`;
         } else {
-          responseText = `Không tìm được món phù hợp để thêm. Hãy thử lệnh **"gợi ý món ăn"** để xem các lựa chọn nhé!`;
+          responseText = `KhÃ´ng tÃ¬m Ä‘Æ°á»£c mÃ³n phÃ¹ há»£p Ä‘á»ƒ thÃªm. HÃ£y thá»­ lá»‡nh **"gá»£i Ã½ mÃ³n Äƒn"** Ä‘á»ƒ xem cÃ¡c lá»±a chá»n nhÃ©!`;
         }
       }
     } else if (isHealthyRequest) {
@@ -1184,29 +1227,29 @@ ${servingsNote}
       );
       actionTaken.result = res;
       if (!res.data || res.data.length === 0) {
-        responseText = `🥗 Hiện chưa tìm được món ăn lành mạnh (dưới 400 kcal) phù hợp. Hãy thêm nhiều công thức healthy vào hệ thống nhé!`;
+        responseText = `ðŸ¥— Hiá»‡n chÆ°a tÃ¬m Ä‘Æ°á»£c mÃ³n Äƒn lÃ nh máº¡nh (dÆ°á»›i 400 kcal) phÃ¹ há»£p. HÃ£y thÃªm nhiá»u cÃ´ng thá»©c healthy vÃ o há»‡ thá»‘ng nhÃ©!`;
       } else {
         responseText =
-          `🥗 **Gợi ý món ăn lành mạnh (dưới 400 kcal):**\n\n` +
+          `ðŸ¥— **Gá»£i Ã½ mÃ³n Äƒn lÃ nh máº¡nh (dÆ°á»›i 400 kcal):**\n\n` +
           res.data
             .slice(0, 5)
             .map(
               (r: any) =>
-                `- **${r.name}** \u2013 ${r.calories} kcal | ${r.cookingTime} phút`,
+                `- **${r.name}** \u2013 ${r.calories} kcal | ${r.cookingTime} phÃºt`,
             )
             .join('\n') +
-          `\n\nBạn muốn thêm món nào vào thực đơn không?`;
+          `\n\nBáº¡n muá»‘n thÃªm mÃ³n nÃ o vÃ o thá»±c Ä‘Æ¡n khÃ´ng?`;
       }
     } else if (
-      text === 'có' ||
-      text === 'đồng ý' ||
+      text === 'cÃ³' ||
+      text === 'Ä‘á»“ng Ã½' ||
       text === 'ok' ||
-      text === 'đúng' ||
+      text === 'Ä‘Ãºng' ||
       text === 'dung' ||
-      text === 'bạn đúng' ||
+      text === 'báº¡n Ä‘Ãºng' ||
       text === 'ban dung' ||
       isChangePlanRequest ||
-      ((text.includes('lên thực đơn') || text.includes('tạo thực đơn')) &&
+      ((text.includes('lÃªn thá»±c Ä‘Æ¡n') || text.includes('táº¡o thá»±c Ä‘Æ¡n')) &&
         dateSelections.length === 0)
     ) {
       let isDayContext = false;
@@ -1216,11 +1259,11 @@ ${servingsNote}
 
       if (
         text === 'ok' ||
-        text === 'đồng ý' ||
-        text === 'có' ||
-        text === 'đúng' ||
+        text === 'Ä‘á»“ng Ã½' ||
+        text === 'cÃ³' ||
+        text === 'Ä‘Ãºng' ||
         text === 'dung' ||
-        text === 'bạn đúng' ||
+        text === 'báº¡n Ä‘Ãºng' ||
         text === 'ban dung'
       ) {
         const lastModelMsg = await this.chatMessageRepo.findOne({
@@ -1250,7 +1293,7 @@ ${servingsNote}
           }
 
           if (!parsedDay) {
-            if (lastContent.includes('ngày mai')) {
+            if (lastContent.includes('ngÃ y mai')) {
               const tomorrow = new Date();
               tomorrow.setDate(tomorrow.getDate() + 1);
               confirmDayOfWeek =
@@ -1258,27 +1301,27 @@ ${servingsNote}
               confirmWeekStart = this.getMondayString(tomorrow);
               parsedDay = true;
             } else if (
-              lastContent.includes('hôm nay') ||
-              lastContent.includes('ngày hôm nay')
+              lastContent.includes('hÃ´m nay') ||
+              lastContent.includes('ngÃ y hÃ´m nay')
             ) {
               confirmDayOfWeek = currentDayOfWeek;
               confirmWeekStart = this.getMondayString(new Date());
               parsedDay = true;
             } else {
               const dayMap: Record<string, number> = {
-                'thứ hai': 1,
-                'thứ 2': 1,
-                'thứ ba': 2,
-                'thứ 3': 2,
-                'thứ tư': 3,
-                'thứ 4': 3,
-                'thứ năm': 4,
-                'thứ 5': 4,
-                'thứ sáu': 5,
-                'thứ 6': 5,
-                'thứ bảy': 6,
-                'thứ 7': 6,
-                'chủ nhật': 7,
+                'thá»© hai': 1,
+                'thá»© 2': 1,
+                'thá»© ba': 2,
+                'thá»© 3': 2,
+                'thá»© tÆ°': 3,
+                'thá»© 4': 3,
+                'thá»© nÄƒm': 4,
+                'thá»© 5': 4,
+                'thá»© sÃ¡u': 5,
+                'thá»© 6': 5,
+                'thá»© báº£y': 6,
+                'thá»© 7': 6,
+                'chá»§ nháº­t': 7,
                 cn: 7,
               };
               for (const [key, val] of Object.entries(dayMap)) {
@@ -1292,26 +1335,26 @@ ${servingsNote}
           }
 
           const isDeleteConfirmation =
-            lastContent.includes('muốn xóa') ||
-            (lastContent.includes('xóa') &&
-              (lastContent.includes('phải không') ||
-                lastContent.includes('không?')));
+            lastContent.includes('muá»‘n xÃ³a') ||
+            (lastContent.includes('xÃ³a') &&
+              (lastContent.includes('pháº£i khÃ´ng') ||
+                lastContent.includes('khÃ´ng?')));
 
           if (isDeleteConfirmation && parsedDay) {
             // Parse meal type from the last message context
             let confirmMealType = 'lunch';
             if (
-              lastContent.includes('sáng') ||
+              lastContent.includes('sÃ¡ng') ||
               lastContent.includes('breakfast')
             )
               confirmMealType = 'breakfast';
             else if (
-              lastContent.includes('tối') ||
+              lastContent.includes('tá»‘i') ||
               lastContent.includes('dinner')
             )
               confirmMealType = 'dinner';
             else if (
-              lastContent.includes('phụ') ||
+              lastContent.includes('phá»¥') ||
               lastContent.includes('snack')
             )
               confirmMealType = 'snack';
@@ -1341,9 +1384,9 @@ ${servingsNote}
             );
             actionTaken.result = res;
             if (res.error) {
-              responseText = `⚠️ Không thể xóa món ăn: ${res.error}`;
+              responseText = `âš ï¸ KhÃ´ng thá»ƒ xÃ³a mÃ³n Äƒn: ${res.error}`;
             } else {
-              responseText = `✅ **Thành công!** ${res.message || 'Đã xóa món ăn khỏi thực đơn.'}`;
+              responseText = `âœ… **ThÃ nh cÃ´ng!** ${res.message || 'ÄÃ£ xÃ³a mÃ³n Äƒn khá»i thá»±c Ä‘Æ¡n.'}`;
             }
 
             const assistantMsg = this.chatMessageRepo.create({
@@ -1363,26 +1406,26 @@ ${servingsNote}
           }
 
           if (
-            lastContent.includes('hôm nay') ||
-            lastContent.includes('ngày hôm nay')
+            lastContent.includes('hÃ´m nay') ||
+            lastContent.includes('ngÃ y hÃ´m nay')
           ) {
             isDayContext = true;
             targetDays = [currentDayOfWeek];
           } else {
             const dayMap: Record<string, number> = {
-              'thứ hai': 1,
-              'thứ 2': 1,
-              'thứ ba': 2,
-              'thứ 3': 2,
-              'thứ tư': 3,
-              'thứ 4': 3,
-              'thứ năm': 4,
-              'thứ 5': 4,
-              'thứ sáu': 5,
-              'thứ 6': 5,
-              'thứ bảy': 6,
-              'thứ 7': 6,
-              'chủ nhật': 7,
+              'thá»© hai': 1,
+              'thá»© 2': 1,
+              'thá»© ba': 2,
+              'thá»© 3': 2,
+              'thá»© tÆ°': 3,
+              'thá»© 4': 3,
+              'thá»© nÄƒm': 4,
+              'thá»© 5': 4,
+              'thá»© sÃ¡u': 5,
+              'thá»© 6': 5,
+              'thá»© báº£y': 6,
+              'thá»© 7': 6,
+              'chá»§ nháº­t': 7,
               cn: 7,
             };
             for (const [key, val] of Object.entries(dayMap)) {
@@ -1409,33 +1452,33 @@ ${servingsNote}
         );
         actionTaken.result = res;
         if (res.error) {
-          responseText = `⚠️ Không thể tạo thực đơn: ${res.error}`;
+          responseText = `âš ï¸ KhÃ´ng thá»ƒ táº¡o thá»±c Ä‘Æ¡n: ${res.error}`;
         } else {
           const dayLabelsMap = [
             '',
-            'Thứ Hai',
-            'Thứ Ba',
-            'Thứ Tư',
-            'Thứ Năm',
-            'Thứ Sáu',
-            'Thứ Bảy',
-            'Chủ Nhật',
+            'Thá»© Hai',
+            'Thá»© Ba',
+            'Thá»© TÆ°',
+            'Thá»© NÄƒm',
+            'Thá»© SÃ¡u',
+            'Thá»© Báº£y',
+            'Chá»§ Nháº­t',
           ];
           const todayItems = (res.items || []).filter((i: any) =>
             targetDays.includes(i.dayOfWeek),
           );
           const dayLabels = targetDays.map((d) => dayLabelsMap[d]).join(', ');
           responseText =
-            `🎉 **Đã lên thực đơn cho ${dayLabels} thành công!**\n\n` +
+            `ðŸŽ‰ **ÄÃ£ lÃªn thá»±c Ä‘Æ¡n cho ${dayLabels} thÃ nh cÃ´ng!**\n\n` +
             (todayItems.length > 0
               ? todayItems
                   .map(
                     (i: any) =>
-                      `- **${i.dayLabel} - Bữa ${i.mealType === 'breakfast' ? 'Sáng' : i.mealType === 'lunch' ? 'Trưa' : 'Tối'}**: ${i.recipe ? i.recipe.name : 'Chưa có món'}`,
+                      `- **${i.dayLabel} - Bá»¯a ${i.mealType === 'breakfast' ? 'SÃ¡ng' : i.mealType === 'lunch' ? 'TrÆ°a' : 'Tá»‘i'}**: ${i.recipe ? i.recipe.name : 'ChÆ°a cÃ³ mÃ³n'}`,
                   )
                   .join('\n')
-              : '- Thực đơn đã được cập nhật!') +
-            `\n\nBạn có thể xem lịch ăn chi tiết ở trang Lịch Ăn nhé! 📅`;
+              : '- Thá»±c Ä‘Æ¡n Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t!') +
+            `\n\nBáº¡n cÃ³ thá»ƒ xem lá»‹ch Äƒn chi tiáº¿t á»Ÿ trang Lá»‹ch Ä‚n nhÃ©! ðŸ“…`;
         }
       } else {
         actionTaken = {
@@ -1449,25 +1492,25 @@ ${servingsNote}
         );
         actionTaken.result = res;
         if (res.error) {
-          responseText = `Không thể tạo thực đơn tự động: ${res.error}`;
+          responseText = `KhÃ´ng thá»ƒ táº¡o thá»±c Ä‘Æ¡n tá»± Ä‘á»™ng: ${res.error}`;
         } else {
           responseText =
-            `🎉 Tuyệt vời! Tôi đã tự động thiết kế một thực đơn tuần dinh dưỡng, cân đối calo và tối ưu hóa nguyên liệu trong tủ lạnh của bạn thành công!\n\n` +
-            `**Chi tiết thực đơn:**\n` +
+            `ðŸŽ‰ Tuyá»‡t vá»i! TÃ´i Ä‘Ã£ tá»± Ä‘á»™ng thiáº¿t káº¿ má»™t thá»±c Ä‘Æ¡n tuáº§n dinh dÆ°á»¡ng, cÃ¢n Ä‘á»‘i calo vÃ  tá»‘i Æ°u hÃ³a nguyÃªn liá»‡u trong tá»§ láº¡nh cá»§a báº¡n thÃ nh cÃ´ng!\n\n` +
+            `**Chi tiáº¿t thá»±c Ä‘Æ¡n:**\n` +
             res.items
               .slice(0, 7)
               .map(
                 (i: any) =>
-                  `- **${i.dayLabel}** (${i.mealType === 'breakfast' ? 'Sáng' : i.mealType === 'lunch' ? 'Trưa' : 'Tối'}): ${i.recipe ? i.recipe.name : 'Chưa lên món'}`,
+                  `- **${i.dayLabel}** (${i.mealType === 'breakfast' ? 'SÃ¡ng' : i.mealType === 'lunch' ? 'TrÆ°a' : 'Tá»‘i'}): ${i.recipe ? i.recipe.name : 'ChÆ°a lÃªn mÃ³n'}`,
               )
               .join('\n') +
-            `\n\nTổng lượng calo tiêu thụ cả tuần khoảng **${res.totalCalories} kcal** (Trung bình **${res.dailyAvgCalories} kcal/ngày**). Bạn có thể xem lịch ăn chi tiết ở thẻ bên dưới hoặc trang Thực đơn nhé!`;
+            `\n\nTá»•ng lÆ°á»£ng calo tiÃªu thá»¥ cáº£ tuáº§n khoáº£ng **${res.totalCalories} kcal** (Trung bÃ¬nh **${res.dailyAvgCalories} kcal/ngÃ y**). Báº¡n cÃ³ thá»ƒ xem lá»‹ch Äƒn chi tiáº¿t á»Ÿ tháº» bÃªn dÆ°á»›i hoáº·c trang Thá»±c Ä‘Æ¡n nhÃ©!`;
         }
       }
     } else if (
-      text.includes('gợi ý') ||
-      text.includes('ăn gì') ||
-      text.includes('nấu gì')
+      text.includes('gá»£i Ã½') ||
+      text.includes('Äƒn gÃ¬') ||
+      text.includes('náº¥u gÃ¬')
     ) {
       const currentWeekStart = this.getMondayString(new Date());
       const currentPlan = await this.actionHandler.mealPlanService.findByWeek(
@@ -1495,17 +1538,17 @@ ${servingsNote}
       );
       actionTaken.result = res;
       responseText =
-        `Dựa trên sở thích của bạn, đây là 3 món ăn gợi ý từ MealAI:\n` +
+        `Dá»±a trÃªn sá»Ÿ thÃ­ch cá»§a báº¡n, Ä‘Ã¢y lÃ  3 mÃ³n Äƒn gá»£i Ã½ tá»« MealAI:\n` +
         res.recommendations
           .map(
             (r: any) =>
-              `- **${r.recipe.name}** (${r.recipe.calories} kcal, nấu trong ${r.recipe.cookingTime} phút)`,
+              `- **${r.recipe.name}** (${r.recipe.calories} kcal, náº¥u trong ${r.recipe.cookingTime} phÃºt)`,
           )
           .join('\n') +
-        `\n\nBạn có muốn tôi giúp lên thực đơn cả tuần không?`;
+        `\n\nBáº¡n cÃ³ muá»‘n tÃ´i giÃºp lÃªn thá»±c Ä‘Æ¡n cáº£ tuáº§n khÃ´ng?`;
     } else if (
-      text.includes('tủ lạnh') ||
-      text.includes('nguyên liệu') ||
+      text.includes('tá»§ láº¡nh') ||
+      text.includes('nguyÃªn liá»‡u') ||
       text.includes('inventory')
     ) {
       actionTaken = { name: 'get_inventory', args: {} };
@@ -1516,26 +1559,26 @@ ${servingsNote}
       );
       actionTaken.result = res;
       if (res.data?.length === 0) {
-        responseText = `Tủ lạnh của bạn hiện tại đang trống rỗng! Hãy thêm nguyên liệu mới hoặc tạo danh sách mua sắm nhé.`;
+        responseText = `Tá»§ láº¡nh cá»§a báº¡n hiá»‡n táº¡i Ä‘ang trá»‘ng rá»—ng! HÃ£y thÃªm nguyÃªn liá»‡u má»›i hoáº·c táº¡o danh sÃ¡ch mua sáº¯m nhÃ©.`;
       } else {
         responseText =
-          `Trong tủ lạnh của bạn đang có:\n` +
+          `Trong tá»§ láº¡nh cá»§a báº¡n Ä‘ang cÃ³:\n` +
           res.data
             .slice(0, 5)
             .map(
               (i: any) =>
-                `- **${i.ingredient.name}**: ${i.quantity} ${i.unit} (Hạn dùng: ${i.expirationDate ? new Date(i.expirationDate).toLocaleDateString('vi-VN') : 'Không hạn'})`,
+                `- **${i.ingredient.name}**: ${i.quantity} ${i.unit} (Háº¡n dÃ¹ng: ${i.expirationDate ? new Date(i.expirationDate).toLocaleDateString('vi-VN') : 'KhÃ´ng háº¡n'})`,
             )
             .join('\n') +
           (res.data.length > 5
-            ? `\n... và ${res.data.length - 5} nguyên liệu khác.`
+            ? `\n... vÃ  ${res.data.length - 5} nguyÃªn liá»‡u khÃ¡c.`
             : '') +
-          `\n\nChỉ số tủ lạnh: ${res.summary.critical} nguyên liệu cực kỳ khẩn cấp.`;
+          `\n\nChá»‰ sá»‘ tá»§ láº¡nh: ${res.summary.critical} nguyÃªn liá»‡u cá»±c ká»³ kháº©n cáº¥p.`;
       }
     } else if (
-      text.includes('mua sắm') ||
-      text.includes('đi chợ') ||
-      text.includes('mua đồ')
+      text.includes('mua sáº¯m') ||
+      text.includes('Ä‘i chá»£') ||
+      text.includes('mua Ä‘á»“')
     ) {
       const currentWeekStart = this.actionHandler.getMondayString(new Date());
       const shoppingWeekStart =
@@ -1545,7 +1588,7 @@ ${servingsNote}
         shoppingWeekStart,
       );
       if (!plan) {
-        responseText = `⚠️ Bạn chưa có thực đơn cho tuần cần mua sắm nên tôi chưa thể lập danh sách. Hãy gõ **"tạo thực đơn hôm nay"** hoặc chọn ngày tương lai trước nhé!`;
+        responseText = `âš ï¸ Báº¡n chÆ°a cÃ³ thá»±c Ä‘Æ¡n cho tuáº§n cáº§n mua sáº¯m nÃªn tÃ´i chÆ°a thá»ƒ láº­p danh sÃ¡ch. HÃ£y gÃµ **"táº¡o thá»±c Ä‘Æ¡n hÃ´m nay"** hoáº·c chá»n ngÃ y tÆ°Æ¡ng lai trÆ°á»›c nhÃ©!`;
       } else {
         const parsedDays = dateSelections
           .filter((selection) => selection.weekStart === shoppingWeekStart)
@@ -1566,49 +1609,49 @@ ${servingsNote}
         actionTaken.result = res;
 
         if (res.error) {
-          responseText = `Không thể lập danh sách mua sắm: ${res.error}`;
+          responseText = `KhÃ´ng thá»ƒ láº­p danh sÃ¡ch mua sáº¯m: ${res.error}`;
         } else if (res.toBuy.length === 0) {
-          responseText = `🎉 Tuyệt vời! Tất cả nguyên liệu cần thiết cho thực đơn của các ngày được chọn đã có đầy đủ trong tủ lạnh của bạn! Bạn không cần mua thêm gì cả.`;
+          responseText = `ðŸŽ‰ Tuyá»‡t vá»i! Táº¥t cáº£ nguyÃªn liá»‡u cáº§n thiáº¿t cho thá»±c Ä‘Æ¡n cá»§a cÃ¡c ngÃ y Ä‘Æ°á»£c chá»n Ä‘Ã£ cÃ³ Ä‘áº§y Ä‘á»§ trong tá»§ láº¡nh cá»§a báº¡n! Báº¡n khÃ´ng cáº§n mua thÃªm gÃ¬ cáº£.`;
         } else {
           responseText =
-            `🛒 **Đã tự động lập danh sách mua sắm thành công!**\n` +
-            `**Tên danh sách:** ${res.name}\n` +
-            `**Số lượng mặt hàng cần mua:** ${res.totalItems} món\n` +
+            `ðŸ›’ **ÄÃ£ tá»± Ä‘á»™ng láº­p danh sÃ¡ch mua sáº¯m thÃ nh cÃ´ng!**\n` +
+            `**TÃªn danh sÃ¡ch:** ${res.name}\n` +
+            `**Sá»‘ lÆ°á»£ng máº·t hÃ ng cáº§n mua:** ${res.totalItems} mÃ³n\n` +
             (res.estimatedTotal && res.estimatedTotal > 0
-              ? `**Tổng chi phí dự kiến:** ${res.estimatedTotal.toLocaleString('vi-VN')} đ\n\n`
+              ? `**Tá»•ng chi phÃ­ dá»± kiáº¿n:** ${res.estimatedTotal.toLocaleString('vi-VN')} Ä‘\n\n`
               : `\n`) +
-            `**Chi tiết nguyên liệu cần mua:**\n` +
+            `**Chi tiáº¿t nguyÃªn liá»‡u cáº§n mua:**\n` +
             res.toBuy
               .map(
                 (item: any) =>
                   `- **${item.name}**: ${item.quantity} ${item.unit} (${item.category})` +
                   (item.estimatedPrice && item.estimatedPrice > 0
-                    ? ` - Dự tính: ${item.estimatedPrice.toLocaleString('vi-VN')}đ`
+                    ? ` - Dá»± tÃ­nh: ${item.estimatedPrice.toLocaleString('vi-VN')}Ä‘`
                     : ''),
               )
               .join('\n') +
-            `\n\n*Hệ thống đã tự động đối chiếu với tủ lạnh và lược bỏ ${res.alreadyHave.length} nguyên liệu bạn đã có sẵn!*`;
+            `\n\n*Há»‡ thá»‘ng Ä‘Ã£ tá»± Ä‘á»™ng Ä‘á»‘i chiáº¿u vá»›i tá»§ láº¡nh vÃ  lÆ°á»£c bá» ${res.alreadyHave.length} nguyÃªn liá»‡u báº¡n Ä‘Ã£ cÃ³ sáºµn!*`;
         }
       }
     } else if (
-      text.includes('thêm món') ||
-      text.includes('thêm vào thực đơn') ||
-      (text.includes('thêm') && text.includes('thực đơn')) ||
-      text.includes('lên món') ||
-      text.includes('chọn món')
+      text.includes('thÃªm mÃ³n') ||
+      text.includes('thÃªm vÃ o thá»±c Ä‘Æ¡n') ||
+      (text.includes('thÃªm') && text.includes('thá»±c Ä‘Æ¡n')) ||
+      text.includes('lÃªn mÃ³n') ||
+      text.includes('chá»n mÃ³n')
     ) {
       const target = dateSelections[0] || {
         date: new Date(),
         weekStart: this.actionHandler.getMondayString(new Date()),
         dayOfWeek: this.getMealPlanDay(new Date()),
-        label: 'hôm nay',
+        label: 'hÃ´m nay',
       };
       const day = target.dayOfWeek;
       const mealType = requestedMealType;
       const query = this.cleanRecipeQuery(text);
 
       if (!query) {
-        responseText = `Bạn muốn tôi thêm món ăn gì vào thực đơn? Hãy gõ ví dụ: **"Thêm món phở bò vào bữa sáng ngày mai"** nhé!`;
+        responseText = `Báº¡n muá»‘n tÃ´i thÃªm mÃ³n Äƒn gÃ¬ vÃ o thá»±c Ä‘Æ¡n? HÃ£y gÃµ vÃ­ dá»¥: **"ThÃªm mÃ³n phá»Ÿ bÃ² vÃ o bá»¯a sÃ¡ng ngÃ y mai"** nhÃ©!`;
       } else {
         const searchRes = await this.actionHandler.handleAction(
           'search_recipes',
@@ -1616,10 +1659,10 @@ ${servingsNote}
           userId,
         );
         if (!searchRes.data || searchRes.data.length === 0) {
-          responseText = `Tôi không tìm thấy món ăn nào khớp với tên **"${query}"** trong hệ thống. Hãy thử tìm từ khác xem sao nhé!`;
+          responseText = `TÃ´i khÃ´ng tÃ¬m tháº¥y mÃ³n Äƒn nÃ o khá»›p vá»›i tÃªn **"${query}"** trong há»‡ thá»‘ng. HÃ£y thá»­ tÃ¬m tá»« khÃ¡c xem sao nhÃ©!`;
         } else {
           const recipe = searchRes.data[0];
-          const shouldOverwrite = text.includes('đổi') || text.includes('thay');
+          const shouldOverwrite = text.includes('Ä‘á»•i') || text.includes('thay');
           actionTaken = {
             name: 'add_to_meal_plan',
             args: {
@@ -1637,43 +1680,43 @@ ${servingsNote}
           );
           actionTaken.result = res;
           if (res.skipped) {
-            responseText = `⚠️ **Không thể ghi đè:** ${res.message}`;
+            responseText = `âš ï¸ **KhÃ´ng thá»ƒ ghi Ä‘Ã¨:** ${res.message}`;
           } else if (res.error) {
-            responseText = `Không thể thêm món ăn: ${res.error}`;
+            responseText = `KhÃ´ng thá»ƒ thÃªm mÃ³n Äƒn: ${res.error}`;
           } else {
             const mealLabel =
               mealType === 'breakfast'
-                ? 'Sáng'
+                ? 'SÃ¡ng'
                 : mealType === 'lunch'
-                  ? 'Trưa'
+                  ? 'TrÆ°a'
                   : mealType === 'dinner'
-                    ? 'Tối'
-                    : 'Phụ';
-            responseText = `🎉 **Thành công!** Tôi đã tự động lên món **"${recipe.name}"** vào **Bữa ${mealLabel} - ${target.label}** trong thực đơn của bạn.`;
+                    ? 'Tá»‘i'
+                    : 'Phá»¥';
+            responseText = `ðŸŽ‰ **ThÃ nh cÃ´ng!** TÃ´i Ä‘Ã£ tá»± Ä‘á»™ng lÃªn mÃ³n **"${recipe.name}"** vÃ o **Bá»¯a ${mealLabel} - ${target.label}** trong thá»±c Ä‘Æ¡n cá»§a báº¡n.`;
           }
         }
       }
     } else if (
-      text.includes('xóa') ||
-      text.includes('hủy') ||
-      text.includes('bỏ') ||
+      text.includes('xÃ³a') ||
+      text.includes('há»§y') ||
+      text.includes('bá»') ||
       text.includes('delete') ||
       text.includes('remove')
     ) {
       const isDeletePlanKeyword =
-        text.includes('tuần') ||
-        text.includes('cả tuần') ||
-        text.includes('hết thực đơn') ||
-        text.includes('tất cả thực đơn') ||
+        text.includes('tuáº§n') ||
+        text.includes('cáº£ tuáº§n') ||
+        text.includes('háº¿t thá»±c Ä‘Æ¡n') ||
+        text.includes('táº¥t cáº£ thá»±c Ä‘Æ¡n') ||
         text.includes('meal plan') ||
-        text.includes('toàn bộ thực đơn');
+        text.includes('toÃ n bá»™ thá»±c Ä‘Æ¡n');
 
       if (
         isDeletePlanKeyword &&
         dateSelections.length === 0 &&
-        !text.includes('sáng') &&
-        !text.includes('trưa') &&
-        !text.includes('tối')
+        !text.includes('sÃ¡ng') &&
+        !text.includes('trÆ°a') &&
+        !text.includes('tá»‘i')
       ) {
         const currentWeekStart = this.actionHandler.getMondayString(new Date());
         actionTaken = {
@@ -1686,32 +1729,32 @@ ${servingsNote}
           userId,
         );
         actionTaken.result = res;
-        responseText = res.message || 'Đã xóa thực đơn tuần thành công!';
+        responseText = res.message || 'ÄÃ£ xÃ³a thá»±c Ä‘Æ¡n tuáº§n thÃ nh cÃ´ng!';
       } else {
         const target = dateSelections[0] || {
           date: new Date(),
           weekStart: this.actionHandler.getMondayString(new Date()),
           dayOfWeek: this.getMealPlanDay(new Date()),
-          label: 'hôm nay',
+          label: 'hÃ´m nay',
         };
         const mealType = requestedMealType;
         const mealLabel =
           mealType === 'breakfast'
-            ? 'sáng'
+            ? 'sÃ¡ng'
             : mealType === 'lunch'
-              ? 'trưa'
+              ? 'trÆ°a'
               : mealType === 'dinner'
-                ? 'tối'
-                : 'phụ';
+                ? 'tá»‘i'
+                : 'phá»¥';
         const dayLabelsMap = [
           '',
-          'Thứ Hai',
-          'Thứ Ba',
-          'Thứ Tư',
-          'Thứ Năm',
-          'Thứ Sáu',
-          'Thứ Bảy',
-          'Chủ Nhật',
+          'Thá»© Hai',
+          'Thá»© Ba',
+          'Thá»© TÆ°',
+          'Thá»© NÄƒm',
+          'Thá»© SÃ¡u',
+          'Thá»© Báº£y',
+          'Chá»§ Nháº­t',
         ];
         const dayLabel = dayLabelsMap[target.dayOfWeek];
         const dateStr = target.date.toLocaleDateString('vi-VN', {
@@ -1723,23 +1766,23 @@ ${servingsNote}
         // Check if user specified a recipe to delete
         let recipeQuery = text;
         const deleteWords = [
-          /xóa/gi,
-          /hủy/gi,
-          /bỏ/gi,
+          /xÃ³a/gi,
+          /há»§y/gi,
+          /bá»/gi,
           /delete/gi,
           /remove/gi,
-          /đi/gi,
-          /món/gi,
-          /bữa/gi,
-          /buổi/gi,
-          /sáng/gi,
-          /trưa/gi,
-          /tối/gi,
-          /phụ/gi,
-          /hôm nay/gi,
-          /ngày mai/gi,
-          /ngày kia/gi,
-          /mốt/gi,
+          /Ä‘i/gi,
+          /mÃ³n/gi,
+          /bá»¯a/gi,
+          /buá»•i/gi,
+          /sÃ¡ng/gi,
+          /trÆ°a/gi,
+          /tá»‘i/gi,
+          /phá»¥/gi,
+          /hÃ´m nay/gi,
+          /ngÃ y mai/gi,
+          /ngÃ y kia/gi,
+          /má»‘t/gi,
         ];
         for (const word of deleteWords) {
           recipeQuery = recipeQuery.replace(word, '');
@@ -1762,12 +1805,12 @@ ${servingsNote}
           if (matchedItem) {
             const itemMealLabel =
               matchedItem.mealType === 'breakfast'
-                ? 'sáng'
+                ? 'sÃ¡ng'
                 : matchedItem.mealType === 'lunch'
-                  ? 'trưa'
+                  ? 'trÆ°a'
                   : matchedItem.mealType === 'dinner'
-                    ? 'tối'
-                    : 'phụ';
+                    ? 'tá»‘i'
+                    : 'phá»¥';
             const itemDayLabel = dayLabelsMap[matchedItem.dayOfWeek];
             const itemDate = this.parseDateInput(target.weekStart);
             itemDate.setDate(itemDate.getDate() + matchedItem.dayOfWeek - 1);
@@ -1777,7 +1820,7 @@ ${servingsNote}
               year: 'numeric',
             });
 
-            responseText = `Bạn muốn tôi xóa món **${matchedItem.recipe.name}** trong bữa ${itemMealLabel} ${itemDayLabel} (${itemDateStr}) phải không?`;
+            responseText = `Báº¡n muá»‘n tÃ´i xÃ³a mÃ³n **${matchedItem.recipe.name}** trong bá»¯a ${itemMealLabel} ${itemDayLabel} (${itemDateStr}) pháº£i khÃ´ng?`;
             actionTaken = {
               name: 'remove_from_meal_plan',
               args: {
@@ -1788,10 +1831,10 @@ ${servingsNote}
               },
             };
           } else {
-            responseText = `Tôi không tìm thấy món ăn nào có tên giống **"${recipeQuery}"** trong thực đơn tuần này để xóa.`;
+            responseText = `TÃ´i khÃ´ng tÃ¬m tháº¥y mÃ³n Äƒn nÃ o cÃ³ tÃªn giá»‘ng **"${recipeQuery}"** trong thá»±c Ä‘Æ¡n tuáº§n nÃ y Ä‘á»ƒ xÃ³a.`;
           }
         } else {
-          responseText = `Bạn muốn tôi xóa toàn bộ các món ăn trong bữa ${mealLabel} ${target.label} (${dayLabel}, ${dateStr}) phải không?`;
+          responseText = `Báº¡n muá»‘n tÃ´i xÃ³a toÃ n bá»™ cÃ¡c mÃ³n Äƒn trong bá»¯a ${mealLabel} ${target.label} (${dayLabel}, ${dateStr}) pháº£i khÃ´ng?`;
           actionTaken = {
             name: 'remove_from_meal_plan',
             args: {
@@ -1803,13 +1846,13 @@ ${servingsNote}
         }
       }
     } else if (
-      (text.includes('thực đơn') ||
+      (text.includes('thá»±c Ä‘Æ¡n') ||
         text.includes('meal plan') ||
-        text.includes('lên thực đơn') ||
-        text.includes('tạo thực đơn') ||
-        text.includes('đổi ngày') ||
-        text.includes('đổi thực đơn') ||
-        text.includes('thay đổi')) &&
+        text.includes('lÃªn thá»±c Ä‘Æ¡n') ||
+        text.includes('táº¡o thá»±c Ä‘Æ¡n') ||
+        text.includes('Ä‘á»•i ngÃ y') ||
+        text.includes('Ä‘á»•i thá»±c Ä‘Æ¡n') ||
+        text.includes('thay Ä‘á»•i')) &&
       dateSelections.length > 0
     ) {
       const groupedSelections = dateSelections.reduce((groups, selection) => {
@@ -1819,10 +1862,10 @@ ${servingsNote}
         return groups;
       }, new Map<string, typeof dateSelections>());
 
-      const hasBreakfast = text.includes('sáng') || text.includes('breakfast');
-      const hasLunch = text.includes('trưa') || text.includes('lunch');
-      const hasDinner = text.includes('tối') || text.includes('dinner');
-      const hasSnack = text.includes('phụ') || text.includes('snack');
+      const hasBreakfast = text.includes('sÃ¡ng') || text.includes('breakfast');
+      const hasLunch = text.includes('trÆ°a') || text.includes('lunch');
+      const hasDinner = text.includes('tá»‘i') || text.includes('dinner');
+      const hasSnack = text.includes('phá»¥') || text.includes('snack');
 
       const specificMealType =
         hasBreakfast && !hasLunch && !hasDinner && !hasSnack
@@ -1836,7 +1879,7 @@ ${servingsNote}
                 : undefined;
 
       if (groupedSelections.size === 0) {
-        responseText = `Bạn muốn tôi tạo thực đơn cho ngày nào cụ thể? Hãy gõ ví dụ: **"Tạo thực đơn cho ngày mai"** nhé!`;
+        responseText = `Báº¡n muá»‘n tÃ´i táº¡o thá»±c Ä‘Æ¡n cho ngÃ y nÃ o cá»¥ thá»ƒ? HÃ£y gÃµ vÃ­ dá»¥: **"Táº¡o thá»±c Ä‘Æ¡n cho ngÃ y mai"** nhÃ©!`;
       } else {
         const results: any[] = [];
         const firstWeekStart =
@@ -1846,7 +1889,7 @@ ${servingsNote}
           userId,
           firstWeekStart,
         );
-        const shouldOverwrite = text.includes('đổi') || text.includes('thay');
+        const shouldOverwrite = text.includes('Ä‘á»•i') || text.includes('thay');
 
         for (const [weekStart, selections] of groupedSelections.entries()) {
           const mealDates = selections.map((selection) =>
@@ -1887,13 +1930,13 @@ ${servingsNote}
 
         const dayNames = results.flatMap((item) => item.labels).join(', ');
         if (results.some((item) => item.result?.error)) {
-          responseText = `Không thể tạo thực đơn cho một số ngày: ${results.find((item) => item.result?.error)?.result?.error}`;
+          responseText = `KhÃ´ng thá»ƒ táº¡o thá»±c Ä‘Æ¡n cho má»™t sá»‘ ngÃ y: ${results.find((item) => item.result?.error)?.result?.error}`;
         } else {
           const mealNamesMap: Record<string, string> = {
-            breakfast: 'Bữa sáng',
-            lunch: 'Bữa trưa',
-            dinner: 'Bữa tối',
-            snack: 'Bữa phụ',
+            breakfast: 'Bá»¯a sÃ¡ng',
+            lunch: 'Bá»¯a trÆ°a',
+            dinner: 'Bá»¯a tá»‘i',
+            snack: 'Bá»¯a phá»¥',
           };
           const keptMeals = new Set<string>();
           const addedMeals = new Set<string>();
@@ -1925,32 +1968,32 @@ ${servingsNote}
                   afterItem &&
                   beforeItem.recipe.id === afterItem.recipe.id
                 ) {
-                  keptMeals.add(`✓ ${mealNamesMap[mealType]}`);
+                  keptMeals.add(`âœ“ ${mealNamesMap[mealType]}`);
                 } else if (!beforeItem && afterItem) {
-                  addedMeals.add(`✓ ${mealNamesMap[mealType]}`);
+                  addedMeals.add(`âœ“ ${mealNamesMap[mealType]}`);
                 }
               }
             }
           }
 
-          responseText = `🎉 **Thành công!** Tôi đã tự động lên thực đơn cho các ngày: ${dayNames}.\n\n`;
+          responseText = `ðŸŽ‰ **ThÃ nh cÃ´ng!** TÃ´i Ä‘Ã£ tá»± Ä‘á»™ng lÃªn thá»±c Ä‘Æ¡n cho cÃ¡c ngÃ y: ${dayNames}.\n\n`;
           if (keptMeals.size > 0) {
-            responseText += `Đã giữ nguyên:\n${Array.from(keptMeals)
+            responseText += `ÄÃ£ giá»¯ nguyÃªn:\n${Array.from(keptMeals)
               .map((m) => `- ${m}`)
               .join('\n')}\n\n`;
           }
           if (addedMeals.size > 0) {
-            responseText += `Đã thêm:\n${Array.from(addedMeals)
+            responseText += `ÄÃ£ thÃªm:\n${Array.from(addedMeals)
               .map((m) => `- ${m}`)
               .join('\n')}\n\n`;
           }
-          responseText += `Không có món nào bị thay thế. Bạn có thể xem chi tiết ở trang Lịch Ăn nhé! 📅`;
+          responseText += `KhÃ´ng cÃ³ mÃ³n nÃ o bá»‹ thay tháº¿. Báº¡n cÃ³ thá»ƒ xem chi tiáº¿t á»Ÿ trang Lá»‹ch Ä‚n nhÃ©! ðŸ“…`;
         }
       }
     } else if (
       text.includes('calo') ||
       text.includes('tdee') ||
-      text.includes('cơ thể')
+      text.includes('cÆ¡ thá»ƒ')
     ) {
       actionTaken = { name: 'calculate_calories', args: {} };
       const res = await this.actionHandler.handleAction(
@@ -1959,8 +2002,8 @@ ${servingsNote}
         userId,
       );
       actionTaken.result = res;
-      responseText = res.message || 'Không thể tính toán calo';
-    } else if (text.includes('thực đơn') || text.includes('meal plan')) {
+      responseText = res.message || 'KhÃ´ng thá»ƒ tÃ­nh toÃ¡n calo';
+    } else if (text.includes('thá»±c Ä‘Æ¡n') || text.includes('meal plan')) {
       actionTaken = { name: 'get_meal_plan', args: {} };
       const res = await this.actionHandler.handleAction(
         'get_meal_plan',
@@ -1972,35 +2015,35 @@ ${servingsNote}
         responseText = res.message;
       } else {
         responseText =
-          `Thực đơn tuần này của bạn:\n` +
+          `Thá»±c Ä‘Æ¡n tuáº§n nÃ y cá»§a báº¡n:\n` +
           res.items
             .slice(0, 6)
             .map(
               (i: any) =>
-                `- **${i.dayLabel}** (${i.mealType === 'breakfast' ? 'Sáng' : i.mealType === 'lunch' ? 'Trưa' : 'Tối'}): ${i.recipe ? i.recipe.name : 'Chưa lên món'}`,
+                `- **${i.dayLabel}** (${i.mealType === 'breakfast' ? 'SÃ¡ng' : i.mealType === 'lunch' ? 'TrÆ°a' : 'Tá»‘i'}): ${i.recipe ? i.recipe.name : 'ChÆ°a lÃªn mÃ³n'}`,
             )
             .join('\n') +
-          `\n\nTổng calo cả tuần: ${res.totalCalories} kcal.`;
+          `\n\nTá»•ng calo cáº£ tuáº§n: ${res.totalCalories} kcal.`;
       }
     } else {
       responseText =
-        `🤖 **Xin chào! Tôi là MealAI Assistant.** Dưới đây là các lệnh tôi hiểu:\n\n` +
-        `🗓️ **Thực đơn:**\n` +
-        `- "Tạo thực đơn cho hôm nay" — tạo thực đơn một ngày\n` +
-        `- "Tạo cả 3 bữa hôm nay" — đặt đủ sáng, trưa, tối\n` +
-        `- "Tạo thực đơn cả tuần" — lập kế hoạch tuần\n` +
-        `- "Xem thực đơn" — hiển thị lịch ăn hiện tại\n\n` +
-        `🍲 **Món ăn:**\n` +
-        `- "Gợi ý bữa trưa" / "Gợi ý sáng nay" — nhận gợi ý món ăn\n` +
-        `- "Thêm vài món vô" / "Thêm nữa" — tự động điền các bữa còn trống\n` +
-        `- "sáng" / "trưa" / "tối" — thêm món AI gợi ý vào bữa đó hôm nay\n` +
-        `- "Món ăn lành mạnh" / "Healthy" / "ít calo" — gợi ý < 400 kcal\n` +
-        `- "Thêm món [tên món] bữa sáng" — thêm món cụ thể\n\n` +
-        `🧀 **Nguyên liệu & Mua sắm:**\n` +
-        `- "Tủ lạnh còn gì" — kiểm tra kho nguyên liệu\n` +
-        `- "Lập danh sách đi chợ" / "Mua sắm" — tạo shopping list\n\n` +
-        `⚖️ **Sức khỏe:**\n` +
-        `- "Tính calo / TDEE" — tính nhu cầu năng lượng hàng ngày`;
+        `ðŸ¤– **Xin chÃ o! TÃ´i lÃ  MealAI Assistant.** DÆ°á»›i Ä‘Ã¢y lÃ  cÃ¡c lá»‡nh tÃ´i hiá»ƒu:\n\n` +
+        `ðŸ—“ï¸ **Thá»±c Ä‘Æ¡n:**\n` +
+        `- "Táº¡o thá»±c Ä‘Æ¡n cho hÃ´m nay" â€” táº¡o thá»±c Ä‘Æ¡n má»™t ngÃ y\n` +
+        `- "Táº¡o cáº£ 3 bá»¯a hÃ´m nay" â€” Ä‘áº·t Ä‘á»§ sÃ¡ng, trÆ°a, tá»‘i\n` +
+        `- "Táº¡o thá»±c Ä‘Æ¡n cáº£ tuáº§n" â€” láº­p káº¿ hoáº¡ch tuáº§n\n` +
+        `- "Xem thá»±c Ä‘Æ¡n" â€” hiá»ƒn thá»‹ lá»‹ch Äƒn hiá»‡n táº¡i\n\n` +
+        `ðŸ² **MÃ³n Äƒn:**\n` +
+        `- "Gá»£i Ã½ bá»¯a trÆ°a" / "Gá»£i Ã½ sÃ¡ng nay" â€” nháº­n gá»£i Ã½ mÃ³n Äƒn\n` +
+        `- "ThÃªm vÃ i mÃ³n vÃ´" / "ThÃªm ná»¯a" â€” tá»± Ä‘á»™ng Ä‘iá»n cÃ¡c bá»¯a cÃ²n trá»‘ng\n` +
+        `- "sÃ¡ng" / "trÆ°a" / "tá»‘i" â€” thÃªm mÃ³n AI gá»£i Ã½ vÃ o bá»¯a Ä‘Ã³ hÃ´m nay\n` +
+        `- "MÃ³n Äƒn lÃ nh máº¡nh" / "Healthy" / "Ã­t calo" â€” gá»£i Ã½ < 400 kcal\n` +
+        `- "ThÃªm mÃ³n [tÃªn mÃ³n] bá»¯a sÃ¡ng" â€” thÃªm mÃ³n cá»¥ thá»ƒ\n\n` +
+        `ðŸ§€ **NguyÃªn liá»‡u & Mua sáº¯m:**\n` +
+        `- "Tá»§ láº¡nh cÃ²n gÃ¬" â€” kiá»ƒm tra kho nguyÃªn liá»‡u\n` +
+        `- "Láº­p danh sÃ¡ch Ä‘i chá»£" / "Mua sáº¯m" â€” táº¡o shopping list\n\n` +
+        `âš–ï¸ **Sá»©c khá»e:**\n` +
+        `- "TÃ­nh calo / TDEE" â€” tÃ­nh nhu cáº§u nÄƒng lÆ°á»£ng hÃ ng ngÃ y`;
     }
 
     const assistantMsg = this.chatMessageRepo.create({
@@ -2012,18 +2055,28 @@ ${servingsNote}
             action: actionTaken.name,
             result: actionTaken.result,
             args: actionTaken.args,
+            profileCompletionStatus: profileStatus.status,
+            profileAction,
           }
-        : null,
+        : {
+            profileCompletionStatus: profileStatus.status,
+            profileAction,
+          },
     });
     await this.chatMessageRepo.save(assistantMsg);
 
-    return { text: responseText, actionTaken };
+    return {
+      text: responseText,
+      actionTaken,
+      profileCompletionStatus: profileStatus.status,
+      profileAction,
+    };
   }
 
   private parseMealTypeFromText(text: string): string {
-    if (text.includes('sáng') || text.includes('breakfast')) return 'breakfast';
-    if (text.includes('tối') || text.includes('dinner')) return 'dinner';
-    if (text.includes('phụ') || text.includes('snack')) return 'snack';
+    if (text.includes('sÃ¡ng') || text.includes('breakfast')) return 'breakfast';
+    if (text.includes('tá»‘i') || text.includes('dinner')) return 'dinner';
+    if (text.includes('phá»¥') || text.includes('snack')) return 'snack';
     return 'lunch';
   }
 
@@ -2061,34 +2114,34 @@ ${servingsNote}
       if (!isNaN(parsedDate.getTime())) {
         addSelection(
           parsedDate,
-          `ngày ${concreteDateMatch[1]}-${concreteDateMatch[2]}-${concreteDateMatch[3]}`,
+          `ngÃ y ${concreteDateMatch[1]}-${concreteDateMatch[2]}-${concreteDateMatch[3]}`,
         );
       }
     }
 
     const today = this.dateOnly(new Date());
-    if (text.includes('hôm nay') || /\bnay\b/.test(text)) {
-      addSelection(today, 'hôm nay');
+    if (text.includes('hÃ´m nay') || /\bnay\b/.test(text)) {
+      addSelection(today, 'hÃ´m nay');
     }
-    if (text.includes('ngày mai') || /\bmai\b/.test(text)) {
+    if (text.includes('ngÃ y mai') || /\bmai\b/.test(text)) {
       const tomorrow = this.addDays(today, 1);
-      addSelection(tomorrow, 'ngày mai');
+      addSelection(tomorrow, 'ngÃ y mai');
     }
-    if (text.includes('ngày kia') || text.includes('mốt')) {
+    if (text.includes('ngÃ y kia') || text.includes('má»‘t')) {
       const nextTwoDays = this.addDays(today, 2);
-      addSelection(nextTwoDays, 'ngày kia');
+      addSelection(nextTwoDays, 'ngÃ y kia');
     }
 
     const weekdays = [
-      { day: 1, label: 'Thứ Hai', patterns: ['thứ hai', 'thứ 2', 't2'] },
-      { day: 2, label: 'Thứ Ba', patterns: ['thứ ba', 'thứ 3', 't3'] },
-      { day: 3, label: 'Thứ Tư', patterns: ['thứ tư', 'thứ 4', 't4'] },
-      { day: 4, label: 'Thứ Năm', patterns: ['thứ năm', 'thứ 5', 't5'] },
-      { day: 5, label: 'Thứ Sáu', patterns: ['thứ sáu', 'thứ 6', 't6'] },
-      { day: 6, label: 'Thứ Bảy', patterns: ['thứ bảy', 'thứ 7', 't7'] },
-      { day: 7, label: 'Chủ Nhật', patterns: ['chủ nhật', 'cn'] },
+      { day: 1, label: 'Thá»© Hai', patterns: ['thá»© hai', 'thá»© 2', 't2'] },
+      { day: 2, label: 'Thá»© Ba', patterns: ['thá»© ba', 'thá»© 3', 't3'] },
+      { day: 3, label: 'Thá»© TÆ°', patterns: ['thá»© tÆ°', 'thá»© 4', 't4'] },
+      { day: 4, label: 'Thá»© NÄƒm', patterns: ['thá»© nÄƒm', 'thá»© 5', 't5'] },
+      { day: 5, label: 'Thá»© SÃ¡u', patterns: ['thá»© sÃ¡u', 'thá»© 6', 't6'] },
+      { day: 6, label: 'Thá»© Báº£y', patterns: ['thá»© báº£y', 'thá»© 7', 't7'] },
+      { day: 7, label: 'Chá»§ Nháº­t', patterns: ['chá»§ nháº­t', 'cn'] },
     ];
-    const forceNextWeek = text.includes('tuần sau');
+    const forceNextWeek = text.includes('tuáº§n sau');
     const currentWeekStart = this.parseDateInput(this.getMondayString(today));
 
     for (const weekday of weekdays) {
@@ -2100,7 +2153,7 @@ ${servingsNote}
       }
       addSelection(
         date,
-        forceNextWeek ? `${weekday.label} tuần sau` : weekday.label,
+        forceNextWeek ? `${weekday.label} tuáº§n sau` : weekday.label,
       );
     }
 
@@ -2109,19 +2162,19 @@ ${servingsNote}
 
   private cleanRecipeQuery(text: string): string {
     return text
-      .replace(/thêm món/gi, '')
-      .replace(/thêm vào thực đơn/gi, '')
-      .replace(/lên món/gi, '')
-      .replace(/chọn món/gi, '')
-      .replace(/thêm/gi, '')
-      .replace(/vào/gi, '')
-      .replace(/thực đơn/gi, '')
-      .replace(/bữa/gi, '')
-      .replace(/sáng|trưa|tối|phụ/gi, '')
-      .replace(/hôm nay|ngày mai|ngày kia|tuần sau|mai|mốt/gi, '')
-      .replace(/thứ\s+\w+/gi, '')
-      .replace(/thứ\s+\d+/gi, '')
-      .replace(/chủ nhật/gi, '')
+      .replace(/thÃªm mÃ³n/gi, '')
+      .replace(/thÃªm vÃ o thá»±c Ä‘Æ¡n/gi, '')
+      .replace(/lÃªn mÃ³n/gi, '')
+      .replace(/chá»n mÃ³n/gi, '')
+      .replace(/thÃªm/gi, '')
+      .replace(/vÃ o/gi, '')
+      .replace(/thá»±c Ä‘Æ¡n/gi, '')
+      .replace(/bá»¯a/gi, '')
+      .replace(/sÃ¡ng|trÆ°a|tá»‘i|phá»¥/gi, '')
+      .replace(/hÃ´m nay|ngÃ y mai|ngÃ y kia|tuáº§n sau|mai|má»‘t/gi, '')
+      .replace(/thá»©\s+\w+/gi, '')
+      .replace(/thá»©\s+\d+/gi, '')
+      .replace(/chá»§ nháº­t/gi, '')
       .replace(/\bt\d+\b/gi, '')
       .replace(/\bcn\b/gi, '')
       .replace(/cho/gi, '')

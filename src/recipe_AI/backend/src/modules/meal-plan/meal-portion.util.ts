@@ -17,15 +17,8 @@ export interface MealPortionWarningResult {
   message: string | null;
 }
 
-export function getMaxRecommendedDishes(servingsInput: number): number {
-  const servings = Math.max(1, Math.floor(Number(servingsInput) || 1));
-
-  if (servings <= 1) return 6;
-  if (servings <= 2) return 8;
-  if (servings <= 4) return 11;
-  if (servings <= 6) return 14;
-
-  return Math.ceil(servings * 2.5);
+export function getMaxRecommendedDishes(servingsInput?: number): number {
+  return 6;
 }
 
 export function getMaxDishesByServings(servings: number): number {

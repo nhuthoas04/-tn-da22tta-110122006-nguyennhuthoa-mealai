@@ -752,28 +752,6 @@ export default function MealPlannerPage() {
     router.push(`/recipes/${item.recipe.id}`);
   };
 
-  const handleToggleMealItem = async (item: any, mealDate: string, mealType: string, isConsumed: boolean) => {
-    if (!plan) return;
-    if (isPastMealDate(mealDate) || isPastMealSlot(weekStart, item.dayOfWeek - 1, mealType)) {
-      toast.error('Không thể thay đổi món ăn của ngày hoặc bữa đã qua. Bạn chỉ có thể xem chi tiết món.');
-      return;
-    }
-
-    try {
-      await mealPlanAPI.toggleConsume(plan.id, item.id, isConsumed);
-      if (isConsumed) {
-        toast.success(`Đã hoàn thành ${item.recipe?.name || 'bữa ăn'} & tự động trừ nguyên liệu tủ lạnh!`);
-      } else {
-        toast.success(`Đã hoàn tác hoàn thành ${item.recipe?.name || 'bữa ăn'} & hoàn lại nguyên liệu!`);
-      }
-      window.dispatchEvent(new CustomEvent('inventory-updated'));
-      loadPlan();
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái bữa ăn');
-    }
-  };
-
   const handlePrevWeek = () => {
     const d = parseDateInput(weekStart);
     d.setDate(d.getDate() - 7);
@@ -1146,19 +1124,6 @@ export default function MealPlannerPage() {
                                   onClick={() => handleMealItemClick(item)}
                                   className="group relative cursor-pointer rounded-brand-sm border border-brand-primary/20 bg-emerald-50/5 p-2 hover:bg-emerald-50/15 hover:border-brand-primary/45 transition-all shadow-brand-sm"
                                 >
-                                  {!isPastMealItemSlot && (
-                                    <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
-                                      <input
-                                        type="checkbox"
-                                        checked={!!item.isConsumed}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onChange={(e) => handleToggleMealItem(item, slotDate, meal.key, e.target.checked)}
-                                        className="w-3.5 h-3.5 rounded-full text-emerald-600 border-gray-300 focus:ring-emerald-500 cursor-pointer"
-                                        title="Đánh dấu hoàn thành bữa ăn"
-                                      />
-                                    </div>
-                                  )}
-
                                   <div className="flex items-center gap-2">
                                     {/* Recipe Image */}
                                     <Link href={`/recipes/${item.recipe?.id}`} className="shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -1601,9 +1566,9 @@ function isPastMealSlotByDate(dateString: string, mealType: string): boolean {
   if (dateString !== getTodayInputValue()) return false;
 
   const currentHour = new Date().getHours();
-  if (mealType === 'breakfast') return currentHour >= 10;
-  if (mealType === 'lunch') return currentHour >= 14;
-  if (mealType === 'dinner') return currentHour >= 21;
+  if (mealType === 'breakfast') return currentHour >= 8;
+  if (mealType === 'lunch') return currentHour >= 12;
+  if (mealType === 'dinner') return currentHour >= 19;
   return false;
 }
 function isPastSlotDate(startStr: string, dayOffset: number): boolean {
@@ -1616,9 +1581,9 @@ function isPastMealSlot(startStr: string, dayOffset: number, mealType: string): 
   if (slotDate > todayDate) return false;
 
   const currentHour = new Date().getHours();
-  if (mealType === 'breakfast') return currentHour >= 10;
-  if (mealType === 'lunch') return currentHour >= 14;
-  if (mealType === 'dinner') return currentHour >= 21;
+  if (mealType === 'breakfast') return currentHour >= 8;
+  if (mealType === 'lunch') return currentHour >= 12;
+  if (mealType === 'dinner') return currentHour >= 19;
   return false;
 }
 function isDayFullyPast(startStr: string, dayOffset: number): boolean {
@@ -1628,7 +1593,7 @@ function isDayFullyPast(startStr: string, dayOffset: number): boolean {
   if (slotDate > todayDate) return false;
 
   const currentHour = new Date().getHours();
-  return currentHour >= 21;
+  return currentHour >= 19;
 }
 function getMonday(d: Date): string {
   const target = new Date(d);

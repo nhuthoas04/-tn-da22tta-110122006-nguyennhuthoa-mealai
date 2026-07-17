@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Slide 7 - ERD MealAI</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      width: 1920px;
+      height: 1080px;
+      background: #f5fffa;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #164338;
+    }
+    .slide {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      padding: 34px 52px 42px;
+      background:
+        radial-gradient(circle at 10% 8%, rgba(16, 185, 129, 0.08), transparent 22%),
+        linear-gradient(180deg, #ffffff 0%, #f7fffb 100%);
+    }
+    .frame {
+      position: absolute;
+      inset: 26px 34px;
+      border: 4px solid #a7f3d0;
+      border-radius: 34px;
+      pointer-events: none;
+    }
+    h1 {
+      margin: 4px 0 4px;
+      text-align: center;
+      font-size: 46px;
+      line-height: 1.08;
+      color: #065f46;
+      font-weight: 900;
+      letter-spacing: .4px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 23px;
+      color: #4b665e;
+      margin-bottom: 18px;
+    }
+    .section-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      height: 42px;
+      padding: 0 18px;
+      border-radius: 16px;
+      background: #047857;
+      color: #fff;
+      font-weight: 900;
+      font-size: 22px;
+      box-shadow: 0 8px 18px rgba(4, 120, 87, .18);
+    }
+    .badge {
+      width: 25px;
+      height: 25px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #facc15;
+      color: #064e3b;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .main {
+      position: relative;
+      height: 636px;
+      border: 2px solid #bbf7d0;
+      border-radius: 24px;
+      background: rgba(255,255,255,.92);
+      padding: 18px 24px;
+      box-shadow: 0 12px 26px rgba(6, 95, 70, .08);
+    }
+    .main .section-title { position: absolute; left: 24px; top: 18px; }
+    .diagram {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      top: 70px;
+      bottom: 18px;
+    }
+    svg.lines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      z-index: 1;
+    }
+    .node {
+      position: absolute;
+      z-index: 2;
+      width: 238px;
+      border: 3px solid #34d399;
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: 0 10px 22px rgba(6, 95, 70, .11);
+      overflow: hidden;
+    }
+    .node.wide { width: 290px; }
+    .node.small { width: 216px; }
+    .node .head {
+      padding: 8px 12px;
+      text-align: center;
+      background: #047857;
+      color: white;
+      font-weight: 900;
+      font-size: 20px;
+      letter-spacing: .2px;
+    }
+    .node .body {
+      padding: 9px 16px 11px;
+      font-size: 17px;
+      line-height: 1.28;
+    }
+    .node .body b { color: #047857; }
+    .node .body div { white-space: nowrap; }
+    .group-label {
+      position: absolute;
+      z-index: 2;
+      height: 36px;
+      min-width: 260px;
+      display: grid;
+      place-items: center;
+      padding: 0 18px;
+      border-radius: 18px;
+      border: 2px solid #a7f3d0;
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .rel-text {
+      position: absolute;
+      z-index: 3;
+      color: #0f766e;
+      font-size: 17px;
+      font-weight: 800;
+      background: rgba(255,255,255,.82);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .extra-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .extra-card {
+      min-height: 230px;
+      border: 2px solid #bfdbfe;
+      border-radius: 24px;
+      background: #f8fbff;
+      padding: 18px 22px 20px;
+      box-shadow: 0 10px 22px rgba(30, 64, 175, .08);
+    }
+    .extra-card .section-title {
+      height: 38px;
+      background: #1d4ed8;
+      font-size: 20px;
+      border-radius: 14px;
+      box-shadow: none;
+    }
+    .extra-content {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .extra-item {
+      min-height: 50px;
+      border: 2px solid #bfdbfe;
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 9px 10px;
+      font-size: 15px;
+      line-height: 1.25;
+      color: #334155;
+    }
+    .extra-item b {
+      display: block;
+      color: #1d4ed8;
+      font-size: 16px;
+      margin-bottom: 2px;
+    }
+    .note { display: none; }
+  </style>
+</head>
+<body>
+  <main class="slide">
+    <div class="frame"></div>
+    <h1>ERD TỔNG QUAN HỆ THỐNG MEALAI</h1>
+    <div class="subtitle">Mô hình cơ sở dữ liệu PostgreSQL phục vụ người dùng, công thức, tủ lạnh, thực đơn, mua sắm và AI</div>
+
+    <section class="main">
+      <div class="section-title"><span class="badge">1</span> Nhóm bảng nghiệp vụ chính</div>
+      <div class="diagram">
+        <svg class="lines" viewBox="0 0 1760 560" preserveAspectRatio="none">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8.8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f766e"></path>
+            </marker>
+          </defs>
+          <path d="M 260 142 C 455 120 515 135 650 145" stroke="#0f766e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+          <path d="M 260 142 C 430 210 505 278 605 308" stroke="#0f766e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+          <path d="M 260 170 L 260 254" stroke="#0f766e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+          <path d="M 260 370 L 260 456" stroke="#0f766e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+          <path d="M 885 142 C 1085 130 1175 135 1302 145" stroke="#0f766e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+          <path d="M 785 245 C 775 280 740 320 718 348" stroke="#0f766e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+          <path d="M 825 245 C 880 310 945 347 1035 375" stroke="#0f766e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+          <path d="M 1535 245 C 1510 282 1488 323 1474 352" stroke="#0f766e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+          <path d="M 1488 470 C 1435 505 1398 520 1324 520" stroke="#0f766e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+          <path d="M 1065 470 C 1120 500 1165 515 1232 520" stroke="#0f766e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+        </svg>
+
+        <div class="group-label" style="left:20px; top:0">Người dùng & cá nhân hóa</div>
+        <div class="group-label" style="left:675px; top:0">Công thức & nguyên liệu</div>
+        <div class="group-label" style="right:20px; top:0">Thực đơn & mua sắm</div>
+
+        <div class="node" style="left:80px; top:72px">
+          <div class="head">USERS</div>
+          <div class="body">
+            <div><b>PK</b> id</div>
+            <div>email, fullName</div>
+            <div>role, TDEE</div>
+            <div>emailVerified</div>
+          </div>
+        </div>
+        <div class="node wide" style="left:60px; top:260px">
+          <div class="head">USER_PREFERENCES</div>
+          <div class="body">
+            <div><b>FK</b> userId</div>
+            <div>dietType, allergies</div>
+            <div>healthConditions</div>
+            <div>servings</div>
+          </div>
+        </div>
+        <div class="node" style="left:80px; top:414px">
+          <div class="head">INVENTORY</div>
+          <div class="body">
+            <div><b>FK</b> userId, ingredientId</div>
+            <div>quantity, unit</div>
+            <div>purchaseDate, expiryDate</div>
+          </div>
+        </div>
+
+        <div class="node wide" style="left:650px; top:72px">
+          <div class="head">RECIPES</div>
+          <div class="body">
+            <div><b>PK</b> id</div>
+            <div>name, cookingTime</div>
+            <div>calories, protein, carbs, fat</div>
+            <div>steps, mealType, status</div>
+          </div>
+        </div>
+        <div class="node" style="left:562px; top:270px">
+          <div class="head">INGREDIENTS</div>
+          <div class="body">
+            <div><b>PK</b> id</div>
+            <div>name, category</div>
+            <div>unit, calories</div>
+          </div>
+        </div>
+        <div class="node wide" style="left:920px; top:270px">
+          <div class="head">RECIPE_INGREDIENTS</div>
+          <div class="body">
+            <div><b>FK</b> recipeId</div>
+            <div><b>FK</b> ingredientId</div>
+            <div>quantity, unit</div>
+          </div>
+        </div>
+        <div class="node wide" style="left:530px; top:414px">
+          <div class="head">RATINGS / FAVORITES</div>
+          <div class="body">
+            <div><b>FK</b> userId, recipeId</div>
+            <div>rating, review</div>
+            <div>isFlagged, moderationStatus</div>
+          </div>
+        </div>
+
+        <div class="node wide" style="right:90px; top:72px">
+          <div class="head">MEAL_PLANS</div>
+          <div class="body">
+            <div><b>FK</b> userId</div>
+            <div>weekStart, weekEnd</div>
+            <div>totalCalories</div>
+            <div>isAutoGenerated, status</div>
+          </div>
+        </div>
+        <div class="node wide" style="right:120px; top:270px">
+          <div class="head">MEAL_PLAN_ITEMS</div>
+          <div class="body">
+            <div><b>FK</b> mealPlanId, recipeId</div>
+            <div>mealDate, mealType</div>
+            <div>calories, isLocked</div>
+          </div>
+        </div>
+        <div class="node wide" style="right:60px; top:414px">
+          <div class="head">SHOPPING_LISTS</div>
+          <div class="body">
+            <div><b>FK</b> userId, mealPlanId</div>
+            <div>name, status</div>
+            <div>createdAt, updatedAt</div>
+          </div>
+        </div>
+        <div class="node wide" style="left:1030px; top:414px">
+          <div class="head">SHOPPING_LIST_ITEMS</div>
+          <div class="body">
+            <div><b>FK</b> shoppingListId</div>
+            <div><b>FK</b> ingredientId</div>
+            <div>quantityNeeded, needToBuy</div>
+          </div>
+        </div>
+
+        <div class="rel-text" style="left:470px; top:120px">đóng góp</div>
+        <div class="rel-text" style="left:398px; top:300px">đánh giá / yêu thích</div>
+        <div class="rel-text" style="left:1075px; top:122px">lập</div>
+        <div class="rel-text" style="left:785px; top:246px">liên kết</div>
+        <div class="rel-text" style="left:1015px; top:246px">gồm</div>
+        <div class="rel-text" style="right:238px; top:246px">chứa</div>
+      </div>
+    </section>
+
+    <div class="extra-row">
+      <section class="extra-card">
+        <div class="section-title"><span class="badge">2</span> Kiểm duyệt, lịch sử & phân bổ nguyên liệu</div>
+        <div class="extra-content">
+          <div class="extra-item"><b>RECIPE_MODERATION_AUDITS</b> Lưu kiểm duyệt công thức, chất lượng và trùng lặp.</div>
+          <div class="extra-item"><b>RECIPE_VIEWS</b> Lưu lượt xem, viewerKey và userAgent.</div>
+          <div class="extra-item"><b>RECIPE_EDIT_HISTORY</b> Lưu lịch sử chỉnh sửa công thức.</div>
+          <div class="extra-item"><b>ADMIN_NOTIFICATIONS</b> Cảnh báo nội dung cần quản trị xử lý.</div>
+          <div class="extra-item"><b>INVENTORY_ALLOCATIONS</b> Ghi nhận nguyên liệu tủ lạnh đã phân bổ cho thực đơn/mua sắm.</div>
+          <div class="extra-item"><b>Liên kết chính</b> Recipes, Users, Ratings, Inventory và Shopping Lists.</div>
+        </div>
+      </section>
+
+      <section class="extra-card">
+        <div class="section-title"><span class="badge">3</span> Xác thực, chatbot & phân tích dinh dưỡng</div>
+        <div class="extra-content">
+          <div class="extra-item"><b>PASSWORD_RESET_TOKENS</b> Token hash đặt lại mật khẩu, hạn dùng và trạng thái.</div>
+          <div class="extra-item"><b>CHAT_MESSAGES</b> Lưu hội thoại giữa user và Chatbot MealAI.</div>
+          <div class="extra-item"><b>USER_ACTION_LOGS</b> Lưu hành động chatbot/AI đã thực hiện.</div>
+          <div class="extra-item"><b>NOTIFICATIONS</b> Thông báo cho người dùng và admin.</div>
+          <div class="extra-item"><b>WEEKLY_NUTRITION_ANALYSES</b> Phân tích calories, macro và điểm dinh dưỡng tuần.</div>
+          <div class="extra-item"><b>Liên kết chính</b> Users, Recipes, Meal Plans và Nutrition Insights.</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="note">
+      <span>PK = khóa chính, FK = khóa ngoại. Các bảng phụ được tách nhóm để slide dễ đọc hơn.</span>
+      <span>MealAI Database · Slide 7</span>
+    </div>
+  </main>
+</body>
+</html>

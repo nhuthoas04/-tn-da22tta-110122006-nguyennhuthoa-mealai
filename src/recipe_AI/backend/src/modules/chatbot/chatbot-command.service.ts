@@ -8,6 +8,11 @@ import { ChatMessage } from './entities/chat-message.entity';
 import { User } from '../auth/entities/user.entity';
 import { getMaxRecommendedDishes } from '../meal-plan/meal-portion.util';
 import {
+  getProfileCompletion,
+  getProfileUpdateAction,
+  ProfileCompletionResult,
+} from './profile-completion.util';
+import {
   ChatbotCommandResponse,
   ChatbotConversationContext,
   ChatbotEntities,
@@ -120,8 +125,17 @@ export class ChatbotCommandService {
 
     const detection = this.intentService.detect(message, context);
     if (detection.intent === 'UNKNOWN') {
+      const profileCompletion = await this.getProfileCompletion(userId);
+      if (this.requiresProfileAwareAdvice(detection.intent, message) && profileCompletion.status === 'incomplete') {
+        return this.saveResponse(
+          userId,
+          message,
+          this.buildIncompleteProfileResponse(detection.intent, detection.entities, profileCompletion),
+          { ...context, lastAction: detection.intent },
+        );
+      }
       const aiAvailable = this.aiService.isAIAvailable();
-      const aiResult = await this.aiService.sendMessage(userId, message);
+      const aiResult = await this.aiService.sendMessage(userId, message, profileCompletion);
       return {
         success: true,
         text: aiAvailable
@@ -132,6 +146,8 @@ export class ChatbotCommandService {
         data: aiResult.actionTaken?.result,
         actionTaken: aiResult.actionTaken,
         fallbackMode: !aiAvailable,
+        profileCompletionStatus: aiResult.profileCompletionStatus,
+        profileAction: aiResult.profileAction,
         nextAction: 'NONE',
       };
     }
@@ -168,6 +184,22 @@ export class ChatbotCommandService {
     context: ChatbotConversationContext,
   ): Promise<ChatbotCommandResponse> {
     const enriched = this.applyContextDefaults(intent, entities, context);
+    const profileCompletion = this.requiresProfileAwareAdvice(intent, message)
+      ? await this.getProfileCompletion(userId)
+      : null;
+    if (profileCompletion?.status === 'incomplete') {
+      return this.saveResponse(
+        userId,
+        message,
+        this.buildIncompleteProfileResponse(intent, enriched, profileCompletion),
+        {
+          ...context,
+          pendingConfirmation: undefined,
+          pendingQuestion: undefined,
+          lastAction: intent,
+        },
+      );
+    }
     const readonlyMessage = this.getReadonlyMutationMessage(intent, enriched);
     if (readonlyMessage) {
       return this.saveResponse(
@@ -287,6 +319,19 @@ export class ChatbotCommandService {
         targetRoute: executed.targetRoute,
         fallbackMode: !this.aiService.isAIAvailable(),
       };
+      if (profileCompletion?.status === 'partial') {
+        response.text =
+          `${this.buildPartialProfileNotice(profileCompletion)}\n\n${response.text}`;
+        response.message = response.text;
+        response.profileCompletionStatus = 'partial';
+        response.profileAction = getProfileUpdateAction();
+        response.quickActions = [
+          ...(response.quickActions || []),
+          { label: 'Cập nhật hồ sơ cá nhân', type: 'navigate', route: '/profile' },
+        ];
+      } else if (profileCompletion?.status === 'complete') {
+        response.profileCompletionStatus = 'complete';
+      }
       if (!this.aiService.isAIAvailable()) {
         response.text +=
           '\n\nAI đang tạm thời không khả dụng. MealAI đang dùng chế độ lệnh cơ bản.';
@@ -823,6 +868,8 @@ export class ChatbotCommandService {
         nextAction: response.nextAction,
         targetRoute: response.targetRoute,
         fallbackMode: response.fallbackMode,
+        profileCompletionStatus: response.profileCompletionStatus,
+        profileAction: response.profileAction,
         context,
       },
     });
@@ -854,6 +901,73 @@ export class ChatbotCommandService {
             ? result.data
             : [];
     return source.map((item: any) => item?.recipe || item).filter((item: any) => item?.id);
+  }
+
+  private async getProfileCompletion(userId: string): Promise<ProfileCompletionResult> {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+      relations: ['preferences'],
+    });
+    return getProfileCompletion(user);
+  }
+
+  private requiresProfileAwareAdvice(intent: ChatbotIntent, message: string): boolean {
+    const profileAwareIntents: ChatbotIntent[] = [
+      'SUGGEST_RECIPE',
+      'SUGGEST_BY_INGREDIENTS',
+      'CREATE_MEAL_PLAN',
+      'CHECK_NUTRITION',
+      'ANALYZE_MEAL_PLAN',
+    ];
+    if (profileAwareIntents.includes(intent)) return true;
+
+    const text = this.normalize(message);
+    return (
+      text.includes('goi y') ||
+      text.includes('nen an') ||
+      text.includes('an gi') ||
+      text.includes('tao thuc don') ||
+      text.includes('lap thuc don') ||
+      text.includes('du calo') ||
+      text.includes('calo') ||
+      text.includes('tdee') ||
+      text.includes('dinh duong') ||
+      text.includes('phu hop voi toi') ||
+      text.includes('bua sang') ||
+      text.includes('bua trua') ||
+      text.includes('bua toi')
+    );
+  }
+
+  private buildIncompleteProfileResponse(
+    intent: ChatbotIntent,
+    entities: ChatbotEntities,
+    profile: ProfileCompletionResult,
+  ): ChatbotCommandResponse {
+    const missing = profile.missingFields.slice(0, 5).join(', ');
+    const text =
+      'Hiện tại bạn chưa cập nhật đầy đủ thông tin cá nhân nên mình chưa thể tính chính xác nhu cầu calo và dinh dưỡng riêng cho bạn.\n\n' +
+      'Mình sẽ gợi ý theo mức phổ thông: bữa ăn nên có tinh bột, đạm và rau để cân bằng hơn. Bạn có thể tham khảo: Cơm gà luộc, Cá basa chiên sả, Canh bí đỏ thịt bằm, Thịt bò xào bông cải hoặc Đậu hũ sốt cà chua.\n\n' +
+      `Để MealAI gợi ý chính xác hơn, hãy cập nhật thêm: ${missing || 'hồ sơ cá nhân và mục tiêu sức khỏe'}.`;
+
+    return {
+      success: true,
+      text,
+      message: text,
+      intent,
+      entities,
+      nextAction: 'NONE',
+      profileCompletionStatus: 'incomplete',
+      profileAction: getProfileUpdateAction(),
+      quickActions: [
+        { label: 'Cập nhật hồ sơ cá nhân', type: 'navigate', route: '/profile' },
+      ],
+    };
+  }
+
+  private buildPartialProfileNotice(profile: ProfileCompletionResult): string {
+    const missing = profile.missingFields.slice(0, 4).join(', ');
+    return `Hồ sơ cá nhân của bạn mới có một phần thông tin, nên phần calo/dinh dưỡng dưới đây chỉ mang tính tham khảo. Để cá nhân hóa chính xác hơn, hãy bổ sung: ${missing || 'thông tin hồ sơ còn thiếu'}.`;
   }
 
   private mealLabel(mealType?: string): string {

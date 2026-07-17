@@ -93,6 +93,7 @@ export const authAPI = {
 // ==================== RECIPES API ====================
 export const recipesAPI = {
     getAll: (params?: any) => api.get('/recipes', { params }),
+    getPublicStats: () => api.get('/recipes/public/stats'),
     getById: (id: string) => api.get(`/recipes/${id}`),
     getMyReviews: (params?: any) => api.get('/recipes/my-reviews', { params }),
     // User submission
@@ -233,8 +234,6 @@ export const mealPlanAPI = {
         }),
     toggleLock: (planId: string, itemId: string, isLocked: boolean) =>
         api.patch(`/meal-plans/${planId}/items/${itemId}/lock`, { isLocked }),
-    toggleConsume: (planId: string, itemId: string, isConsumed: boolean) =>
-        api.patch(`/meal-plans/${planId}/items/${itemId}/consume`, { isConsumed }),
     delete: (planId: string) =>
         invalidateMealPlanAfter(api.delete(`/meal-plans/${planId}`), {
             mutation: 'delete-plan',

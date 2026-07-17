@@ -19,6 +19,9 @@ import { RecipeEditHistory } from './entities/recipe-edit-history.entity';
 import { RecipeModerationAudit } from './entities/recipe-moderation-audit.entity';
 import { NotificationService } from '../notification/notification.service';
 import { EmailService } from '../notification/email.service';
+import { User } from '../auth/entities/user.entity';
+import { MealPlan } from '../meal-plan/entities/meal-plan.entity';
+import { UserActionLog } from '../chatbot/entities/user-action-log.entity';
 import {
   normalizeRecipeForRead,
   normalizeRecipeIngredients,
@@ -42,6 +45,10 @@ export class RecipesService implements OnModuleInit {
     private editHistoryRepo: Repository<RecipeEditHistory>,
     @InjectRepository(RecipeModerationAudit)
     private auditRepo: Repository<RecipeModerationAudit>,
+    @InjectRepository(User) private userRepo: Repository<User>,
+    @InjectRepository(MealPlan) private mealPlanRepo: Repository<MealPlan>,
+    @InjectRepository(UserActionLog)
+    private userActionLogRepo: Repository<UserActionLog>,
     private readonly ratingService: RecipeRatingService,
     private readonly notificationService: NotificationService,
     private readonly emailService: EmailService,
@@ -933,6 +940,23 @@ export class RecipesService implements OnModuleInit {
   }
 
   // ==================== ADMIN: STATS ====================
+
+  async getPublicStats() {
+    const [totalRecipes, totalMealPlans, totalAiActions, totalUsers] =
+      await Promise.all([
+        this.recipeRepo.count({ where: { status: 'approved' } }),
+        this.mealPlanRepo.count(),
+        this.userActionLogRepo.count(),
+        this.userRepo.count(),
+      ]);
+
+    return {
+      totalRecipes,
+      totalMealPlans,
+      totalAiActions,
+      totalUsers,
+    };
+  }
 
   async getStats() {
     const [totalRecipes, pendingCount, approvedCount, rejectedCount] =

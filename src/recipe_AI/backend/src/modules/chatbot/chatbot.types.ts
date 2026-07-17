@@ -19,6 +19,7 @@ export const CHATBOT_INTENTS = [
 ] as const;
 
 export type ChatbotIntent = (typeof CHATBOT_INTENTS)[number];
+export type ProfileCompletionStatus = 'incomplete' | 'partial' | 'complete';
 
 export interface ChatbotEntities {
   date?: string;
@@ -103,6 +104,11 @@ export interface ChatbotCommandResponse {
   nextAction?: 'NAVIGATE' | 'CONFIRM' | 'ASK_CLARIFICATION' | 'NONE';
   targetRoute?: string;
   fallbackMode?: boolean;
+  profileCompletionStatus?: ProfileCompletionStatus;
+  profileAction?: {
+    label: string;
+    route: string;
+  };
 }
 
 export const EMPTY_CHATBOT_CONTEXT: ChatbotConversationContext = {

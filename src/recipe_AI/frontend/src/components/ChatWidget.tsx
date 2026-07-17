@@ -17,6 +17,17 @@ interface Message {
     result?: any;
     steps?: any[];
     args?: any;
+    profileCompletionStatus?: 'incomplete' | 'partial' | 'complete';
+    profileAction?: {
+      label?: string;
+      route?: string;
+    };
+    quickActions?: Array<{
+      label: string;
+      type?: string;
+      route?: string;
+      prompt?: string;
+    }>;
   };
   createdAt?: string;
 }
@@ -163,15 +174,6 @@ export default function ChatWidget() {
   const [loadingLabel, setLoadingLabel] = useState('AI đang xử lý yêu cầu...');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const suggestions = [
-    { text: 'Gợi ý ăn trưa', prompt: 'Gợi ý cho tôi món ăn trưa nay' },
-    { text: 'Tạo thực đơn hôm nay', prompt: 'Tạo thực đơn cả 3 bữa cho hôm nay' },
-    { text: 'Món ăn lành mạnh', prompt: 'Gợi ý các món ăn lành mạnh ít calo cho tôi' },
-    { text: 'Món chống lãng phí', prompt: 'Gợi ý món ăn dùng nguyên liệu sắp hết hạn trong tủ lạnh' },
-    { text: 'Tính TDEE & Calo', prompt: 'Tính lượng calo tiêu thụ hằng ngày (TDEE) của tôi' },
-    { text: 'Lập danh sách đi chợ', prompt: 'Tạo danh sách mua sắm cho thực đơn hôm nay' },
-  ];
-
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       fetchHistory();
@@ -250,12 +252,26 @@ export default function ChatWidget() {
     try {
       const res = await chatbotAPI.sendMessage(text);
       const actionTaken = normalizeActionMetadata(res.data.actionTaken);
+      const responseMetadata = normalizeActionMetadata({
+        ...(actionTaken || {}),
+        profileCompletionStatus: res.data.profileCompletionStatus,
+        profileAction: res.data.profileAction,
+        quickActions: res.data.quickActions,
+      });
+      const metadata =
+        responseMetadata?.name ||
+        responseMetadata?.profileCompletionStatus ||
+        responseMetadata?.profileAction ||
+        responseMetadata?.quickActions
+          ? responseMetadata
+          : undefined;
+
       setMessages((prev) => [
         ...prev,
         {
           role: 'model',
           content: res.data.text,
-          metadata: actionTaken,
+          metadata,
         },
       ]);
 
@@ -589,6 +605,21 @@ export default function ChatWidget() {
     }
   };
 
+  const renderProfileAction = (metadata: Message['metadata']): React.ReactNode => {
+    const action = metadata?.profileAction;
+    if (!action?.route) return null;
+
+    return (
+      <Link
+        href={action.route}
+        onClick={() => setIsOpen(false)}
+        className="mt-3 inline-flex items-center justify-center rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-100 transition hover:bg-emerald-500/20 hover:text-white"
+      >
+        {action.label || 'Cập nhật hồ sơ cá nhân'}
+      </Link>
+    );
+  };
+
   if (!user) return null;
 
   return (
@@ -688,6 +719,7 @@ export default function ChatWidget() {
                     </div>
 
                     {msg.role === 'model' && renderActionResult(msg.metadata)}
+                    {msg.role === 'model' && renderProfileAction(msg.metadata)}
 
                     {msg.role === 'model' && msg.metadata?.steps && msg.metadata.steps.length > 1 && (
                       <div className="mt-3 pt-2.5 border-t border-slate-700 text-[11px] text-slate-300">
@@ -728,19 +760,6 @@ export default function ChatWidget() {
               </div>
             )}
             <div ref={messagesEndRef} />
-          </div>
-
-          <div className="shrink-0 px-4 py-2 bg-slate-950 border-t border-slate-800 flex gap-2 overflow-x-auto scrollbar-none">
-            {suggestions.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => handleSend(s.prompt)}
-                disabled={loading}
-                className="whitespace-nowrap bg-slate-800 hover:bg-emerald-600 disabled:opacity-60 text-slate-100 hover:text-white border border-slate-600 hover:border-emerald-400 rounded-full px-3 py-1.5 text-xs font-bold shadow-sm transition cursor-pointer"
-              >
-                {s.text}
-              </button>
-            ))}
           </div>
 
           <div className="shrink-0 p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2">
